@@ -1,0 +1,10 @@
+.DS_Store
+outputs/
+backend/.venv/
+backend/.venv-paddle/
+backend/.paddlex-cache/
+backend/__pycache__/
+backend/*.pyc
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local

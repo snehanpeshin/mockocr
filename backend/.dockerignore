@@ -1,0 +1,7 @@
+.venv
+.venv-paddle
+__pycache__
+*.pyc
+.paddlex-cache
+.pytest_cache
+.DS_Store
