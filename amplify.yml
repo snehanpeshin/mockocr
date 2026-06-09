@@ -1,6 +1,9 @@
 version: 1
 applications:
   - appRoot: frontend
+    env:
+      variables:
+        NEXT_PUBLIC_API_BASE_URL: https://replace-with-your-app-runner-url
     frontend:
       phases:
         preBuild:
