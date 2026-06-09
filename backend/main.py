@@ -51,6 +51,11 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/")
+def root() -> dict[str, str]:
+    return {"status": "ok", "service": "mockocr-backend"}
+
+
 @app.post("/api/ocr")
 async def run_ocr(
     file: UploadFile = File(...),
