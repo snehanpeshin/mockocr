@@ -3,7 +3,7 @@ applications:
   - appRoot: frontend
     env:
       variables:
-        NEXT_PUBLIC_API_BASE_URL: https://replace-with-your-app-runner-url
+        NEXT_PUBLIC_API_BASE_URL: https://mo-9f59128d1e0048feab5efaaaa71df90c.ecs.us-east-1.on.aws
     frontend:
       phases:
         preBuild:
@@ -13,7 +13,7 @@ applications:
           commands:
             - npm run build
       artifacts:
-        baseDirectory: .next
+        baseDirectory: out
         files:
           - "**/*"
       cache:
