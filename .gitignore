@@ -6,5 +6,6 @@ backend/.paddlex-cache/
 backend/__pycache__/
 backend/*.pyc
 frontend/.next/
+frontend/out/
 frontend/node_modules/
 frontend/.env.local
