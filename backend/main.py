@@ -29,8 +29,10 @@ DEFAULT_FRONTEND_ORIGINS = [
 
 def _frontend_origins() -> list[str]:
     configured_origins = os.getenv("FRONTEND_ORIGINS", "")
-    origins = [origin.strip() for origin in configured_origins.split(",") if origin.strip()]
-    return origins or DEFAULT_FRONTEND_ORIGINS
+    origins = DEFAULT_FRONTEND_ORIGINS + [
+        origin.strip() for origin in configured_origins.split(",") if origin.strip()
+    ]
+    return list(dict.fromkeys(origins))
 
 app = FastAPI(title="Handwriting OCR API")
 
