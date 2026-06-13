@@ -10,6 +10,7 @@ import {
   RotateCcw,
   RotateCw,
   ScanText,
+  Search,
   SlidersHorizontal,
   Upload
 } from "lucide-react";
@@ -21,6 +22,16 @@ type OcrResponse = {
   text: string;
   provider: string;
   filename: string;
+  subject: string;
+};
+
+type SavedNote = {
+  id: string;
+  createdAt: string;
+  filename: string;
+  provider: string;
+  subject: string;
+  text: string;
 };
 
 type CropValues = {
@@ -36,6 +47,18 @@ type ImageAdjustments = {
   rotation: number;
 };
 
+const SUBJECTS = [
+  { label: "General", value: "general" },
+  { label: "Biology", value: "biology" },
+  { label: "Chemistry", value: "chemistry" },
+  { label: "Math", value: "math" },
+  { label: "Engineering", value: "engineering" },
+  { label: "Medicine", value: "medicine" },
+  { label: "Research", value: "research" }
+];
+
+const SAVED_NOTES_KEY = "pen2txt.savedNotes";
+
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -43,14 +66,43 @@ export default function Home() {
   const [crop, setCrop] = useState({ top: 0, right: 0, bottom: 0, left: 0 });
   const [rotation, setRotation] = useState(0);
   const [contrast, setContrast] = useState(112);
+  const [subject, setSubject] = useState("general");
   const [text, setText] = useState("");
   const [provider, setProvider] = useState<string | null>(null);
+  const [filename, setFilename] = useState<string | null>(null);
+  const [savedNotes, setSavedNotes] = useState<SavedNote[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const wordCount = useMemo(() => {
     return text.trim() ? text.trim().split(/\s+/).length : 0;
   }, [text]);
+
+  const filteredNotes = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) {
+      return savedNotes.slice(0, 8);
+    }
+
+    return savedNotes
+      .filter((note) => {
+        const haystack = `${note.filename} ${note.subject} ${note.text}`.toLowerCase();
+        return haystack.includes(query);
+      })
+      .slice(0, 8);
+  }, [savedNotes, searchQuery]);
+
+  useEffect(() => {
+    try {
+      const storedNotes = window.localStorage.getItem(SAVED_NOTES_KEY);
+      if (storedNotes) {
+        setSavedNotes(JSON.parse(storedNotes) as SavedNote[]);
+      }
+    } catch {
+      setSavedNotes([]);
+    }
+  }, []);
 
   useEffect(() => {
     let isCurrent = true;
@@ -96,6 +148,7 @@ export default function Home() {
     setFile(selectedFile);
     setText("");
     setProvider(null);
+    setFilename(null);
     setMessage(null);
     setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
     setRotation(0);
@@ -124,6 +177,7 @@ export default function Home() {
       : file;
     formData.append("file", fileForOcr);
     formData.append("provider", "textract");
+    formData.append("subject", subject);
     setIsScanning(true);
     setMessage(null);
 
@@ -141,6 +195,15 @@ export default function Home() {
       const data = (await response.json()) as OcrResponse;
       setText(data.text);
       setProvider(data.provider);
+      setFilename(data.filename);
+      saveNote({
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        filename: data.filename,
+        provider: data.provider,
+        subject: data.subject || subject,
+        text: data.text
+      });
       setMessage(`Scanned ${data.filename}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "OCR failed.");
@@ -179,6 +242,7 @@ export default function Home() {
     setFile(null);
     setText("");
     setProvider(null);
+    setFilename(null);
     setMessage(null);
     setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
     setRotation(0);
@@ -203,6 +267,22 @@ export default function Home() {
 
   function rotateRight() {
     setRotation((currentRotation) => (currentRotation + 90) % 360);
+  }
+
+  function saveNote(note: SavedNote) {
+    setSavedNotes((currentNotes) => {
+      const nextNotes = [note, ...currentNotes].slice(0, 30);
+      window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(nextNotes));
+      return nextNotes;
+    });
+  }
+
+  function openSavedNote(note: SavedNote) {
+    setText(note.text);
+    setProvider(note.provider);
+    setFilename(note.filename);
+    setSubject(note.subject);
+    setMessage(`Opened ${note.filename}`);
   }
 
   return (
@@ -312,6 +392,47 @@ export default function Home() {
               <span>{file.name}</span>
             </div>
           ) : null}
+
+          <label className="subject-select">
+            <span>Subject</span>
+            <select onChange={(event) => setSubject(event.target.value)} value={subject}>
+              {SUBJECTS.map((subjectOption) => (
+                <option key={subjectOption.value} value={subjectOption.value}>
+                  {subjectOption.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="saved-notes-panel">
+            <div className="saved-header">
+              <div>
+                <p className="eyebrow">Archive</p>
+                <h2>Search saved notes</h2>
+              </div>
+              <span>{savedNotes.length}</span>
+            </div>
+            <label className="search-box">
+              <Search aria-hidden="true" size={18} />
+              <input
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search notes"
+                value={searchQuery}
+              />
+            </label>
+            <div className="saved-list">
+              {filteredNotes.length ? (
+                filteredNotes.map((note) => (
+                  <button key={note.id} onClick={() => openSavedNote(note)} type="button">
+                    <strong>{note.filename}</strong>
+                    <span>{note.subject} · {new Date(note.createdAt).toLocaleDateString()}</span>
+                  </button>
+                ))
+              ) : (
+                <p>No saved notes yet.</p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="editor-panel">
@@ -341,6 +462,7 @@ export default function Home() {
           />
 
           {message ? <p className="message">{message}</p> : null}
+          {filename ? <p className="message">Current note: {filename}</p> : null}
         </div>
       </section>
     </main>

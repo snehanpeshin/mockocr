@@ -10,10 +10,14 @@ class OcrResult(dict):
     provider: str
 
 
-def extract_text(image_path: Path, provider_override: str | None = None) -> OcrResult:
+def extract_text(
+    image_path: Path,
+    provider_override: str | None = None,
+    subject: str = "general",
+) -> OcrResult:
     provider = (provider_override or os.getenv("OCR_PROVIDER", "mock")).lower()
     if provider in {"aws", "textract"}:
-        return _extract_with_textract(image_path)
+        return _extract_with_textract(image_path, subject)
 
     return {
         "provider": "mock",
@@ -25,7 +29,7 @@ def extract_text(image_path: Path, provider_override: str | None = None) -> OcrR
     }
 
 
-def _extract_with_textract(image_path: Path) -> OcrResult:
+def _extract_with_textract(image_path: Path, subject: str) -> OcrResult:
     try:
         import boto3
     except ImportError as exc:
@@ -45,25 +49,25 @@ def _extract_with_textract(image_path: Path) -> OcrResult:
     ]
 
     cleaned_text = clean_ocr_text("\n".join(lines))
-    enhanced_text, cleanup_provider = enhance_with_ai(cleaned_text)
+    enhanced_text, cleanup_provider = enhance_with_ai(cleaned_text, subject)
     provider = "textract" if cleanup_provider == "rules" else f"textract+{cleanup_provider}"
     return {"provider": provider, "text": enhanced_text}
 
 
-def enhance_with_ai(text: str) -> tuple[str, str]:
+def enhance_with_ai(text: str, subject: str = "general") -> tuple[str, str]:
     cleanup_provider = os.getenv("AI_CLEANUP_PROVIDER", "rules").lower()
     if cleanup_provider not in {"bedrock", "aws"} or not text.strip():
         return text, "rules"
 
     try:
-        return enhance_with_bedrock(text), "bedrock"
+        return enhance_with_bedrock(text, subject), "bedrock"
     except Exception:
         if os.getenv("AI_CLEANUP_STRICT", "false").lower() == "true":
             raise
         return text, "rules"
 
 
-def enhance_with_bedrock(text: str) -> str:
+def enhance_with_bedrock(text: str, subject: str) -> str:
     try:
         import boto3
     except ImportError as exc:
@@ -76,6 +80,7 @@ def enhance_with_bedrock(text: str) -> str:
     max_tokens = int(os.getenv("AI_CLEANUP_MAX_TOKENS", "1800"))
 
     client = boto3.client("bedrock-runtime", region_name=region)
+    subject_hint = normalize_subject(subject)
     response = client.converse(
         modelId=model_id,
         system=[
@@ -84,8 +89,9 @@ def enhance_with_bedrock(text: str) -> str:
                     "You clean OCR text from student handwritten notes. "
                     "Correct obvious OCR/spelling mistakes, preserve meaning, "
                     "turn headings and bullet-like lines into clean structure, "
+                    "preserve equations, units, symbols, names, and technical terms, "
                     "and do not add facts that are not present. "
-                    "Return only the cleaned notes."
+                    "Return only the cleaned notes using clear headings and bullets."
                 )
             }
         ],
@@ -95,7 +101,10 @@ def enhance_with_bedrock(text: str) -> str:
                 "content": [
                     {
                         "text": (
-                            "Clean and structure these OCR notes for a student.\n\n"
+                            f"Subject mode: {subject_hint}.\n"
+                            "Clean and structure these OCR notes for a student. "
+                            "Use markdown-style headings and bullet lists when helpful. "
+                            "If the content contains equations or technical notation, keep it intact.\n\n"
                             f"{text}"
                         )
                     }
@@ -111,6 +120,19 @@ def enhance_with_bedrock(text: str) -> str:
     content = response.get("output", {}).get("message", {}).get("content", [])
     enhanced = "".join(block.get("text", "") for block in content).strip()
     return enhanced or text
+
+
+def normalize_subject(subject: str) -> str:
+    allowed_subjects = {
+        "general": "general notes",
+        "biology": "biology",
+        "chemistry": "chemistry",
+        "math": "mathematics",
+        "engineering": "engineering",
+        "medicine": "medicine",
+        "research": "research notes",
+    }
+    return allowed_subjects.get(subject.lower().strip(), "general notes")
 
 
 def clean_ocr_text(text: str) -> str:

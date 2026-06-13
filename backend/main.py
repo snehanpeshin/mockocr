@@ -63,6 +63,7 @@ def root() -> dict[str, str]:
 async def run_ocr(
     file: UploadFile = File(...),
     provider: str | None = Form(default=None),
+    subject: str = Form(default="general"),
 ) -> dict[str, str]:
     suffix = Path(file.filename or "upload").suffix.lower()
     if suffix not in {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff", ".pdf"}:
@@ -85,12 +86,13 @@ async def run_ocr(
                 original_path = _render_pdf_first_page(uploaded_path, original_path)
 
             preprocess_image(original_path, processed_path)
-            result = extract_text(processed_path, provider)
+            result = extract_text(processed_path, provider, subject)
 
             return {
                 "text": result["text"],
                 "provider": result["provider"],
                 "filename": file.filename or "upload",
+                "subject": subject,
             }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

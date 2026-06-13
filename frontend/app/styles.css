@@ -33,6 +33,8 @@ body {
 }
 
 button,
+input,
+select,
 textarea {
   font: inherit;
 }
@@ -302,6 +304,100 @@ h2 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.subject-select,
+.search-box {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 0 12px;
+}
+
+.subject-select span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.subject-select select,
+.search-box input {
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  font-weight: 750;
+  min-width: 0;
+  outline: 0;
+  width: 100%;
+}
+
+.saved-notes-panel {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.saved-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.saved-header span {
+  background: #eef5f3;
+  border-radius: 999px;
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+  min-width: 32px;
+  padding: 6px 10px;
+  text-align: center;
+}
+
+.search-box {
+  background: #ffffff;
+  color: var(--muted);
+}
+
+.saved-list {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.saved-list button {
+  align-items: start;
+  display: grid;
+  gap: 4px;
+  justify-content: stretch;
+  min-height: 58px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.saved-list button strong,
+.saved-list button span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-list button span,
+.saved-list p {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin: 0;
 }
 
 .editor-panel {
