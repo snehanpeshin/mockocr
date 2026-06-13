@@ -233,7 +233,7 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `handwriting-ocr-output.${format}`;
+    anchor.download = `cleanote-output.${format}`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -289,7 +289,7 @@ export default function Home() {
     <main className="app-shell">
       <section className="topbar" aria-label="Workspace header">
         <div>
-          <p className="eyebrow">Handwriting OCR</p>
+          <p className="eyebrow">Cleanote</p>
           <h1>Scan notes into editable text</h1>
         </div>
         <div className="status-strip">

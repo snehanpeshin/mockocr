@@ -1,4 +1,4 @@
-# Handwriting OCR App
+# Cleanote
 
 MVP web app for uploading a handwritten image or PDF, preprocessing it, running OCR, editing extracted text, and exporting the result.
 

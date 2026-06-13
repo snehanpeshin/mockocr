@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./styles.css";
 
 export const metadata: Metadata = {
-  title: "Handwriting OCR",
+  title: "Cleanote",
   description: "Upload handwritten notes and convert them into editable text."
 };
 

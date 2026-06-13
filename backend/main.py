@@ -34,7 +34,7 @@ def _frontend_origins() -> list[str]:
     ]
     return list(dict.fromkeys(origins))
 
-app = FastAPI(title="Handwriting OCR API")
+app = FastAPI(title="Cleanote API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,7 +56,7 @@ def health() -> dict[str, str]:
 
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"status": "ok", "service": "mockocr-backend"}
+    return {"status": "ok", "service": "cleanote-backend"}
 
 
 @app.post("/api/ocr")
@@ -124,19 +124,19 @@ def _render_pdf_first_page(pdf_path: Path, output_path: Path) -> Path:
 @app.post("/api/export/txt")
 def export_txt(payload: ExportRequest) -> FileResponse:
     OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = OUTPUTS_DIR / "handwriting-ocr-output.txt"
+    output_path = OUTPUTS_DIR / "cleanote-output.txt"
     output_path.write_text(payload.text, encoding="utf-8")
     return FileResponse(
         output_path,
         media_type="text/plain",
-        filename="handwriting-ocr-output.txt",
+        filename="cleanote-output.txt",
     )
 
 
 @app.post("/api/export/docx")
 def export_docx(payload: ExportRequest) -> FileResponse:
     OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = OUTPUTS_DIR / "handwriting-ocr-output.docx"
+    output_path = OUTPUTS_DIR / "cleanote-output.docx"
 
     document = Document()
     for paragraph in payload.text.splitlines() or [""]:
@@ -146,5 +146,5 @@ def export_docx(payload: ExportRequest) -> FileResponse:
     return FileResponse(
         output_path,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        filename="handwriting-ocr-output.docx",
+        filename="cleanote-output.docx",
     )
