@@ -40,13 +40,25 @@ python -m uvicorn main:app --reload --reload-dir . --port 8000
 
 Textract is the best option here if you expect forms, tables, or structured handwritten records later. The backend uses Textract `DetectDocumentText` for the MVP text extraction path.
 
+To add AWS Bedrock AI cleanup after Textract:
+
+```bash
+export AI_CLEANUP_PROVIDER=bedrock
+export BEDROCK_REGION=us-east-1
+export BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
+python -m uvicorn main:app --reload --reload-dir . --port 8000
+```
+
+If Bedrock is not enabled or the model is unavailable, the app falls back to rule-based cleanup unless `AI_CLEANUP_STRICT=true`.
+
 ## AWS-Only Deployment
 
 Recommended live setup for `mockocr.com`:
 
 - Frontend: AWS Amplify Hosting
-- Backend: AWS App Runner or Elastic Beanstalk using `backend/Dockerfile`
+- Backend: Amazon ECS Express Mode using `backend/Dockerfile`
 - OCR: Amazon Textract
+- AI cleanup: optional Amazon Bedrock
 - Domain: point the Wix-managed domain DNS records to Amplify
 
 Backend environment variables:
@@ -56,6 +68,9 @@ OCR_PROVIDER=textract
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key_id
 AWS_SECRET_ACCESS_KEY=your_secret_access_key
+AI_CLEANUP_PROVIDER=rules
+BEDROCK_REGION=us-east-1
+BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
 FRONTEND_ORIGINS=https://mockocr.com,https://www.mockocr.com
 ```
 
@@ -69,6 +84,7 @@ For production, create an IAM user or role with the least permission needed for 
 
 ```text
 textract:DetectDocumentText
+bedrock:InvokeModel if AI_CLEANUP_PROVIDER=bedrock
 ```
 
 The frontend always submits uploads to the backend as `provider=textract`.

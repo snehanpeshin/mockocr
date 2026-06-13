@@ -44,7 +44,73 @@ def _extract_with_textract(image_path: Path) -> OcrResult:
         if block.get("BlockType") == "LINE" and block.get("Text")
     ]
 
-    return {"provider": "textract", "text": clean_ocr_text("\n".join(lines))}
+    cleaned_text = clean_ocr_text("\n".join(lines))
+    enhanced_text, cleanup_provider = enhance_with_ai(cleaned_text)
+    provider = "textract" if cleanup_provider == "rules" else f"textract+{cleanup_provider}"
+    return {"provider": provider, "text": enhanced_text}
+
+
+def enhance_with_ai(text: str) -> tuple[str, str]:
+    cleanup_provider = os.getenv("AI_CLEANUP_PROVIDER", "rules").lower()
+    if cleanup_provider not in {"bedrock", "aws"} or not text.strip():
+        return text, "rules"
+
+    try:
+        return enhance_with_bedrock(text), "bedrock"
+    except Exception:
+        if os.getenv("AI_CLEANUP_STRICT", "false").lower() == "true":
+            raise
+        return text, "rules"
+
+
+def enhance_with_bedrock(text: str) -> str:
+    try:
+        import boto3
+    except ImportError as exc:
+        raise RuntimeError(
+            "Install AWS Bedrock support with: python -m pip install -r requirements-aws.txt"
+        ) from exc
+
+    model_id = os.getenv("BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0")
+    region = os.getenv("BEDROCK_REGION") or os.getenv("AWS_REGION")
+    max_tokens = int(os.getenv("AI_CLEANUP_MAX_TOKENS", "1800"))
+
+    client = boto3.client("bedrock-runtime", region_name=region)
+    response = client.converse(
+        modelId=model_id,
+        system=[
+            {
+                "text": (
+                    "You clean OCR text from student handwritten notes. "
+                    "Correct obvious OCR/spelling mistakes, preserve meaning, "
+                    "turn headings and bullet-like lines into clean structure, "
+                    "and do not add facts that are not present. "
+                    "Return only the cleaned notes."
+                )
+            }
+        ],
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "text": (
+                            "Clean and structure these OCR notes for a student.\n\n"
+                            f"{text}"
+                        )
+                    }
+                ],
+            }
+        ],
+        inferenceConfig={
+            "maxTokens": max_tokens,
+            "temperature": 0.1,
+        },
+    )
+
+    content = response.get("output", {}).get("message", {}).get("content", [])
+    enhanced = "".join(block.get("text", "") for block in content).strip()
+    return enhanced or text
 
 
 def clean_ocr_text(text: str) -> str:
