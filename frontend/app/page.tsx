@@ -1,554 +1,130 @@
 "use client";
 
-import {
-  Clipboard,
-  Crop,
-  Download,
-  FileText,
-  ImagePlus,
-  Loader2,
-  RotateCcw,
-  RotateCw,
-  ScanText,
-  Search,
-  SlidersHorizontal,
-  Upload
-} from "lucide-react";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ArrowRight, Check, Loader2, LockKeyhole, Search, Sparkles } from "lucide-react";
+import { FormEvent, useState } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
-type OcrResponse = {
-  text: string;
-  provider: string;
-  filename: string;
-  subject: string;
-};
-
-type SavedNote = {
-  id: string;
-  createdAt: string;
-  filename: string;
-  provider: string;
-  subject: string;
-  text: string;
-};
-
-type CropValues = {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-};
-
-type ImageAdjustments = {
-  contrast: number;
-  crop: CropValues;
-  rotation: number;
-};
-
-const SUBJECTS = [
-  { label: "General", value: "general" },
-  { label: "Biology", value: "biology" },
-  { label: "Chemistry", value: "chemistry" },
-  { label: "Math", value: "math" },
-  { label: "Engineering", value: "engineering" },
-  { label: "Medicine", value: "medicine" },
-  { label: "Research", value: "research" }
-];
-
-const SAVED_NOTES_KEY = "pen2txt.savedNotes";
-
-export default function Home() {
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [processedPreviewUrl, setProcessedPreviewUrl] = useState<string | null>(null);
-  const [crop, setCrop] = useState({ top: 0, right: 0, bottom: 0, left: 0 });
-  const [rotation, setRotation] = useState(0);
-  const [contrast, setContrast] = useState(112);
-  const [subject, setSubject] = useState("general");
-  const [text, setText] = useState("");
-  const [provider, setProvider] = useState<string | null>(null);
-  const [filename, setFilename] = useState<string | null>(null);
-  const [savedNotes, setSavedNotes] = useState<SavedNote[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isScanning, setIsScanning] = useState(false);
+export default function LandingPage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("Student");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const wordCount = useMemo(() => {
-    return text.trim() ? text.trim().split(/\s+/).length : 0;
-  }, [text]);
-
-  const filteredNotes = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) {
-      return savedNotes.slice(0, 8);
-    }
-
-    return savedNotes
-      .filter((note) => {
-        const haystack = `${note.filename} ${note.subject} ${note.text}`.toLowerCase();
-        return haystack.includes(query);
-      })
-      .slice(0, 8);
-  }, [savedNotes, searchQuery]);
-
-  useEffect(() => {
-    try {
-      const storedNotes = window.localStorage.getItem(SAVED_NOTES_KEY);
-      if (storedNotes) {
-        setSavedNotes(JSON.parse(storedNotes) as SavedNote[]);
-      }
-    } catch {
-      setSavedNotes([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    let isCurrent = true;
-    let nextUrl: string | null = null;
-
-    async function updateProcessedPreview() {
-      if (!file || !file.type.startsWith("image/")) {
-        setProcessedPreviewUrl(null);
-        return;
-      }
-
-      try {
-        const blob = await buildProcessedImage(file, { contrast, crop, rotation });
-        if (!isCurrent) {
-          return;
-        }
-        nextUrl = URL.createObjectURL(blob);
-        setProcessedPreviewUrl((currentUrl) => {
-          if (currentUrl) {
-            URL.revokeObjectURL(currentUrl);
-          }
-          return nextUrl;
-        });
-      } catch {
-        if (isCurrent) {
-          setProcessedPreviewUrl(null);
-        }
-      }
-    }
-
-    updateProcessedPreview();
-
-    return () => {
-      isCurrent = false;
-      if (nextUrl) {
-        URL.revokeObjectURL(nextUrl);
-      }
-    };
-  }, [file, crop, rotation, contrast]);
-
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const selectedFile = event.target.files?.[0] ?? null;
-    setFile(selectedFile);
-    setText("");
-    setProvider(null);
-    setFilename(null);
-    setMessage(null);
-    setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
-    setRotation(0);
-    setContrast(112);
-
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-
-    if (selectedFile && selectedFile.type.startsWith("image/")) {
-      setPreviewUrl(URL.createObjectURL(selectedFile));
-    } else {
-      setPreviewUrl(null);
-    }
-  }
-
-  async function scanFile() {
-    if (!file) {
-      setMessage("Choose a handwritten image first.");
-      return;
-    }
-
-    const formData = new FormData();
-    const fileForOcr = file.type.startsWith("image/")
-      ? await buildProcessedImageFile(file, { contrast, crop, rotation })
-      : file;
-    formData.append("file", fileForOcr);
-    formData.append("provider", "textract");
-    formData.append("subject", subject);
-    setIsScanning(true);
+  async function joinBeta(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
     setMessage(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/ocr`, {
+      const response = await fetch(`${API_BASE}/api/beta/request`, {
         method: "POST",
-        body: formData
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, role })
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail ?? "OCR failed.");
+        throw new Error(error.detail ?? "Could not join the beta.");
       }
 
-      const data = (await response.json()) as OcrResponse;
-      setText(data.text);
-      setProvider(data.provider);
-      setFilename(data.filename);
-      saveNote({
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-        filename: data.filename,
-        provider: data.provider,
-        subject: data.subject || subject,
-        text: data.text
-      });
-      setMessage(`Scanned ${data.filename}`);
+      const data = await response.json();
+      if (data.status === "already_verified" && data.beta_access) {
+        setMessage("This email is already verified. Open Cleanote when you are ready.");
+        return;
+      }
+      setMessage(
+        data.beta_access
+          ? "Check your email for your Cleanote access link."
+          : "You are on the waitlist. Check your email to verify your spot."
+      );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "OCR failed.");
+      setMessage(error instanceof Error ? error.message : "Could not join the beta.");
     } finally {
-      setIsScanning(false);
+      setIsSubmitting(false);
     }
-  }
-
-  async function copyText() {
-    await navigator.clipboard.writeText(text);
-    setMessage("Copied to clipboard.");
-  }
-
-  async function downloadExport(format: "txt" | "docx") {
-    const response = await fetch(`${API_BASE}/api/export/${format}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text })
-    });
-
-    if (!response.ok) {
-      setMessage(`Could not export ${format.toUpperCase()}.`);
-      return;
-    }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `cleanote-output.${format}`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function reset() {
-    setFile(null);
-    setText("");
-    setProvider(null);
-    setFilename(null);
-    setMessage(null);
-    setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
-    setRotation(0);
-    setContrast(112);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
-    if (processedPreviewUrl) {
-      URL.revokeObjectURL(processedPreviewUrl);
-      setProcessedPreviewUrl(null);
-    }
-  }
-
-  function updateCrop(side: keyof typeof crop, value: number) {
-    setCrop((currentCrop) => ({ ...currentCrop, [side]: value }));
-  }
-
-  function rotateLeft() {
-    setRotation((currentRotation) => (currentRotation + 270) % 360);
-  }
-
-  function rotateRight() {
-    setRotation((currentRotation) => (currentRotation + 90) % 360);
-  }
-
-  function saveNote(note: SavedNote) {
-    setSavedNotes((currentNotes) => {
-      const nextNotes = [note, ...currentNotes].slice(0, 30);
-      window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(nextNotes));
-      return nextNotes;
-    });
-  }
-
-  function openSavedNote(note: SavedNote) {
-    setText(note.text);
-    setProvider(note.provider);
-    setFilename(note.filename);
-    setSubject(note.subject);
-    setMessage(`Opened ${note.filename}`);
   }
 
   return (
-    <main className="app-shell">
-      <section className="topbar" aria-label="Workspace header">
-        <div>
-          <p className="eyebrow">Cleanote</p>
-          <h1>Scan notes into editable text</h1>
+    <main className="landing-shell">
+      <section className="landing-hero">
+        <div className="landing-copy">
+          <p className="eyebrow">Cleanote beta</p>
+          <h1>Turn handwritten notes into searchable knowledge.</h1>
+          <p>
+            Upload a notebook page and get clean, structured text you can edit,
+            search, and export.
+          </p>
+          <div className="landing-actions">
+            <a href="#beta">Join beta <ArrowRight aria-hidden="true" size={18} /></a>
+            <a className="secondary-link" href="/app">Open app</a>
+          </div>
         </div>
-        <div className="status-strip">
-          <span>{provider ? `OCR: ${provider}` : "OCR: ready"}</span>
-          <span>{wordCount} words</span>
+
+        <form className="beta-form" id="beta" onSubmit={joinBeta}>
+          <div>
+            <p className="eyebrow">First 50 users</p>
+            <h2>Request access</h2>
+          </div>
+          <label>
+            <span>Name</span>
+            <input required onChange={(event) => setName(event.target.value)} value={name} />
+          </label>
+          <label>
+            <span>Email</span>
+            <input
+              required
+              onChange={(event) => setEmail(event.target.value)}
+              type="email"
+              value={email}
+            />
+          </label>
+          <label>
+            <span>Role</span>
+            <select onChange={(event) => setRole(event.target.value)} value={role}>
+              <option>Student</option>
+              <option>Researcher</option>
+              <option>Professional</option>
+            </select>
+          </label>
+          <button className="primary" disabled={isSubmitting} type="submit">
+            {isSubmitting ? <Loader2 className="spin" aria-hidden="true" size={18} /> : null}
+            <span>{isSubmitting ? "Sending link" : "Get email link"}</span>
+          </button>
+          {message ? <p className="message">{message}</p> : null}
+        </form>
+      </section>
+
+      <section className="landing-band">
+        <div>
+          <Search aria-hidden="true" size={22} />
+          <h2>Search handwritten notes</h2>
+          <p>Find concepts buried in notebook pages, lab notes, and lecture scans.</p>
+        </div>
+        <div>
+          <Sparkles aria-hidden="true" size={22} />
+          <h2>Clean structure</h2>
+          <p>Textract reads the page. Bedrock helps clean headings, bullets, and terms.</p>
+        </div>
+        <div>
+          <LockKeyhole aria-hidden="true" size={22} />
+          <h2>Passwordless beta</h2>
+          <p>Join with your email and click a secure link to access Cleanote.</p>
         </div>
       </section>
 
-      <section className="workspace">
-        <div className="upload-panel">
-          <label className="drop-zone">
-            <input
-              accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff,application/pdf"
-              onChange={handleFileChange}
-              type="file"
-            />
-            {previewUrl || processedPreviewUrl ? (
-              <img
-                alt="Uploaded handwriting preview"
-                src={processedPreviewUrl ?? previewUrl ?? undefined}
-              />
-            ) : (
-              <div className="empty-state">
-                <ImagePlus aria-hidden="true" size={42} />
-                <strong>Upload handwriting</strong>
-                <span>PNG, JPG, WEBP, TIFF, BMP, or PDF</span>
-              </div>
-            )}
-          </label>
-
-          {file?.type.startsWith("image/") ? (
-            <div className="scan-controls" aria-label="Scan cleanup controls">
-              <div className="control-header">
-                <Crop aria-hidden="true" size={18} />
-                <span>Crop</span>
-              </div>
-              <div className="crop-grid">
-                {(["top", "right", "bottom", "left"] as const).map((side) => (
-                  <label key={side}>
-                    <span>{side}</span>
-                    <input
-                      max="35"
-                      min="0"
-                      onChange={(event) => updateCrop(side, Number(event.target.value))}
-                      type="range"
-                      value={crop[side]}
-                    />
-                  </label>
-                ))}
-              </div>
-              <div className="control-row">
-                <div className="control-header">
-                  <SlidersHorizontal aria-hidden="true" size={18} />
-                  <span>Contrast</span>
-                </div>
-                <input
-                  max="180"
-                  min="80"
-                  onChange={(event) => setContrast(Number(event.target.value))}
-                  type="range"
-                  value={contrast}
-                />
-              </div>
-              <div className="rotate-row">
-                <button onClick={rotateLeft} type="button">
-                  <RotateCcw aria-hidden="true" size={18} />
-                  <span>Left</span>
-                </button>
-                <span>{rotation} deg</span>
-                <button onClick={rotateRight} type="button">
-                  <RotateCw aria-hidden="true" size={18} />
-                  <span>Right</span>
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          <div className="toolbar" aria-label="Scan tools">
-            <div className="provider-badge" aria-label="OCR provider">
-              <span>OCR</span>
-              <strong>Amazon Textract</strong>
-            </div>
-            <button className="primary" disabled={isScanning} onClick={scanFile}>
-              {isScanning ? (
-                <Loader2 className="spin" aria-hidden="true" size={18} />
-              ) : (
-                <ScanText aria-hidden="true" size={18} />
-              )}
-              <span>{isScanning ? "Scanning" : "Scan"}</span>
-            </button>
-            <button onClick={reset} type="button">
-              <RotateCcw aria-hidden="true" size={18} />
-              <span>Reset</span>
-            </button>
-          </div>
-
-          {file ? (
-            <div className="file-row">
-              <Upload aria-hidden="true" size={18} />
-              <span>{file.name}</span>
-            </div>
-          ) : null}
-
-          <label className="subject-select">
-            <span>Subject</span>
-            <select onChange={(event) => setSubject(event.target.value)} value={subject}>
-              {SUBJECTS.map((subjectOption) => (
-                <option key={subjectOption.value} value={subjectOption.value}>
-                  {subjectOption.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="saved-notes-panel">
-            <div className="saved-header">
-              <div>
-                <p className="eyebrow">Archive</p>
-                <h2>Search saved notes</h2>
-              </div>
-              <span>{savedNotes.length}</span>
-            </div>
-            <label className="search-box">
-              <Search aria-hidden="true" size={18} />
-              <input
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search notes"
-                value={searchQuery}
-              />
-            </label>
-            <div className="saved-list">
-              {filteredNotes.length ? (
-                filteredNotes.map((note) => (
-                  <button key={note.id} onClick={() => openSavedNote(note)} type="button">
-                    <strong>{note.filename}</strong>
-                    <span>{note.subject} · {new Date(note.createdAt).toLocaleDateString()}</span>
-                  </button>
-                ))
-              ) : (
-                <p>No saved notes yet.</p>
-              )}
-            </div>
-          </div>
+      <section className="demo-strip">
+        <div>
+          <p className="eyebrow">Before</p>
+          <p>messy notebook photo, hard to search, hard to reuse</p>
         </div>
-
-        <div className="editor-panel">
-          <div className="editor-header">
-            <div>
-              <p className="eyebrow">Result editor</p>
-              <h2>Extracted text</h2>
-            </div>
-            <div className="icon-actions" aria-label="Export tools">
-              <button disabled={!text} onClick={copyText} title="Copy text">
-                <Clipboard aria-hidden="true" size={18} />
-              </button>
-              <button disabled={!text} onClick={() => downloadExport("txt")} title="Download TXT">
-                <FileText aria-hidden="true" size={18} />
-              </button>
-              <button disabled={!text} onClick={() => downloadExport("docx")} title="Download DOCX">
-                <Download aria-hidden="true" size={18} />
-              </button>
-            </div>
-          </div>
-
-          <textarea
-            aria-label="Editable extracted text"
-            onChange={(event) => setText(event.target.value)}
-            placeholder="Extracted handwriting will appear here."
-            value={text}
-          />
-
-          {message ? <p className="message">{message}</p> : null}
-          {filename ? <p className="message">Current note: {filename}</p> : null}
+        <Check aria-hidden="true" size={24} />
+        <div>
+          <p className="eyebrow">After</p>
+          <p>clean headings, bullets, searchable text, export-ready notes</p>
         </div>
       </section>
     </main>
   );
-}
-
-async function buildProcessedImageFile(file: File, adjustments: ImageAdjustments): Promise<File> {
-  const blob = await buildProcessedImage(file, adjustments);
-  const baseName = file.name.replace(/\.[^.]+$/, "") || "scan";
-  return new File([blob], `${baseName}-cleaned.png`, { type: "image/png" });
-}
-
-async function buildProcessedImage(file: File, adjustments: ImageAdjustments): Promise<Blob> {
-  const image = await loadImage(file);
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-
-  if (!context) {
-    throw new Error("Could not prepare image.");
-  }
-
-  const cropBox = getCropBox(image.naturalWidth, image.naturalHeight, adjustments.crop);
-  const rotation = adjustments.rotation;
-  const isSideways = rotation === 90 || rotation === 270;
-  canvas.width = isSideways ? cropBox.height : cropBox.width;
-  canvas.height = isSideways ? cropBox.width : cropBox.height;
-
-  context.save();
-  context.filter = `contrast(${adjustments.contrast}%) grayscale(100%)`;
-  if (rotation === 90) {
-    context.translate(canvas.width, 0);
-    context.rotate(Math.PI / 2);
-  } else if (rotation === 180) {
-    context.translate(canvas.width, canvas.height);
-    context.rotate(Math.PI);
-  } else if (rotation === 270) {
-    context.translate(0, canvas.height);
-    context.rotate((3 * Math.PI) / 2);
-  }
-
-  context.drawImage(
-    image,
-    cropBox.x,
-    cropBox.y,
-    cropBox.width,
-    cropBox.height,
-    0,
-    0,
-    cropBox.width,
-    cropBox.height
-  );
-  context.restore();
-
-  return await new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) {
-        resolve(blob);
-      } else {
-        reject(new Error("Could not prepare image."));
-      }
-    }, "image/png");
-  });
-
-  function getCropBox(width: number, height: number, crop: CropValues) {
-    const left = Math.round((width * crop.left) / 100);
-    const right = Math.round((width * crop.right) / 100);
-    const top = Math.round((height * crop.top) / 100);
-    const bottom = Math.round((height * crop.bottom) / 100);
-    return {
-      x: left,
-      y: top,
-      width: Math.max(1, width - left - right),
-      height: Math.max(1, height - top - bottom)
-    };
-  }
-}
-
-async function loadImage(file: File): Promise<HTMLImageElement> {
-  const url = URL.createObjectURL(file);
-  const image = new Image();
-  image.src = url;
-
-  try {
-    await image.decode();
-    return image;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
 }

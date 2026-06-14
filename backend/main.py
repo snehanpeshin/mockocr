@@ -14,6 +14,8 @@ import numpy as np
 from pydantic import BaseModel
 
 from image_preprocess import preprocess_image
+from beta_service import request_beta_access, verify_beta_token
+from note_service import save_note, search_notes
 from ocr_service import extract_text
 
 
@@ -49,6 +51,22 @@ class ExportRequest(BaseModel):
     text: str
 
 
+class BetaRequest(BaseModel):
+    name: str
+    email: str
+    role: str
+
+
+class NoteRequest(BaseModel):
+    id: str
+    email: str
+    createdAt: str
+    filename: str
+    provider: str
+    subject: str
+    text: str
+
+
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -57,6 +75,58 @@ def health() -> dict[str, str]:
 @app.get("/")
 def root() -> dict[str, str]:
     return {"status": "ok", "service": "cleanote-backend"}
+
+
+@app.post("/api/beta/request")
+def request_beta(payload: BetaRequest) -> dict[str, object]:
+    try:
+        return request_beta_access(payload.name, payload.email, payload.role)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/beta/verify")
+def verify_beta(token: str) -> dict[str, object]:
+    try:
+        return verify_beta_token(token)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except TimeoutError as exc:
+        raise HTTPException(status_code=410, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/notes")
+def save_user_note(payload: NoteRequest) -> dict[str, str]:
+    try:
+        return save_note(payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/notes/search")
+def search_user_notes(email: str, q: str = "", limit: int = 30) -> dict[str, object]:
+    try:
+        return search_notes(email, q, limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @app.post("/api/ocr")
