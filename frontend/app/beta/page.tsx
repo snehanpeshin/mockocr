@@ -126,7 +126,9 @@ export default function BetaPage() {
         </div>
       </section>
 
-      <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
+      <p className="company-line">
+        Cleanote, a product of Karigari Home LLC · <a href="/privacy">Privacy Policy</a>
+      </p>
     </main>
   );
 }

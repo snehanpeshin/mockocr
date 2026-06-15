@@ -68,8 +68,9 @@ const SUBJECTS = [
 ];
 
 export default function Home() {
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [activeFileIndex, setActiveFileIndex] = useState(0);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [processedPreviewUrl, setProcessedPreviewUrl] = useState<string | null>(null);
   const [crop, setCrop] = useState({ top: 0, right: 0, bottom: 0, left: 0 });
   const [rotation, setRotation] = useState(0);
@@ -87,6 +88,9 @@ export default function Home() {
   const [isScanning, setIsScanning] = useState(false);
   const [isSearchingArchive, setIsSearchingArchive] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  const file = files[activeFileIndex] ?? null;
+  const previewUrl = previewUrls[activeFileIndex] ?? null;
 
   const wordCount = useMemo(() => {
     return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -208,8 +212,9 @@ export default function Home() {
   }, [file, crop, rotation, contrast]);
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const selectedFile = event.target.files?.[0] ?? null;
-    setFile(selectedFile);
+    const selectedFiles = Array.from(event.target.files ?? []);
+    setFiles(selectedFiles);
+    setActiveFileIndex(0);
     setText("");
     setProvider(null);
     setFilename(null);
@@ -219,61 +224,71 @@ export default function Home() {
     setRotation(0);
     setContrast(112);
 
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
 
-    if (selectedFile && selectedFile.type.startsWith("image/")) {
-      setPreviewUrl(URL.createObjectURL(selectedFile));
-    } else {
-      setPreviewUrl(null);
-    }
+    setPreviewUrls(
+      selectedFiles.map((selectedFile) =>
+        selectedFile.type.startsWith("image/") ? URL.createObjectURL(selectedFile) : ""
+      )
+    );
   }
 
   async function scanFile() {
-    if (!file) {
-      setMessage("Choose a handwritten image first.");
+    if (!files.length) {
+      setMessage("Choose one or more handwritten images first.");
       return;
     }
 
-    const formData = new FormData();
-    const fileForOcr = file.type.startsWith("image/")
-      ? await buildProcessedImageFile(file, { contrast, crop, rotation })
-      : file;
-    formData.append("file", fileForOcr);
-    formData.append("provider", "textract");
-    formData.append("subject", subject);
-    formData.append("context_text", contextText);
     setIsScanning(true);
     setMessage(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/ocr`, {
-        method: "POST",
-        body: formData
-      });
+      const results: OcrResponse[] = [];
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail ?? "OCR failed.");
+      for (const selectedFile of files) {
+        const formData = new FormData();
+        const fileForOcr = selectedFile.type.startsWith("image/")
+          ? await buildProcessedImageFile(selectedFile, { contrast, crop, rotation })
+          : selectedFile;
+        formData.append("file", fileForOcr);
+        formData.append("provider", "textract");
+        formData.append("subject", subject);
+        formData.append("context_text", contextText);
+
+        const response = await fetch(`${API_BASE}/api/ocr`, {
+          method: "POST",
+          body: formData
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail ?? `OCR failed for ${selectedFile.name}.`);
+        }
+
+        results.push((await response.json()) as OcrResponse);
       }
 
-      const data = (await response.json()) as OcrResponse;
-      setText(data.text);
-      setProvider(data.provider);
-      setFilename(data.filename);
+      const combinedText = results
+        .map((result, index) =>
+          results.length > 1 ? `Page ${index + 1}: ${result.filename}\n\n${result.text}` : result.text
+        )
+        .join("\n\n---\n\n");
+      const noteFilename = results.length > 1 ? `${results.length} page scan` : results[0].filename;
+      setText(combinedText);
+      setProvider(results[0].provider);
+      setFilename(noteFilename);
       const noteId = crypto.randomUUID();
       setCurrentNoteId(noteId);
       saveNote({
         id: noteId,
         createdAt: new Date().toISOString(),
-        filename: data.filename,
-        provider: data.provider,
-        subject: data.subject || subject,
-        text: data.text,
+        filename: noteFilename,
+        provider: results[0].provider,
+        subject: results[0].subject || subject,
+        text: combinedText,
         contextText: contextText.trim()
       });
-      setMessage(`Scanned ${data.filename}`);
+      setMessage(results.length > 1 ? `Scanned ${results.length} pages.` : `Scanned ${noteFilename}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "OCR failed.");
     } finally {
@@ -308,7 +323,6 @@ export default function Home() {
   }
 
   function reset() {
-    setFile(null);
     setText("");
     setProvider(null);
     setFilename(null);
@@ -317,10 +331,10 @@ export default function Home() {
     setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
     setRotation(0);
     setContrast(112);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setPreviewUrls([]);
+    setFiles([]);
+    setActiveFileIndex(0);
     if (processedPreviewUrl) {
       URL.revokeObjectURL(processedPreviewUrl);
       setProcessedPreviewUrl(null);
@@ -392,6 +406,7 @@ export default function Home() {
           <p className="eyebrow">Cleanote</p>
           <h1>Scan notes into editable text</h1>
           <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
+          <a className="policy-link" href="/privacy">Privacy Policy</a>
         </div>
         <div className="status-strip">
           <span>{provider ? `OCR: ${provider}` : "OCR: ready"}</span>
@@ -404,6 +419,7 @@ export default function Home() {
           <label className="drop-zone">
             <input
               accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff,application/pdf"
+              multiple
               onChange={handleFileChange}
               type="file"
             />
@@ -416,10 +432,26 @@ export default function Home() {
               <div className="empty-state">
                 <ImagePlus aria-hidden="true" size={42} />
                 <strong>Upload handwriting</strong>
-                <span>PNG, JPG, WEBP, TIFF, BMP, or PDF</span>
+                <span>Select one page or multiple pages</span>
               </div>
             )}
           </label>
+
+          {files.length ? (
+            <div className="page-strip" aria-label="Selected pages">
+              {files.map((selectedFile, index) => (
+                <button
+                  className={index === activeFileIndex ? "active" : ""}
+                  key={`${selectedFile.name}-${index}`}
+                  onClick={() => setActiveFileIndex(index)}
+                  type="button"
+                >
+                  <span>Page {index + 1}</span>
+                  <strong>{selectedFile.name}</strong>
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           {file?.type.startsWith("image/") ? (
             <div className="scan-controls" aria-label="Scan cleanup controls">
@@ -479,7 +511,7 @@ export default function Home() {
               ) : (
                 <ScanText aria-hidden="true" size={18} />
               )}
-              <span>{isScanning ? "Scanning" : "Scan"}</span>
+              <span>{isScanning ? "Scanning" : files.length > 1 ? "Scan all" : "Scan"}</span>
             </button>
             <button onClick={reset} type="button">
               <RotateCcw aria-hidden="true" size={18} />
@@ -490,7 +522,7 @@ export default function Home() {
           {file ? (
             <div className="file-row">
               <Upload aria-hidden="true" size={18} />
-              <span>{file.name}</span>
+              <span>{files.length > 1 ? `${files.length} files selected` : file.name}</span>
             </div>
           ) : null}
 
