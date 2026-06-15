@@ -14,10 +14,11 @@ def extract_text(
     image_path: Path,
     provider_override: str | None = None,
     subject: str = "general",
+    context_text: str = "",
 ) -> OcrResult:
     provider = (provider_override or os.getenv("OCR_PROVIDER", "mock")).lower()
     if provider in {"aws", "textract"}:
-        return _extract_with_textract(image_path, subject)
+        return _extract_with_textract(image_path, subject, context_text)
 
     return {
         "provider": "mock",
@@ -29,7 +30,7 @@ def extract_text(
     }
 
 
-def _extract_with_textract(image_path: Path, subject: str) -> OcrResult:
+def _extract_with_textract(image_path: Path, subject: str, context_text: str = "") -> OcrResult:
     try:
         import boto3
     except ImportError as exc:
@@ -49,25 +50,29 @@ def _extract_with_textract(image_path: Path, subject: str) -> OcrResult:
     ]
 
     cleaned_text = clean_ocr_text("\n".join(lines))
-    enhanced_text, cleanup_provider = enhance_with_ai(cleaned_text, subject)
+    enhanced_text, cleanup_provider = enhance_with_ai(cleaned_text, subject, context_text)
     provider = "textract" if cleanup_provider == "rules" else f"textract+{cleanup_provider}"
     return {"provider": provider, "text": enhanced_text}
 
 
-def enhance_with_ai(text: str, subject: str = "general") -> tuple[str, str]:
+def enhance_with_ai(
+    text: str,
+    subject: str = "general",
+    context_text: str = "",
+) -> tuple[str, str]:
     cleanup_provider = os.getenv("AI_CLEANUP_PROVIDER", "rules").lower()
     if cleanup_provider not in {"bedrock", "aws"} or not text.strip():
         return text, "rules"
 
     try:
-        return enhance_with_bedrock(text, subject), "bedrock"
+        return enhance_with_bedrock(text, subject, context_text), "bedrock"
     except Exception:
         if os.getenv("AI_CLEANUP_STRICT", "false").lower() == "true":
             raise
         return text, "rules"
 
 
-def enhance_with_bedrock(text: str, subject: str) -> str:
+def enhance_with_bedrock(text: str, subject: str, context_text: str = "") -> str:
     try:
         import boto3
     except ImportError as exc:
@@ -81,6 +86,7 @@ def enhance_with_bedrock(text: str, subject: str) -> str:
 
     client = boto3.client("bedrock-runtime", region_name=region)
     subject_hint = normalize_subject(subject)
+    context_hint = normalize_context(context_text)
     response = client.converse(
         modelId=model_id,
         system=[
@@ -90,7 +96,8 @@ def enhance_with_bedrock(text: str, subject: str) -> str:
                     "Correct obvious OCR/spelling mistakes, preserve meaning, "
                     "turn headings and bullet-like lines into clean structure, "
                     "preserve equations, units, symbols, names, and technical terms, "
-                    "and do not add facts that are not present. "
+                    "use optional user context only to resolve likely OCR mistakes, "
+                    "and do not add facts that are not present in the OCR text. "
                     "Return only the cleaned notes using clear headings and bullets."
                 )
             }
@@ -102,7 +109,10 @@ def enhance_with_bedrock(text: str, subject: str) -> str:
                     {
                         "text": (
                             f"Subject mode: {subject_hint}.\n"
+                            f"Optional user context: {context_hint or 'none provided'}.\n"
                             "Clean and structure these OCR notes for a student. "
+                            "Use the context only for terminology, abbreviations, and likely corrections. "
+                            "Do not add facts from the context unless they are supported by the OCR text. "
                             "Use markdown-style headings and bullet lists when helpful. "
                             "If the content contains equations or technical notation, keep it intact.\n\n"
                             f"{text}"
@@ -133,6 +143,11 @@ def normalize_subject(subject: str) -> str:
         "research": "research notes",
     }
     return allowed_subjects.get(subject.lower().strip(), "general notes")
+
+
+def normalize_context(context_text: str) -> str:
+    context = re.sub(r"\s+", " ", context_text.strip())
+    return context[:600]
 
 
 def clean_ocr_text(text: str) -> str:

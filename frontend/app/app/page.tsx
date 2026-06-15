@@ -26,6 +26,7 @@ type OcrResponse = {
   provider: string;
   filename: string;
   subject: string;
+  context_text?: string;
 };
 
 type SavedNote = {
@@ -35,6 +36,7 @@ type SavedNote = {
   provider: string;
   subject: string;
   text: string;
+  contextText?: string;
 };
 
 type BetaAccess = {
@@ -73,6 +75,7 @@ export default function Home() {
   const [rotation, setRotation] = useState(0);
   const [contrast, setContrast] = useState(112);
   const [subject, setSubject] = useState("general");
+  const [contextText, setContextText] = useState("");
   const [text, setText] = useState("");
   const [provider, setProvider] = useState<string | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
@@ -105,7 +108,8 @@ export default function Home() {
 
     return archiveNotes
       .filter((note) => {
-        const haystack = `${note.filename} ${note.subject} ${note.text}`.toLowerCase();
+        const haystack =
+          `${note.filename} ${note.subject} ${note.contextText ?? ""} ${note.text}`.toLowerCase();
         return haystack.includes(query);
       })
       .slice(0, 8);
@@ -239,6 +243,7 @@ export default function Home() {
     formData.append("file", fileForOcr);
     formData.append("provider", "textract");
     formData.append("subject", subject);
+    formData.append("context_text", contextText);
     setIsScanning(true);
     setMessage(null);
 
@@ -265,7 +270,8 @@ export default function Home() {
         filename: data.filename,
         provider: data.provider,
         subject: data.subject || subject,
-        text: data.text
+        text: data.text,
+        contextText: contextText.trim()
       });
       setMessage(`Scanned ${data.filename}`);
     } catch (error) {
@@ -362,7 +368,8 @@ export default function Home() {
       filename: noteFilename,
       provider: provider ?? "edited",
       subject,
-      text
+      text,
+      contextText: contextText.trim()
     });
     setFilename(noteFilename);
     setMessage(userEmail ? "Saved note for cloud search." : "Saved note for local search.");
@@ -373,6 +380,7 @@ export default function Home() {
     setProvider(note.provider);
     setFilename(note.filename);
     setSubject(note.subject);
+    setContextText(note.contextText ?? "");
     setCurrentNoteId(note.id);
     setMessage(`Opened ${note.filename}`);
   }
@@ -494,6 +502,15 @@ export default function Home() {
                 </option>
               ))}
             </select>
+          </label>
+
+          <label className="context-box">
+            <span>Context</span>
+            <textarea
+              onChange={(event) => setContextText(event.target.value)}
+              placeholder="Optional: what is this note about? Example: biology lecture on ATP and glycolysis."
+              value={contextText}
+            />
           </label>
 
           <div className="saved-notes-panel">

@@ -34,6 +34,7 @@ type SavedNote = {
   provider: string;
   subject: string;
   text: string;
+  contextText?: string;
 };
 
 const SUBJECTS = ["general", "biology", "chemistry", "math", "engineering", "medicine", "research"];
@@ -44,6 +45,7 @@ export default function App() {
   const [filename, setFilename] = useState<string | null>(null);
   const [provider, setProvider] = useState<string | null>(null);
   const [subject, setSubject] = useState("general");
+  const [contextText, setContextText] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState<SavedNote[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -104,6 +106,7 @@ export default function App() {
     } as unknown as Blob);
     formData.append("provider", "textract");
     formData.append("subject", subject);
+    formData.append("context_text", contextText);
 
     setIsScanning(true);
     setMessage("Scanning handwriting...");
@@ -140,7 +143,8 @@ export default function App() {
       filename: filename ?? "Untitled note",
       provider: provider ?? "edited",
       subject,
-      text
+      text,
+      contextText: contextText.trim()
     };
     setNotes((currentNotes) => [note, ...currentNotes].slice(0, 20));
 
@@ -189,7 +193,8 @@ export default function App() {
 
     setNotes((currentNotes) =>
       currentNotes.filter((note) => {
-        const haystack = `${note.filename} ${note.subject} ${note.text}`.toLowerCase();
+        const haystack =
+          `${note.filename} ${note.subject} ${note.contextText ?? ""} ${note.text}`.toLowerCase();
         return haystack.includes(query);
       })
     );
@@ -199,6 +204,7 @@ export default function App() {
     setFilename(note.filename);
     setProvider(note.provider);
     setSubject(note.subject);
+    setContextText(note.contextText ?? "");
     setText(note.text);
     setMessage(`Opened ${note.filename}`);
   }
@@ -255,6 +261,15 @@ export default function App() {
                 ))}
               </View>
             </ScrollView>
+            <Text style={styles.label}>Context</Text>
+            <TextInput
+              multiline
+              onChangeText={setContextText}
+              placeholder="Optional: what is this note about? Example: biology lecture on ATP and glycolysis."
+              style={styles.contextInput}
+              textAlignVertical="top"
+              value={contextText}
+            />
             <Pressable
               disabled={isScanning}
               onPress={scanHandwriting}
@@ -347,6 +362,17 @@ const styles = StyleSheet.create({
     gap: 18,
     padding: 20,
     paddingBottom: 36
+  },
+  contextInput: {
+    backgroundColor: "#fbfcfa",
+    borderColor: "#d8e0e2",
+    borderRadius: 8,
+    borderWidth: 1,
+    color: "#182024",
+    fontSize: 15,
+    lineHeight: 22,
+    minHeight: 92,
+    padding: 12
   },
   disabledButton: {
     opacity: 0.7

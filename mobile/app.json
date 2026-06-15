@@ -10,7 +10,8 @@
       "bundleIdentifier": "com.cleanote.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Cleanote uses the camera to scan handwritten notes.",
-        "NSPhotoLibraryUsageDescription": "Cleanote uses your photo library to import handwritten notes."
+        "NSPhotoLibraryUsageDescription": "Cleanote uses your photo library to import handwritten notes.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "supportsTablet": true
     },

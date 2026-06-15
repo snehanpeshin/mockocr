@@ -27,6 +27,7 @@ def save_note(note: dict[str, str]) -> dict[str, str]:
         "provider": note.get("provider", "edited").strip() or "edited",
         "subject": note.get("subject", "general").strip() or "general",
         "text": note.get("text", ""),
+        "context_text": note.get("contextText", ""),
     }
     item["search_blob"] = _search_blob(item)
     _table().put_item(Item=item)
@@ -55,6 +56,7 @@ def search_notes(email: str, query: str = "", limit: int = 30) -> dict[str, Any]
             "provider": item.get("provider", "edited"),
             "subject": item.get("subject", "general"),
             "text": item.get("text", ""),
+            "contextText": item.get("context_text", ""),
         }
         for item in response.get("Items", [])
     ]
@@ -68,6 +70,7 @@ def _search_blob(item: dict[str, str]) -> str:
             item.get("filename", ""),
             item.get("provider", ""),
             item.get("subject", ""),
+            item.get("context_text", ""),
             item.get("text", ""),
         ]
     ).lower()
