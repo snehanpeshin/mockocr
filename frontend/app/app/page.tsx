@@ -18,7 +18,6 @@ import {
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-const BETA_GATE_ENABLED = process.env.NEXT_PUBLIC_BETA_GATE === "true";
 const SAVED_NOTES_KEY = "cleanote.savedNotes";
 const LEGACY_SAVED_NOTES_KEY = "pen2txt.savedNotes";
 
@@ -85,7 +84,6 @@ export default function Home() {
   const [isScanning, setIsScanning] = useState(false);
   const [isSearchingArchive, setIsSearchingArchive] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [hasBetaAccess, setHasBetaAccess] = useState(!BETA_GATE_ENABLED);
 
   const wordCount = useMemo(() => {
     return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -118,7 +116,6 @@ export default function Home() {
       const betaAccess = window.localStorage.getItem("cleanote.betaAccess");
       const parsedAccess = betaAccess ? (JSON.parse(betaAccess) as BetaAccess) : null;
       setUserEmail(parsedAccess?.beta_access && parsedAccess.email ? parsedAccess.email : null);
-      setHasBetaAccess(!BETA_GATE_ENABLED || Boolean(parsedAccess?.beta_access));
       const storedNotes =
         window.localStorage.getItem(SAVED_NOTES_KEY) ??
         window.localStorage.getItem(LEGACY_SAVED_NOTES_KEY);
@@ -378,19 +375,6 @@ export default function Home() {
     setSubject(note.subject);
     setCurrentNoteId(note.id);
     setMessage(`Opened ${note.filename}`);
-  }
-
-  if (!hasBetaAccess) {
-    return (
-      <main className="verify-shell">
-        <section>
-          <p className="eyebrow">Cleanote beta</p>
-          <h1>Email access required</h1>
-          <p>Join the beta and verify your email to open the scanner.</p>
-          <a href="/">Request access</a>
-        </section>
-      </main>
-    );
   }
 
   return (
