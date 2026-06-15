@@ -56,14 +56,12 @@ export default function App() {
   }, [text]);
 
   async function choosePhoto(source: "camera" | "library") {
-    const permission =
-      source === "camera"
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permission.granted) {
-      Alert.alert("Permission needed", "Cleanote needs photo access to scan handwritten notes.");
-      return;
+    if (source === "camera") {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission needed", "Cleanote needs camera access to scan handwritten notes.");
+        return;
+      }
     }
 
     const result =

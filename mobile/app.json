@@ -23,8 +23,7 @@
       },
       "package": "com.cleanote.app",
       "permissions": [
-        "CAMERA",
-        "READ_MEDIA_IMAGES"
+        "CAMERA"
       ],
       "predictiveBackGestureEnabled": false
     },
