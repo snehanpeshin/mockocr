@@ -4,6 +4,7 @@ export default function PrivacyPage() {
       <article className="policy-content">
         <p className="eyebrow">Cleanote</p>
         <h1>Privacy Policy</h1>
+        <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
         <p className="policy-date">Last updated: June 14, 2026</p>
 
         <section>
@@ -82,8 +83,8 @@ export default function PrivacyPage() {
         <section>
           <h2>Contact</h2>
           <p>
-            For privacy questions or deletion requests, contact the Cleanote developer at the
-            support email listed in Google Play Console.
+            For privacy questions or deletion requests, contact Karigari Home LLC at the support
+            email listed in Google Play Console.
           </p>
         </section>
 

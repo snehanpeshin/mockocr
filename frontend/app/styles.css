@@ -263,6 +263,14 @@ a {
   font-weight: 800;
 }
 
+.company-line {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 10px 0 0;
+}
+
 .app-shell {
   margin: 0 auto;
   max-width: 1280px;

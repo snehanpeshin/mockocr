@@ -125,6 +125,8 @@ export default function BetaPage() {
           <p>clean headings, bullets, searchable text, export-ready notes</p>
         </div>
       </section>
+
+      <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
     </main>
   );
 }

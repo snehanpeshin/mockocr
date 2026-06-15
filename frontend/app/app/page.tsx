@@ -391,6 +391,7 @@ export default function Home() {
         <div>
           <p className="eyebrow">Cleanote</p>
           <h1>Scan notes into editable text</h1>
+          <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
         </div>
         <div className="status-strip">
           <span>{provider ? `OCR: ${provider}` : "OCR: ready"}</span>
