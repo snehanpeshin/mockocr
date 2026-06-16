@@ -7,6 +7,7 @@ import {
   FlatList,
   Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   SafeAreaView,
@@ -40,7 +41,8 @@ type SavedNote = {
 const SUBJECTS = ["general", "biology", "chemistry", "math", "engineering", "medicine", "research"];
 
 export default function App() {
-  const [pickedImage, setPickedImage] = useState<PickedImage | null>(null);
+  const [pickedImages, setPickedImages] = useState<PickedImage[]>([]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [text, setText] = useState("");
   const [filename, setFilename] = useState<string | null>(null);
   const [provider, setProvider] = useState<string | null>(null);
@@ -52,6 +54,8 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [message, setMessage] = useState("Choose a notebook photo to begin.");
+
+  const pickedImage = pickedImages[activeImageIndex] ?? null;
 
   const wordCount = useMemo(() => {
     return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -70,60 +74,89 @@ export default function App() {
       source === "camera"
         ? await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.92 })
         : await ImagePicker.launchImageLibraryAsync({
-            allowsEditing: true,
+            allowsMultipleSelection: true,
             mediaTypes: ["images"],
-            quality: 0.92
+            quality: 0.92,
+            selectionLimit: 10
           });
 
     if (result.canceled || !result.assets[0]) {
       return;
     }
 
-    const asset = result.assets[0];
-    const nextImage = {
-      fileName: asset.fileName ?? `cleanote-scan-${Date.now()}.jpg`,
+    const nextImages = result.assets.map((asset, index) => ({
+      fileName: asset.fileName ?? `cleanote-scan-${Date.now()}-${index + 1}.jpg`,
       mimeType: asset.mimeType ?? "image/jpeg",
       uri: asset.uri
-    };
-    setPickedImage(nextImage);
-    setFilename(nextImage.fileName);
+    }));
+
+    setPickedImages((currentImages) =>
+      source === "camera" ? [...currentImages, nextImages[0]] : nextImages
+    );
+    setActiveImageIndex(source === "camera" ? pickedImages.length : 0);
+    setFilename(nextImages.length > 1 ? `${nextImages.length} page scan` : nextImages[0].fileName);
     setProvider(null);
     setText("");
-    setMessage("Photo ready. Tap Scan handwriting.");
+    setMessage(
+      nextImages.length > 1
+        ? `${nextImages.length} pages ready. Tap Scan all.`
+        : "Photo ready. Tap Scan handwriting."
+    );
   }
 
   async function scanHandwriting() {
-    if (!pickedImage) {
-      setMessage("Choose or take a note photo first.");
+    if (!pickedImages.length) {
+      setMessage("Choose or take one or more note photos first.");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", {
-      name: pickedImage.fileName,
-      type: pickedImage.mimeType,
-      uri: pickedImage.uri
-    } as unknown as Blob);
-    formData.append("provider", "textract");
-    formData.append("subject", subject);
-    formData.append("context_text", contextText);
-
     setIsScanning(true);
-    setMessage("Scanning handwriting...");
+    setMessage(pickedImages.length > 1 ? "Scanning pages..." : "Scanning handwriting...");
 
     try {
-      const response = await fetch(`${API_BASE}/api/ocr`, {
-        body: formData,
-        method: "POST"
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.detail ?? "OCR failed.");
+      const results = [];
+
+      for (const image of pickedImages) {
+        const formData = new FormData();
+        formData.append("file", {
+          name: image.fileName,
+          type: image.mimeType,
+          uri: image.uri
+        } as unknown as Blob);
+        formData.append("provider", "textract");
+        formData.append("subject", subject);
+        formData.append("context_text", contextText);
+
+        const response = await fetch(`${API_BASE}/api/ocr`, {
+          body: formData,
+          method: "POST"
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.detail ?? `OCR failed for ${image.fileName}.`);
+        }
+        results.push(payload);
       }
-      setText(payload.text ?? "");
-      setFilename(payload.filename ?? pickedImage.fileName);
-      setProvider(payload.provider ?? "textract");
-      setMessage("Scan complete. Edit, save, or search your notes.");
+
+      const combinedText = results
+        .map((payload, index) =>
+          results.length > 1
+            ? `Page ${index + 1}: ${payload.filename ?? pickedImages[index].fileName}\n\n${
+                payload.text ?? ""
+              }`
+            : payload.text ?? ""
+        )
+        .join("\n\n---\n\n");
+      const nextFilename =
+        results.length > 1 ? `${results.length} page scan` : results[0].filename ?? pickedImages[0].fileName;
+      setText(combinedText);
+      setFilename(nextFilename);
+      setProvider(results[0].provider ?? "textract");
+      setMessage(
+        results.length > 1
+          ? `Scan complete for ${results.length} pages.`
+          : "Scan complete. Edit, save, or search your notes."
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "OCR failed.");
     } finally {
@@ -209,6 +242,19 @@ export default function App() {
     setMessage(`Opened ${note.filename}`);
   }
 
+  function clearImages() {
+    setPickedImages([]);
+    setActiveImageIndex(0);
+    setFilename(null);
+    setProvider(null);
+    setText("");
+    setMessage("Choose a notebook photo to begin.");
+  }
+
+  function openPrivacyPolicy() {
+    void Linking.openURL("https://main.d3vhgcrptn13ws.amplifyapp.com/privacy");
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
@@ -220,9 +266,13 @@ export default function App() {
           <View style={styles.header}>
             <Text style={styles.eyebrow}>Cleanote mobile</Text>
             <Text style={styles.title}>Scan notes into searchable text</Text>
+            <Text style={styles.companyLine}>Cleanote, a product of Karigari Home LLC</Text>
             <Text style={styles.subtitle}>
-              Use your camera, clean the result, and search saved notes from your AWS backend.
+              Put notebook pages first, scan them into editable text, then save and search.
             </Text>
+            <Pressable onPress={openPrivacyPolicy}>
+              <Text style={styles.policyLink}>Privacy Policy</Text>
+            </Pressable>
           </View>
 
           <View style={styles.actions}>
@@ -230,11 +280,49 @@ export default function App() {
               <Text style={styles.primaryButtonText}>Take photo</Text>
             </Pressable>
             <Pressable style={styles.secondaryButton} onPress={() => choosePhoto("library")}>
-              <Text style={styles.secondaryButtonText}>Choose image</Text>
+              <Text style={styles.secondaryButtonText}>Choose images</Text>
             </Pressable>
           </View>
 
-          {pickedImage ? <Image source={{ uri: pickedImage.uri }} style={styles.preview} /> : null}
+          <View style={styles.previewPanel}>
+            {pickedImage ? (
+              <Image source={{ uri: pickedImage.uri }} style={styles.preview} />
+            ) : (
+              <View style={styles.emptyPreview}>
+                <Text style={styles.emptyPreviewTitle}>Upload handwriting</Text>
+                <Text style={styles.emptyPreviewText}>Select one page or multiple pages</Text>
+              </View>
+            )}
+          </View>
+
+          {pickedImages.length ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.pageRow}>
+                {pickedImages.map((image, index) => (
+                  <Pressable
+                    key={`${image.fileName}-${index}`}
+                    onPress={() => setActiveImageIndex(index)}
+                    style={[
+                      styles.pageChip,
+                      index === activeImageIndex ? styles.pageChipActive : null
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.pageChipLabel,
+                        index === activeImageIndex ? styles.pageChipLabelActive : null
+                      ]}
+                    >
+                      Page {index + 1}
+                    </Text>
+                    <Text numberOfLines={1} style={styles.pageChipName}>
+                      {image.fileName}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          ) : null}
 
           <View style={styles.panel}>
             <Text style={styles.label}>Subject</Text>
@@ -277,9 +365,14 @@ export default function App() {
             >
               {isScanning ? <ActivityIndicator color="#fff" /> : null}
               <Text style={styles.primaryButtonText}>
-                {isScanning ? "Scanning" : "Scan handwriting"}
+                {isScanning ? "Scanning" : pickedImages.length > 1 ? "Scan all" : "Scan handwriting"}
               </Text>
             </Pressable>
+            {pickedImages.length ? (
+              <Pressable style={styles.secondaryButton} onPress={clearImages}>
+                <Text style={styles.secondaryButtonText}>Reset pages</Text>
+              </Pressable>
+            ) : null}
           </View>
 
           <View style={styles.panel}>
@@ -363,6 +456,12 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 36
   },
+  companyLine: {
+    color: "#607078",
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20
+  },
   contextInput: {
     backgroundColor: "#fbfcfa",
     borderColor: "#d8e0e2",
@@ -387,6 +486,29 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     minHeight: 220,
     padding: 14
+  },
+  emptyPreview: {
+    alignItems: "center",
+    backgroundColor: "#f7faf9",
+    borderColor: "#aac0bd",
+    borderRadius: 8,
+    borderStyle: "dashed",
+    borderWidth: 1,
+    flex: 1,
+    gap: 8,
+    justifyContent: "center",
+    minHeight: 250,
+    padding: 24
+  },
+  emptyPreviewText: {
+    color: "#607078",
+    fontSize: 15,
+    textAlign: "center"
+  },
+  emptyPreviewTitle: {
+    color: "#182024",
+    fontSize: 18,
+    fontWeight: "900"
   },
   eyebrow: {
     color: "#b94f65",
@@ -446,11 +568,57 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16
   },
+  pageChip: {
+    backgroundColor: "#ffffff",
+    borderColor: "#d8e0e2",
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 3,
+    minWidth: 150,
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  pageChipActive: {
+    borderColor: "#287c6b"
+  },
+  pageChipLabel: {
+    color: "#607078",
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase"
+  },
+  pageChipLabelActive: {
+    color: "#17614f"
+  },
+  pageChipName: {
+    color: "#607078",
+    fontSize: 12,
+    fontWeight: "700",
+    maxWidth: 126
+  },
+  pageRow: {
+    flexDirection: "row",
+    gap: 8
+  },
+  policyLink: {
+    color: "#17614f",
+    fontSize: 15,
+    fontWeight: "900"
+  },
   preview: {
-    aspectRatio: 4 / 3,
+    aspectRatio: 3 / 4,
     backgroundColor: "#eef5f3",
     borderRadius: 8,
+    maxHeight: 520,
+    resizeMode: "contain",
     width: "100%"
+  },
+  previewPanel: {
+    backgroundColor: "#ffffff",
+    borderColor: "#d8e0e2",
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12
   },
   primaryButton: {
     alignItems: "center",
