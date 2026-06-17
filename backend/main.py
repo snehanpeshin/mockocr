@@ -7,7 +7,7 @@ from pathlib import Path
 
 import cv2
 from docx import Document
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 import numpy as np
@@ -17,6 +17,14 @@ from image_preprocess import preprocess_image
 from beta_service import request_beta_access, verify_beta_token
 from note_service import save_note, search_notes
 from ocr_service import extract_text
+from payment_service import (
+    construct_webhook_event,
+    create_checkout_session,
+    create_payment_link,
+    handle_stripe_event,
+    revenue_summary,
+    validate_admin_token,
+)
 
 
 OUTPUTS_DIR = Path(__file__).resolve().parent.parent / "outputs"
@@ -26,6 +34,8 @@ DEFAULT_FRONTEND_ORIGINS = [
     "https://main.d3vhgcrptn13ws.amplifyapp.com",
     "https://mockocr.com",
     "https://www.mockocr.com",
+    "https://cleanote.in",
+    "https://www.cleanote.in",
 ]
 
 
@@ -66,6 +76,17 @@ class NoteRequest(BaseModel):
     subject: str
     text: str
     contextText: str = ""
+
+
+class CheckoutRequest(BaseModel):
+    product_key: str
+    customer_email: str | None = None
+    success_url: str
+    cancel_url: str
+
+
+class PaymentLinkRequest(BaseModel):
+    product_key: str
 
 
 @app.get("/api/health")
@@ -124,6 +145,68 @@ def search_user_notes(email: str, q: str = "", limit: int = 30) -> dict[str, obj
         return search_notes(email, q, limit)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/stripe/checkout-session")
+def create_stripe_checkout_session(payload: CheckoutRequest) -> dict[str, str]:
+    try:
+        return create_checkout_session(
+            payload.product_key,
+            payload.customer_email,
+            payload.success_url,
+            payload.cancel_url,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/stripe/payment-link")
+def create_stripe_payment_link(
+    payload: PaymentLinkRequest,
+    x_admin_token: str | None = Header(default=None),
+) -> dict[str, str]:
+    try:
+        validate_admin_token(x_admin_token)
+        return create_payment_link(payload.product_key)
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/stripe/webhook")
+async def stripe_webhook(request: Request, stripe_signature: str | None = Header(default=None)):
+    payload = await request.body()
+    try:
+        event = construct_webhook_event(payload, stripe_signature)
+        return handle_stripe_event(event)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/admin/revenue")
+def admin_revenue(x_admin_token: str | None = Header(default=None)) -> dict[str, object]:
+    try:
+        validate_admin_token(x_admin_token)
+        return revenue_summary()
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:

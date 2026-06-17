@@ -206,6 +206,156 @@ a {
   color: var(--accent);
 }
 
+.billing-hero {
+  align-items: start;
+  padding: 56px 0;
+}
+
+.billing-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.billing-panel label {
+  display: grid;
+  gap: 7px;
+}
+
+.billing-panel label span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.billing-panel input,
+.admin-token-form input {
+  background: #fbfcfa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  min-height: 44px;
+  outline: 0;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.billing-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.billing-card p {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 6px 0 0;
+}
+
+.admin-shell {
+  margin: 0 auto;
+  max-width: 1180px;
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.admin-header {
+  align-items: flex-end;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.admin-token-form {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(220px, 1fr) auto;
+}
+
+.admin-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+  padding: 18px;
+}
+
+.metric-card strong {
+  color: var(--accent-strong);
+  display: block;
+  font-size: 2.6rem;
+  line-height: 1;
+  margin-top: 8px;
+}
+
+.table-card {
+  display: grid;
+  gap: 14px;
+}
+
+.payment-link-card {
+  display: grid;
+  gap: 12px;
+}
+
+.payment-link-card select {
+  background: #fbfcfa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.payment-link-card a {
+  color: var(--accent-strong);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.admin-table {
+  display: grid;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.admin-table-row {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(150px, 1fr);
+  min-width: 100%;
+  padding: 8px 0;
+}
+
+.admin-table-head {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-table-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .verify-shell {
   align-items: center;
   display: grid;
@@ -779,7 +929,18 @@ textarea:focus {
 
   .landing-hero,
   .landing-band,
-  .demo-strip {
+  .demo-strip,
+  .admin-header,
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-header {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .admin-token-form {
     grid-template-columns: 1fr;
   }
 

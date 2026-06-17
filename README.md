@@ -79,6 +79,15 @@ BETA_TOKEN_TTL_HOURS=24
 SES_FROM_EMAIL=hello@cleanote.com
 APP_BASE_URL=https://cleanote.com
 NOTE_TABLE_NAME=cleanote-notes
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+STRIPE_CLEANOTE_TUTORING_PRODUCT_ID=prod_cleanote_tutoring
+STRIPE_CLEANOTE_TUTORING_PRICE_ID=price_cleanote_tutoring
+STRIPE_CLEANOTE_MONTHLY_PRODUCT_ID=prod_cleanote_monthly
+STRIPE_CLEANOTE_MONTHLY_PRICE_ID=price_cleanote_monthly
+STRIPE_PAYMENT_TABLE_NAME=cleanote-payments
+STRIPE_SUBSCRIPTION_TABLE_NAME=cleanote-subscriptions
+ADMIN_DASHBOARD_TOKEN=replace_with_long_random_admin_token
 ```
 
 Frontend environment variable:
@@ -99,6 +108,15 @@ dynamodb:UpdateItem
 dynamodb:Scan
 dynamodb:Query
 ses:SendEmail
+```
+
+### Stripe Billing
+
+Stripe Checkout, Payment Links, webhooks, DynamoDB payment storage, and the admin revenue
+dashboard are documented in:
+
+```text
+docs/stripe-setup.md
 ```
 
 The frontend always submits uploads to the backend as `provider=textract`.
@@ -167,6 +185,10 @@ save/search using a verified beta email.
 - `GET /api/beta/verify?token=...` verifies the email link.
 - `POST /api/notes` saves a verified user's note to DynamoDB.
 - `GET /api/notes/search?email=...&q=...` searches a verified user's saved notes.
+- `POST /api/stripe/checkout-session` creates a server-side Stripe Checkout Session.
+- `POST /api/stripe/payment-link` creates an admin-protected Stripe Payment Link.
+- `POST /api/stripe/webhook` receives and verifies Stripe webhook events.
+- `GET /api/admin/revenue` returns token-protected revenue dashboard data.
 - `POST /api/export/txt` accepts JSON `{ "text": "..." }` and returns a TXT file.
 - `POST /api/export/docx` accepts JSON `{ "text": "..." }` and returns a DOCX file.
 
