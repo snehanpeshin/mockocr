@@ -1,9 +1,10 @@
 "use client";
 
 import { ArrowRight, Loader2 } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const PREMIUM_ACCESS_KEY = "cleanote.premiumAccess";
 
 const PRODUCTS = [
   {
@@ -26,6 +27,18 @@ export default function BillingPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [checkoutStatus, setCheckoutStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    const status = new URLSearchParams(window.location.search).get("status");
+    setCheckoutStatus(status);
+    if (status === "success") {
+      window.localStorage.setItem(PREMIUM_ACCESS_KEY, "true");
+      setMessage("Premium is active on this browser. You can return to the scanner.");
+    } else if (status === "cancelled") {
+      setMessage("Checkout was cancelled. You can choose a plan when you are ready.");
+    }
+  }, []);
 
   async function startCheckout(event: FormEvent<HTMLFormElement>, productKey: string) {
     event.preventDefault();
@@ -69,6 +82,11 @@ export default function BillingPage() {
           <p className="company-line">
             Cleanote, a product of Karigari Home LLC · <a href="/privacy">Privacy Policy</a>
           </p>
+          {checkoutStatus === "success" ? (
+            <a className="primary billing-return-link" href="/app">
+              Return to scanner
+            </a>
+          ) : null}
         </div>
 
         <div className="billing-panel">

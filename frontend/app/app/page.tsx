@@ -20,6 +20,9 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const SAVED_NOTES_KEY = "cleanote.savedNotes";
 const LEGACY_SAVED_NOTES_KEY = "pen2txt.savedNotes";
+const FREE_SCAN_COUNT_KEY = "cleanote.freeScanCount";
+const PREMIUM_ACCESS_KEY = "cleanote.premiumAccess";
+const FREE_SCAN_LIMIT = 1;
 
 type OcrResponse = {
   text: string;
@@ -85,6 +88,8 @@ export default function Home() {
   const [cloudNotes, setCloudNotes] = useState<SavedNote[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [freeScanCount, setFreeScanCount] = useState(0);
+  const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [isSearchingArchive, setIsSearchingArchive] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -132,6 +137,8 @@ export default function Home() {
         setSavedNotes(parsedNotes);
         window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(parsedNotes));
       }
+      setFreeScanCount(Number(window.localStorage.getItem(FREE_SCAN_COUNT_KEY) ?? "0"));
+      setHasPremiumAccess(window.localStorage.getItem(PREMIUM_ACCESS_KEY) === "true");
     } catch {
       setSavedNotes([]);
     }
@@ -234,6 +241,12 @@ export default function Home() {
   }
 
   async function scanFile() {
+    if (!hasPremiumAccess && freeScanCount >= FREE_SCAN_LIMIT) {
+      setMessage("Your free scan is used. Upgrade to Premium to keep scanning notes.");
+      window.location.href = "/billing";
+      return;
+    }
+
     if (!files.length) {
       setMessage("Choose one or more handwritten images first.");
       return;
@@ -288,6 +301,9 @@ export default function Home() {
         text: combinedText,
         contextText: contextText.trim()
       });
+      const nextFreeScanCount = freeScanCount + 1;
+      setFreeScanCount(nextFreeScanCount);
+      window.localStorage.setItem(FREE_SCAN_COUNT_KEY, String(nextFreeScanCount));
       setMessage(results.length > 1 ? `Scanned ${results.length} pages.` : `Scanned ${noteFilename}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "OCR failed.");
@@ -406,12 +422,29 @@ export default function Home() {
           <p className="eyebrow">Cleanote</p>
           <h1>Scan notes into editable text</h1>
           <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
-          <a className="policy-link" href="/privacy">Privacy Policy</a>
+          <div className="topbar-links">
+            <a className="policy-link" href="/billing">Premium</a>
+            <a className="policy-link" href="/privacy">Privacy Policy</a>
+          </div>
         </div>
         <div className="status-strip">
           <span>{provider ? `OCR: ${provider}` : "OCR: ready"}</span>
           <span>{wordCount} words</span>
         </div>
+      </section>
+
+      <section className="premium-banner" aria-label="Cleanote Premium">
+        <div>
+          <strong>
+            {freeScanCount < FREE_SCAN_LIMIT
+              ? "Try one free scan"
+              : hasPremiumAccess
+                ? "Premium active"
+                : "Premium required to keep scanning"}
+          </strong>
+          <span>Monthly Premium $9.99 or Annual Premium $99.</span>
+        </div>
+        <a href="/billing">View plans</a>
       </section>
 
       <section className="workspace">
@@ -511,7 +544,15 @@ export default function Home() {
               ) : (
                 <ScanText aria-hidden="true" size={18} />
               )}
-              <span>{isScanning ? "Scanning" : files.length > 1 ? "Scan all" : "Scan"}</span>
+              <span>
+                {isScanning
+                  ? "Scanning"
+                  : !hasPremiumAccess && freeScanCount >= FREE_SCAN_LIMIT
+                    ? "Upgrade to scan"
+                    : files.length > 1
+                      ? "Scan all"
+                      : "Scan"}
+              </span>
             </button>
             <button onClick={reset} type="button">
               <RotateCcw aria-hidden="true" size={18} />
