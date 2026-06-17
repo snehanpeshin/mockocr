@@ -258,6 +258,13 @@ a {
   margin: 6px 0 0;
 }
 
+.billing-price {
+  color: var(--green);
+  display: block;
+  font-size: 1.45rem;
+  margin-top: 4px;
+}
+
 .admin-shell {
   margin: 0 auto;
   max-width: 1180px;

@@ -7,21 +7,23 @@ Cleanote by setting the Checkout Session `branding_settings.display_name` to `Cl
 
 Create these products in the same Stripe account:
 
-1. Cleanote tutoring sessions
-   - Pricing type: one-time
+1. Cleanote Monthly Premium
+   - Price: $9.99 USD
+   - Pricing type: recurring monthly
    - Copy the Product ID and Price ID.
 
-2. Cleanote monthly subscriptions
-   - Pricing type: recurring monthly
+2. Cleanote Annual Premium
+   - Price: $99 USD
+   - Pricing type: recurring yearly
    - Copy the Product ID and Price ID.
 
 Set the IDs in the backend environment:
 
 ```bash
-STRIPE_CLEANOTE_TUTORING_PRODUCT_ID=prod_...
-STRIPE_CLEANOTE_TUTORING_PRICE_ID=price_...
-STRIPE_CLEANOTE_MONTHLY_PRODUCT_ID=prod_...
-STRIPE_CLEANOTE_MONTHLY_PRICE_ID=price_...
+STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRODUCT_ID=prod_...
+STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRICE_ID=price_...
+STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRODUCT_ID=prod_...
+STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRICE_ID=price_...
 ```
 
 ## Backend Environment Variables
@@ -29,10 +31,10 @@ STRIPE_CLEANOTE_MONTHLY_PRICE_ID=price_...
 ```bash
 STRIPE_SECRET_KEY=sk_live_or_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_CLEANOTE_TUTORING_PRODUCT_ID=prod_...
-STRIPE_CLEANOTE_TUTORING_PRICE_ID=price_...
-STRIPE_CLEANOTE_MONTHLY_PRODUCT_ID=prod_...
-STRIPE_CLEANOTE_MONTHLY_PRICE_ID=price_...
+STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRODUCT_ID=prod_...
+STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRICE_ID=price_...
+STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRODUCT_ID=prod_...
+STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRICE_ID=price_...
 STRIPE_PAYMENT_TABLE_NAME=cleanote-payments
 STRIPE_SUBSCRIPTION_TABLE_NAME=cleanote-subscriptions
 ADMIN_DASHBOARD_TOKEN=use_a_long_random_secret
@@ -162,7 +164,7 @@ POST /api/stripe/checkout-session
 
 ```json
 {
-  "product_key": "cleanote_monthly",
+  "product_key": "cleanote_monthly_premium",
   "customer_email": "student@example.com",
   "success_url": "https://cleanote.in/billing?status=success",
   "cancel_url": "https://cleanote.in/billing?status=cancelled"
@@ -178,7 +180,7 @@ X-Admin-Token: your_admin_token
 
 ```json
 {
-  "product_key": "cleanote_tutoring"
+  "product_key": "cleanote_annual_premium"
 }
 ```
 

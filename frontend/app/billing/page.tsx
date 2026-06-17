@@ -7,16 +7,18 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"
 
 const PRODUCTS = [
   {
-    key: "cleanote_tutoring",
-    name: "Cleanote tutoring sessions",
-    description: "One-time tutoring and onboarding sessions for students and note workflows.",
-    cta: "Book tutoring"
+    key: "cleanote_monthly_premium",
+    name: "Monthly Premium",
+    price: "$9.99/mo",
+    description: "Premium Cleanote access for OCR, cleanup, note search, and exports.",
+    cta: "Subscribe monthly"
   },
   {
-    key: "cleanote_monthly",
-    name: "Cleanote monthly subscriptions",
-    description: "Monthly Cleanote access for OCR, cleanup, note search, and exports.",
-    cta: "Subscribe monthly"
+    key: "cleanote_annual_premium",
+    name: "Annual Premium",
+    price: "$99/yr",
+    description: "A full year of Cleanote Premium with two months effectively included.",
+    cta: "Subscribe annually"
   }
 ];
 
@@ -89,6 +91,7 @@ export default function BillingPage() {
             >
               <div>
                 <h2>{product.name}</h2>
+                <strong className="billing-price">{product.price}</strong>
                 <p>{product.description}</p>
               </div>
               <button className="primary" disabled={isLoading !== null} type="submit">

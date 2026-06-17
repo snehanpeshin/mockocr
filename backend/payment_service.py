@@ -21,19 +21,19 @@ except ImportError:  # pragma: no cover - keep non-billing local dev working.
 CLEANOTE_DBA = "Cleanote"
 
 PRODUCT_CONFIG = {
-    "cleanote_tutoring": {
+    "cleanote_monthly_premium": {
         "dba_name": CLEANOTE_DBA,
-        "product_name": "Cleanote tutoring sessions",
-        "mode": "payment",
-        "product_env": "STRIPE_CLEANOTE_TUTORING_PRODUCT_ID",
-        "price_env": "STRIPE_CLEANOTE_TUTORING_PRICE_ID",
-    },
-    "cleanote_monthly": {
-        "dba_name": CLEANOTE_DBA,
-        "product_name": "Cleanote monthly subscriptions",
+        "product_name": "Cleanote Monthly Premium",
         "mode": "subscription",
-        "product_env": "STRIPE_CLEANOTE_MONTHLY_PRODUCT_ID",
-        "price_env": "STRIPE_CLEANOTE_MONTHLY_PRICE_ID",
+        "product_env": "STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRODUCT_ID",
+        "price_env": "STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRICE_ID",
+    },
+    "cleanote_annual_premium": {
+        "dba_name": CLEANOTE_DBA,
+        "product_name": "Cleanote Annual Premium",
+        "mode": "subscription",
+        "product_env": "STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRODUCT_ID",
+        "price_env": "STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRICE_ID",
     },
 }
 

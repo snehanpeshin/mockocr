@@ -5,8 +5,8 @@ import { FormEvent, useState } from "react";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
 const PRODUCTS = [
-  { key: "cleanote_tutoring", label: "Cleanote tutoring sessions" },
-  { key: "cleanote_monthly", label: "Cleanote monthly subscriptions" }
+  { key: "cleanote_monthly_premium", label: "Monthly Premium ($9.99)" },
+  { key: "cleanote_annual_premium", label: "Annual Premium ($99)" }
 ];
 
 type RevenueRow = {
