@@ -99,6 +99,8 @@ def enhance_with_bedrock(text: str, subject: str, context_text: str = "") -> str
                     "use optional user context only to resolve likely OCR mistakes, "
                     "perform a second-pass consistency check across the whole page, "
                     "and do not add facts that are not present in the OCR text. "
+                    "Never invent missing definitions, examples, equations, values, or explanations. "
+                    "If handwriting is unclear, mark it as [unclear] instead of guessing. "
                     "Return only the cleaned notes using clear headings and bullets."
                 )
             }
@@ -114,6 +116,8 @@ def enhance_with_bedrock(text: str, subject: str, context_text: str = "") -> str
                             "Clean and structure these OCR notes for a student. "
                             "Use the context only for terminology, abbreviations, and likely corrections. "
                             "Do not add facts from the context unless they are supported by the OCR text. "
+                            "Do not complete partial math/science content from memory. "
+                            "Do not add generated explanations, extra formulas, or new examples. "
                             "Treat OCR as a draft, not final truth. Build a page-level symbol inventory, "
                             "then fix likely character substitutions using neighboring lines, repeated usage, "
                             "grammar, and domain conventions. For math, verify common identities and variable "
@@ -121,7 +125,8 @@ def enhance_with_bedrock(text: str, subject: str, context_text: str = "") -> str
                             "consistently use b and the formula only works with b, correct 6 to b. Watch for "
                             "b/6, O/0, l/1, x/multiplication sign, z/2, and similar handwritten ambiguities. "
                             "If an ambiguity remains genuinely uncertain, preserve the most likely reading and "
-                            "add a short 'Possible OCR Ambiguities' note at the end. "
+                            "add a short 'Possible OCR Ambiguities' note at the end. Use [unclear] for words, "
+                            "symbols, or equations that cannot be safely reconstructed from the OCR text. "
                             "Use markdown-style headings and bullet lists when helpful. "
                             "If the content contains equations or technical notation, keep it intact.\n\n"
                             f"{text}"
@@ -132,7 +137,7 @@ def enhance_with_bedrock(text: str, subject: str, context_text: str = "") -> str
         ],
         inferenceConfig={
             "maxTokens": max_tokens,
-            "temperature": 0.1,
+            "temperature": 0,
         },
     )
 

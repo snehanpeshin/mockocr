@@ -684,6 +684,14 @@ h2 {
   width: 100%;
 }
 
+.scan-tip {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 650;
+  line-height: 1.45;
+  margin: 0;
+}
+
 .control-header {
   align-items: center;
   color: var(--muted);
@@ -881,6 +889,12 @@ h2 {
   color: var(--muted);
 }
 
+.search-box button {
+  color: var(--accent-strong);
+  min-height: 34px;
+  padding: 0 10px;
+}
+
 .saved-list {
   display: grid;
   gap: 8px;
@@ -940,6 +954,13 @@ h2 {
   min-height: 42px;
   padding: 0;
   width: 42px;
+}
+
+.icon-actions button.saved-action {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  opacity: 1;
 }
 
 textarea {

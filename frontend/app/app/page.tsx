@@ -2,6 +2,7 @@
 
 import {
   Clipboard,
+  Check,
   Crop,
   Download,
   FileText,
@@ -13,6 +14,7 @@ import {
   ScanText,
   Search,
   SlidersHorizontal,
+  Trash2,
   Upload
 } from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
@@ -20,6 +22,7 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const SAVED_NOTES_KEY = "cleanote.savedNotes";
 const LEGACY_SAVED_NOTES_KEY = "pen2txt.savedNotes";
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 type OcrResponse = {
   text: string;
@@ -85,6 +88,7 @@ export default function Home() {
   const [cloudNotes, setCloudNotes] = useState<SavedNote[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
   const [isScanning, setIsScanning] = useState(false);
   const [isSearchingArchive, setIsSearchingArchive] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -213,24 +217,33 @@ export default function Home() {
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const selectedFiles = Array.from(event.target.files ?? []);
-    setFiles(selectedFiles);
+    const oversizedFiles = selectedFiles.filter((selectedFile) => selectedFile.size > MAX_UPLOAD_BYTES);
+    const validFiles = selectedFiles.filter((selectedFile) => selectedFile.size <= MAX_UPLOAD_BYTES);
+
+    if (oversizedFiles.length) {
+      setMessage("Files over 50 MB are too large. Use a clearer, smaller photo for faster OCR.");
+    } else {
+      setMessage(null);
+    }
+
     setActiveFileIndex(0);
     setText("");
     setProvider(null);
     setFilename(null);
     setCurrentNoteId(null);
-    setMessage(null);
     setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
     setRotation(0);
     setContrast(112);
 
     previewUrls.forEach((url) => URL.revokeObjectURL(url));
 
+    setFiles(validFiles);
     setPreviewUrls(
-      selectedFiles.map((selectedFile) =>
+      validFiles.map((selectedFile) =>
         selectedFile.type.startsWith("image/") ? URL.createObjectURL(selectedFile) : ""
       )
     );
+    event.target.value = "";
   }
 
   async function scanFile() {
@@ -261,8 +274,7 @@ export default function Home() {
         });
 
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.detail ?? `OCR failed for ${selectedFile.name}.`);
+          throw new Error(await readErrorMessage(response, `OCR failed for ${selectedFile.name}.`));
         }
 
         results.push((await response.json()) as OcrResponse);
@@ -288,7 +300,11 @@ export default function Home() {
         text: combinedText,
         contextText: contextText.trim()
       });
-      setMessage(results.length > 1 ? `Scanned ${results.length} pages.` : `Scanned ${noteFilename}`);
+      setMessage(
+        results.length > 1
+          ? `Text extracted successfully from ${results.length} pages.`
+          : `Text extracted successfully from ${noteFilename}.`
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "OCR failed.");
     } finally {
@@ -374,7 +390,7 @@ export default function Home() {
     }
 
     const noteId = currentNoteId ?? crypto.randomUUID();
-    const noteFilename = filename ?? "Untitled note";
+    const noteFilename = filename ?? createNoteTitle(subject);
     setCurrentNoteId(noteId);
     saveNote({
       id: noteId,
@@ -386,7 +402,17 @@ export default function Home() {
       contextText: contextText.trim()
     });
     setFilename(noteFilename);
+    setSaveStatus("saved");
+    window.setTimeout(() => setSaveStatus("idle"), 1400);
     setMessage(userEmail ? "Saved note for cloud search." : "Saved note for local search.");
+  }
+
+  function clearEditor() {
+    setText("");
+    setProvider(null);
+    setFilename(null);
+    setCurrentNoteId(null);
+    setMessage("Editor cleared.");
   }
 
   function openSavedNote(note: SavedNote) {
@@ -466,6 +492,9 @@ export default function Home() {
 
           {file?.type.startsWith("image/") ? (
             <div className="scan-controls" aria-label="Scan cleanup controls">
+              <p className="scan-tip">
+                Crop is optional. Use a bright, flat photo with dark handwriting for better results.
+              </p>
               <div className="control-header">
                 <Crop aria-hidden="true" size={18} />
                 <span>Crop</span>
@@ -578,6 +607,11 @@ export default function Home() {
                 placeholder={userEmail ? "Search cloud notes" : "Search local notes"}
                 value={searchQuery}
               />
+              {searchQuery ? (
+                <button onClick={() => setSearchQuery("")} type="button">
+                  Clear
+                </button>
+              ) : null}
             </label>
             <div className="saved-list">
               {filteredNotes.length ? (
@@ -588,7 +622,13 @@ export default function Home() {
                   </button>
                 ))
               ) : (
-                <p>{isSearchingArchive ? "Searching notes..." : "No saved notes yet."}</p>
+                <p>
+                  {isSearchingArchive
+                    ? "Searching notes..."
+                    : searchQuery
+                      ? "No matching notes found. Clear search to view all saved notes."
+                      : "No saved notes yet."}
+                </p>
               )}
             </div>
           </div>
@@ -601,8 +641,20 @@ export default function Home() {
               <h2>Extracted text</h2>
             </div>
             <div className="icon-actions" aria-label="Export tools">
-              <button disabled={!text} onClick={saveCurrentNote} title="Save searchable note">
-                <Save aria-hidden="true" size={18} />
+              <button
+                className={saveStatus === "saved" ? "saved-action" : ""}
+                disabled={!text}
+                onClick={saveCurrentNote}
+                title={saveStatus === "saved" ? "Saved" : "Save searchable note"}
+              >
+                {saveStatus === "saved" ? (
+                  <Check aria-hidden="true" size={18} />
+                ) : (
+                  <Save aria-hidden="true" size={18} />
+                )}
+              </button>
+              <button disabled={!text} onClick={clearEditor} title="Clear editor">
+                <Trash2 aria-hidden="true" size={18} />
               </button>
               <button disabled={!text} onClick={copyText} title="Copy text">
                 <Clipboard aria-hidden="true" size={18} />
@@ -643,6 +695,35 @@ async function syncNoteToCloud(note: SavedNote, email: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...note, email })
   });
+}
+
+async function readErrorMessage(response: Response, fallback: string) {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    try {
+      const error = await response.json();
+      return error.detail ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  const text = await response.text();
+  return text.trim() || fallback;
+}
+
+function createNoteTitle(subject: string) {
+  const date = new Date();
+  const datePart = date.toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+  const timePart = date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  return `${subject} note ${datePart} ${timePart}`;
 }
 
 async function buildProcessedImage(file: File, adjustments: ImageAdjustments): Promise<Blob> {
