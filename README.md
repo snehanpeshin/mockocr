@@ -79,6 +79,7 @@ BETA_TOKEN_TTL_HOURS=24
 SES_FROM_EMAIL=hello@cleanote.com
 APP_BASE_URL=https://cleanote.com
 NOTE_TABLE_NAME=cleanote-notes
+SCAN_EVENTS_TABLE_NAME=cleanote-scan-events
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRODUCT_ID=prod_cleanote_monthly_premium
@@ -145,6 +146,30 @@ AWS resource needed for cloud search:
 - DynamoDB table: `cleanote-notes`
 - Partition key: `email` as a string
 - Sort key: `note_id` as a string
+
+### Scan Counting
+
+When `SCAN_EVENTS_TABLE_NAME` is configured, every OCR request writes one scan event to
+DynamoDB. Use this to count scans, successful scans, failed scans, subjects, providers, and
+uploaded file sizes.
+
+AWS resource needed for scan counting:
+
+- DynamoDB table: `cleanote-scan-events`
+- Partition key: `scan_id` as a string
+
+ECS task role policy:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "dynamodb:PutItem",
+    "dynamodb:Scan"
+  ],
+  "Resource": "arn:aws:dynamodb:us-east-1:924225826927:table/cleanote-scan-events"
+}
+```
 
 ### Frontend
 

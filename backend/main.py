@@ -25,6 +25,7 @@ from payment_service import (
     revenue_summary,
     validate_admin_token,
 )
+from scan_event_service import record_scan_event, scan_summary
 
 
 OUTPUTS_DIR = Path(__file__).resolve().parent.parent / "outputs"
@@ -204,7 +205,7 @@ async def stripe_webhook(request: Request, stripe_signature: str | None = Header
 def admin_revenue(x_admin_token: str | None = Header(default=None)) -> dict[str, object]:
     try:
         validate_admin_token(x_admin_token)
-        return revenue_summary()
+        return {**revenue_summary(), "scan_summary": scan_summary()}
     except PermissionError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -220,8 +221,19 @@ async def run_ocr(
     subject: str = Form(default="general"),
     context_text: str = Form(default=""),
 ) -> dict[str, str]:
-    suffix = Path(file.filename or "upload").suffix.lower()
+    filename = file.filename or "upload"
+    suffix = Path(filename).suffix.lower()
     if suffix not in {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff", ".pdf"}:
+        record_scan_event(
+            {
+                "filename": filename,
+                "file_type": suffix.lstrip("."),
+                "provider": provider or "",
+                "subject": subject,
+                "status": "rejected",
+                "error_message": "Unsupported file type",
+            }
+        )
         raise HTTPException(
             status_code=400,
             detail="Upload an image or PDF file.",
@@ -236,23 +248,56 @@ async def run_ocr(
 
             with uploaded_path.open("wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
+            file_size_bytes = uploaded_path.stat().st_size
 
             if suffix == ".pdf":
                 original_path = _render_pdf_first_page(uploaded_path, original_path)
 
             preprocess_image(original_path, processed_path)
             result = extract_text(processed_path, provider, subject, context_text)
+            record_scan_event(
+                {
+                    "filename": filename,
+                    "file_type": suffix.lstrip("."),
+                    "file_size_bytes": file_size_bytes,
+                    "provider": result["provider"],
+                    "subject": subject,
+                    "status": "success",
+                    "page_count": 1,
+                    "text_length": len(result["text"]),
+                }
+            )
 
             return {
                 "text": result["text"],
                 "provider": result["provider"],
-                "filename": file.filename or "upload",
+                "filename": filename,
                 "subject": subject,
                 "context_text": context_text,
             }
     except ValueError as exc:
+        record_scan_event(
+            {
+                "filename": filename,
+                "file_type": suffix.lstrip("."),
+                "provider": provider or "",
+                "subject": subject,
+                "status": "failed",
+                "error_message": str(exc),
+            }
+        )
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
+        record_scan_event(
+            {
+                "filename": filename,
+                "file_type": suffix.lstrip("."),
+                "provider": provider or "",
+                "subject": subject,
+                "status": "failed",
+                "error_message": str(exc),
+            }
+        )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 

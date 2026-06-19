@@ -34,6 +34,16 @@ type Customer = {
   latest_payment_date: string;
 };
 
+type ScanSummary = {
+  configured: boolean;
+  available: boolean;
+  total_scans: number;
+  successful_scans: number;
+  failed_scans: number;
+  by_status: Array<{ status: string; count: number }>;
+  by_subject: Array<{ subject: string; count: number }>;
+};
+
 type RevenueSummary = {
   total_revenue: string;
   revenue_by_dba: RevenueRow[];
@@ -41,6 +51,7 @@ type RevenueSummary = {
   active_subscriptions: ActiveSubscription[];
   active_subscription_count: number;
   customers: Customer[];
+  scan_summary?: ScanSummary;
 };
 
 export default function AdminPage() {
@@ -132,6 +143,14 @@ export default function AdminPage() {
             <p className="eyebrow">Active subscriptions</p>
             <strong>{summary.active_subscription_count}</strong>
           </div>
+          <div className="admin-card metric-card">
+            <p className="eyebrow">Total scans</p>
+            <strong>{summary.scan_summary?.total_scans ?? 0}</strong>
+          </div>
+          <div className="admin-card metric-card">
+            <p className="eyebrow">Successful scans</p>
+            <strong>{summary.scan_summary?.successful_scans ?? 0}</strong>
+          </div>
           <div className="admin-card payment-link-card">
             <h2>Create Payment Link</h2>
             <select
@@ -168,6 +187,22 @@ export default function AdminPage() {
             columns={["Month", "Revenue"]}
             rows={summary.revenue_by_month.map((row) => [row.month ?? "", `$${row.amount}`])}
             title="Revenue by month"
+          />
+          <Table
+            columns={["Subject", "Scans"]}
+            rows={(summary.scan_summary?.by_subject ?? []).map((row) => [
+              row.subject,
+              String(row.count)
+            ])}
+            title="Scans by subject"
+          />
+          <Table
+            columns={["Status", "Scans"]}
+            rows={(summary.scan_summary?.by_status ?? []).map((row) => [
+              row.status,
+              String(row.count)
+            ])}
+            title="Scans by status"
           />
           <Table
             columns={["Customer", "Email", "Total", "Latest payment"]}
