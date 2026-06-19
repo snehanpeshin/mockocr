@@ -349,3 +349,101 @@ def export_docx(payload: ExportRequest) -> FileResponse:
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         filename="cleanote-output.docx",
     )
+
+
+@app.post("/api/export/pdf")
+def export_pdf(payload: ExportRequest) -> FileResponse:
+    OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = OUTPUTS_DIR / "cleanote-output.pdf"
+
+    output_path.write_bytes(_build_simple_pdf(payload.text))
+
+    return FileResponse(
+        output_path,
+        media_type="application/pdf",
+        filename="cleanote-output.pdf",
+    )
+
+
+def _build_simple_pdf(text: str) -> bytes:
+    lines = _wrap_pdf_lines(text)
+    pages = [lines[index : index + 48] for index in range(0, len(lines), 48)] or [[""]]
+    font_object_id = 3 + (len(pages) * 2)
+    objects = [b"<< /Type /Catalog /Pages 2 0 R >>"]
+
+    page_object_ids = [3 + index for index in range(len(pages))]
+    page_refs = " ".join(f"{object_id} 0 R" for object_id in page_object_ids)
+    objects.append(f"<< /Type /Pages /Kids [{page_refs}] /Count {len(pages)} >>".encode("ascii"))
+
+    content_objects: list[bytes] = []
+    for page_index, page_lines in enumerate(pages):
+        content_object_id = 3 + len(pages) + page_index
+        objects.append(
+            (
+                f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+                f"/Resources << /Font << /F1 {font_object_id} 0 R >> >> "
+                f"/Contents {content_object_id} 0 R >>"
+            ).encode("ascii")
+        )
+        stream = _pdf_text_stream(page_lines)
+        content_objects.append(
+            b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream"
+        )
+
+    objects.extend(content_objects)
+    objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+    return _pdf_from_objects(objects)
+
+
+def _pdf_text_stream(lines: list[str]) -> bytes:
+    content_lines = ["BT", "/F1 11 Tf", "14 TL", "48 744 Td"]
+    for line in lines:
+        content_lines.append(f"({_escape_pdf_string(line)}) Tj")
+        content_lines.append("T*")
+    content_lines.append("ET")
+    return "\n".join(content_lines).encode("latin-1", errors="replace")
+
+
+def _wrap_pdf_lines(text: str, width: int = 88) -> list[str]:
+    source_lines = text.splitlines() or [""]
+    wrapped: list[str] = []
+    for source_line in source_lines:
+        line = source_line.strip()
+        if not line:
+            wrapped.append("")
+            continue
+        while len(line) > width:
+            split_at = line.rfind(" ", 0, width)
+            if split_at < 24:
+                split_at = width
+            wrapped.append(line[:split_at].strip())
+            line = line[split_at:].strip()
+        wrapped.append(line)
+    return wrapped
+
+
+def _escape_pdf_string(text: str) -> str:
+    return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def _pdf_from_objects(objects: list[bytes]) -> bytes:
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for index, obj in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{index} 0 obj\n".encode("ascii"))
+        pdf.extend(obj)
+        pdf.extend(b"\nendobj\n")
+
+    xref_offset = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
+    pdf.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    pdf.extend(
+        (
+            f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
+            f"startxref\n{xref_offset}\n%%EOF\n"
+        ).encode("ascii")
+    )
+    return bytes(pdf)

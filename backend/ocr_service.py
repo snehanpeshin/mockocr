@@ -181,7 +181,7 @@ def clean_ocr_text(text: str) -> str:
 
     cleaned = "\n".join(cleaned_lines).strip()
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
-    return apply_student_dictionary(cleaned)
+    return standardize_math_notation(apply_student_dictionary(cleaned))
 
 
 def clean_ocr_line(line: str) -> str:
@@ -225,4 +225,23 @@ def apply_student_dictionary(text: str) -> str:
 
     for wrong, right in corrections.items():
         text = re.sub(rf"\b{wrong}\b", right, text, flags=re.IGNORECASE)
+    return text
+
+
+def standardize_math_notation(text: str) -> str:
+    replacements = {
+        "−": "-",
+        "–": "-",
+    }
+    for wrong, right in replacements.items():
+        text = text.replace(wrong, right)
+
+    text = re.sub(r"<\s*=", "≤", text)
+    text = re.sub(r">\s*=", "≥", text)
+    text = re.sub(r"!\s*=", "≠", text)
+    text = re.sub(r"\b([A-Za-z0-9])\s*\*\s*([A-Za-z0-9])\b", r"\1 × \2", text)
+    text = re.sub(r"\b([A-Za-z0-9])\s*\^\s*([A-Za-z0-9])\b", r"\1^\2", text)
+    text = re.sub(r"\b([A-Za-z])\s*_\s*([A-Za-z0-9])\b", r"\1_\2", text)
+    text = re.sub(r"\s+([+\-*/=<>])\s+", r" \1 ", text)
+    text = re.sub(r"\s{2,}", " ", text)
     return text

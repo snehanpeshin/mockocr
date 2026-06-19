@@ -317,7 +317,7 @@ export default function Home() {
     setMessage("Copied to clipboard.");
   }
 
-  async function downloadExport(format: "txt" | "docx") {
+  async function downloadExport(format: "txt" | "docx" | "pdf") {
     const response = await fetch(`${API_BASE}/api/export/${format}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -664,6 +664,9 @@ export default function Home() {
               </button>
               <button disabled={!text} onClick={() => downloadExport("docx")} title="Download DOCX">
                 <Download aria-hidden="true" size={18} />
+              </button>
+              <button disabled={!text} onClick={() => downloadExport("pdf")} title="Download PDF">
+                <FileText aria-hidden="true" size={18} />
               </button>
             </div>
           </div>

@@ -11,8 +11,10 @@ def preprocess_image(input_path: Path, output_path: Path) -> Path:
     if image is None:
         raise ValueError("Unsupported or unreadable image file.")
 
+    image = _upscale_for_ocr(image)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    denoised = cv2.fastNlMeansDenoising(gray, h=18)
+    gray = cv2.bilateralFilter(gray, 7, 35, 35)
+    denoised = cv2.fastNlMeansDenoising(gray, h=14)
     deskewed = _deskew(denoised)
     enhanced = _enhance_contrast(deskewed)
 
@@ -21,17 +23,32 @@ def preprocess_image(input_path: Path, output_path: Path) -> Path:
     return output_path
 
 
+def _upscale_for_ocr(image: np.ndarray) -> np.ndarray:
+    height, width = image.shape[:2]
+    longest_side = max(height, width)
+    if longest_side >= 1800:
+        return image
+
+    scale = min(2.5, 1800 / max(1, longest_side))
+    return cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+
+
 def _enhance_contrast(gray: np.ndarray) -> np.ndarray:
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    contrasted = clahe.apply(gray)
-    return cv2.adaptiveThreshold(
-        contrasted,
+    normalized = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
+    clahe = cv2.createCLAHE(clipLimit=2.4, tileGridSize=(8, 8))
+    contrasted = clahe.apply(normalized)
+    blurred = cv2.GaussianBlur(contrasted, (0, 0), 1.2)
+    sharpened = cv2.addWeighted(contrasted, 1.55, blurred, -0.55, 0)
+    thresholded = cv2.adaptiveThreshold(
+        sharpened,
         255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         cv2.THRESH_BINARY,
-        35,
-        11,
+        41,
+        13,
     )
+    kernel = np.ones((2, 2), np.uint8)
+    return cv2.morphologyEx(thresholded, cv2.MORPH_OPEN, kernel)
 
 
 def _deskew(gray: np.ndarray) -> np.ndarray:
