@@ -318,6 +318,12 @@ export default function Home() {
   }
 
   async function downloadExport(format: "txt" | "docx" | "pdf") {
+    if (format === "pdf") {
+      downloadBlob(buildSimplePdf(text), "cleanote-output.pdf");
+      setMessage("Downloaded PDF.");
+      return;
+    }
+
     const response = await fetch(`${API_BASE}/api/export/${format}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -330,10 +336,14 @@ export default function Home() {
     }
 
     const blob = await response.blob();
+    downloadBlob(blob, `cleanote-output.${format}`);
+  }
+
+  function downloadBlob(blob: Blob, downloadName: string) {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `cleanote-output.${format}`;
+    anchor.download = downloadName;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -727,6 +737,95 @@ function createNoteTitle(subject: string) {
     minute: "2-digit"
   });
   return `${subject} note ${datePart} ${timePart}`;
+}
+
+function buildSimplePdf(text: string) {
+  const lines = wrapPdfLines(text);
+  const pages = chunkLines(lines, 48);
+  const fontObjectId = 3 + pages.length * 2;
+  const objects: string[] = ["<< /Type /Catalog /Pages 2 0 R >>"];
+  const pageObjectIds = pages.map((_, index) => 3 + index);
+  objects.push(`<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`);
+
+  const contentObjects: string[] = [];
+  pages.forEach((pageLines, index) => {
+    const contentObjectId = 3 + pages.length + index;
+    objects.push(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentObjectId} 0 R >>`
+    );
+    const stream = pdfTextStream(pageLines);
+    contentObjects.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+  });
+
+  objects.push(...contentObjects);
+  objects.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+  return new Blob([pdfFromObjects(objects)], { type: "application/pdf" });
+}
+
+function wrapPdfLines(text: string, width = 88) {
+  const sourceLines = text.split(/\r?\n/) || [""];
+  const wrapped: string[] = [];
+  sourceLines.forEach((sourceLine) => {
+    let line = sourceLine.trim();
+    if (!line) {
+      wrapped.push("");
+      return;
+    }
+    while (line.length > width) {
+      let splitAt = line.lastIndexOf(" ", width);
+      if (splitAt < 24) {
+        splitAt = width;
+      }
+      wrapped.push(line.slice(0, splitAt).trim());
+      line = line.slice(splitAt).trim();
+    }
+    wrapped.push(line);
+  });
+  return wrapped.length ? wrapped : [""];
+}
+
+function chunkLines(lines: string[], pageSize: number) {
+  const pages: string[][] = [];
+  for (let index = 0; index < lines.length; index += pageSize) {
+    pages.push(lines.slice(index, index + pageSize));
+  }
+  return pages.length ? pages : [[""]];
+}
+
+function pdfTextStream(lines: string[]) {
+  return [
+    "BT",
+    "/F1 11 Tf",
+    "14 TL",
+    "48 744 Td",
+    ...lines.flatMap((line) => [`(${escapePdfString(line)}) Tj`, "T*"]),
+    "ET"
+  ].join("\n");
+}
+
+function escapePdfString(text: string) {
+  return text
+    .replace(/[^\x00-\x7F]/g, "?")
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
+}
+
+function pdfFromObjects(objects: string[]) {
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(pdf.length);
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += "0000000000 65535 f \n";
+  offsets.slice(1).forEach((offset) => {
+    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return pdf;
 }
 
 async function buildProcessedImage(file: File, adjustments: ImageAdjustments): Promise<Blob> {
