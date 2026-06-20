@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import os
 from pathlib import Path
 import re
@@ -8,6 +9,13 @@ import re
 class OcrResult(dict):
     text: str
     provider: str
+
+
+@dataclass
+class TextractLine:
+    text: str
+    text_type: str
+    confidence: float
 
 
 def extract_text(
@@ -43,14 +51,18 @@ def _extract_with_textract(image_path: Path, subject: str, context_text: str = "
         Document={"Bytes": image_path.read_bytes()},
     )
 
-    lines = [
-        block["Text"]
-        for block in response.get("Blocks", [])
-        if block.get("BlockType") == "LINE" and block.get("Text")
-    ]
+    line_items = _extract_textract_lines(response.get("Blocks", []))
+    lines = [line.text for line in line_items]
+    mixed_document_context = _mixed_document_context(line_items)
 
     cleaned_text = clean_ocr_text("\n".join(lines))
-    enhanced_text, cleanup_provider = enhance_with_ai(cleaned_text, subject, context_text, image_path)
+    enhanced_text, cleanup_provider = enhance_with_ai(
+        cleaned_text,
+        subject,
+        context_text,
+        image_path,
+        mixed_document_context,
+    )
     provider = "textract" if cleanup_provider == "rules" else f"textract+{cleanup_provider}"
     return {"provider": provider, "text": enhanced_text}
 
@@ -60,6 +72,7 @@ def enhance_with_ai(
     subject: str = "general",
     context_text: str = "",
     image_path: Path | None = None,
+    document_context: str = "",
 ) -> tuple[str, str]:
     cleanup_provider = os.getenv("AI_CLEANUP_PROVIDER", "rules").lower()
     has_image = image_path is not None and image_path.exists()
@@ -70,7 +83,7 @@ def enhance_with_ai(
         return text, "rules"
 
     try:
-        return enhance_with_bedrock(text, subject, context_text, image_path), "bedrock"
+        return enhance_with_bedrock(text, subject, context_text, image_path, document_context), "bedrock"
     except Exception:
         if os.getenv("AI_CLEANUP_STRICT", "false").lower() == "true":
             raise
@@ -82,6 +95,7 @@ def enhance_with_bedrock(
     subject: str,
     context_text: str = "",
     image_path: Path | None = None,
+    document_context: str = "",
 ) -> str:
     try:
         import boto3
@@ -98,7 +112,7 @@ def enhance_with_bedrock(
     subject_hint = normalize_subject(subject)
     context_hint = normalize_context(context_text)
     system = _bedrock_system_prompt()
-    user_text = _bedrock_user_prompt(text, subject_hint, context_hint)
+    user_text = _bedrock_user_prompt(text, subject_hint, context_hint, document_context)
     image_block = _bedrock_image_block(image_path)
 
     try:
@@ -137,6 +151,110 @@ def _converse_cleanup(
     )
 
 
+def _extract_textract_lines(blocks: list[dict]) -> list[TextractLine]:
+    word_by_id = {
+        block.get("Id"): block
+        for block in blocks
+        if block.get("BlockType") == "WORD" and block.get("Id")
+    }
+    line_items: list[TextractLine] = []
+
+    for block in blocks:
+        text = block.get("Text", "")
+        if block.get("BlockType") != "LINE" or not text:
+            continue
+        line_items.append(
+            TextractLine(
+                text=text,
+                text_type=_classify_textract_line(block, word_by_id),
+                confidence=float(block.get("Confidence") or 0),
+            )
+        )
+
+    return line_items
+
+
+def _classify_textract_line(block: dict, word_by_id: dict[str, dict]) -> str:
+    word_types: list[str] = []
+    child_ids: list[str] = []
+    for relationship in block.get("Relationships", []):
+        if relationship.get("Type") == "CHILD":
+            child_ids.extend(relationship.get("Ids", []))
+
+    for child_id in child_ids:
+        word = word_by_id.get(child_id)
+        if word and word.get("TextType"):
+            word_types.append(str(word["TextType"]).upper())
+
+    if any(text_type == "HANDWRITING" for text_type in word_types):
+        return "handwritten annotation" if any(text_type == "PRINTED" for text_type in word_types) else "handwritten"
+    if any(text_type == "PRINTED" for text_type in word_types):
+        return "printed"
+
+    return _infer_line_type(block.get("Text", ""), float(block.get("Confidence") or 0))
+
+
+def _infer_line_type(text: str, confidence: float) -> str:
+    stripped = text.strip()
+    word_count = len(re.findall(r"[A-Za-z0-9]+", stripped))
+    has_sentence_punctuation = bool(re.search(r"[.;:!?)]$", stripped))
+    looks_like_annotation = (
+        confidence < 88
+        or stripped.startswith(("*", "-", "->", "=>"))
+        or "?" in stripped
+        or (
+            word_count <= 4
+            and bool(re.search(r"[+=×*/^_]|circle|star|note|fix|check|important", stripped, re.I))
+        )
+    )
+    looks_printed = confidence >= 95 and word_count >= 5 and has_sentence_punctuation
+
+    if looks_printed:
+        return "printed"
+    if looks_like_annotation:
+        return "handwritten annotation"
+    return "unknown"
+
+
+def _mixed_document_context(lines: list[TextractLine]) -> str:
+    if not lines:
+        return ""
+
+    printed = [line for line in lines if line.text_type == "printed"]
+    handwritten = [
+        line
+        for line in lines
+        if line.text_type in {"handwritten", "handwritten annotation"}
+    ]
+    unknown = [line for line in lines if line.text_type == "unknown"]
+
+    if not printed and not handwritten:
+        return ""
+
+    summary = [
+        "Textract line classification:",
+        f"- Printed/typed lines: {len(printed)}",
+        f"- Handwritten or annotation lines: {len(handwritten)}",
+        f"- Unclassified lines: {len(unknown)}",
+        "Use this classification as guidance, not as absolute truth.",
+        "Treat printed/typed text as high-confidence source text and preserve it closely.",
+        "Treat handwritten annotations as lower-confidence text that may need visual review, context correction, and clearer placement.",
+    ]
+
+    samples: list[str] = []
+    for line in lines[:80]:
+        if line.text_type in {"printed", "handwritten", "handwritten annotation"}:
+            samples.append(
+                f"[{line.text_type}; confidence {line.confidence:.1f}] {line.text}"
+            )
+
+    if samples:
+        summary.append("Line samples in page order:")
+        summary.extend(samples)
+
+    return "\n".join(summary)
+
+
 def _bedrock_system_prompt() -> str:
     return (
         "You clean OCR text from student handwritten notes. "
@@ -148,16 +266,25 @@ def _bedrock_system_prompt() -> str:
         "and do not add facts that are not present in the OCR text. "
         "If an image is provided, use it to verify layout, diagrams, arrows, tables, "
         "equations, visual grouping, and ambiguous handwritten symbols. "
+        "For mixed documents, handle printed/typed text differently from handwritten annotations: "
+        "printed/typed text should usually be preserved with minimal correction, while handwritten "
+        "annotations should receive stronger visual/context review and be placed where they belong. "
         "Never invent missing definitions, examples, equations, values, or explanations. "
         "If handwriting is unclear, mark it as [unclear] instead of guessing. "
         "Return only the cleaned notes using clear headings and bullets."
     )
 
 
-def _bedrock_user_prompt(text: str, subject_hint: str, context_hint: str) -> str:
+def _bedrock_user_prompt(
+    text: str,
+    subject_hint: str,
+    context_hint: str,
+    document_context: str = "",
+) -> str:
     return (
         f"Subject mode: {subject_hint}.\n"
         f"Optional user context: {context_hint or 'none provided'}.\n"
+        f"Document analysis context:\n{document_context or 'none provided'}.\n"
         "Clean and structure these OCR notes for a student. "
         "Use the context only for terminology, abbreviations, and likely corrections. "
         "Do not add facts from the context unless they are supported by the OCR text. "
@@ -171,7 +298,15 @@ def _bedrock_user_prompt(text: str, subject_hint: str, context_hint: str) -> str
         "equations consistently use b and the formula only works with b, correct 6 to b. "
         "For visual notes, preserve arrow relationships, diagram labels, table rows, and "
         "flowchart-style structure when visible. Watch for b/6, O/0, l/1, x/multiplication "
-        "sign, z/2, and similar handwritten ambiguities. If an ambiguity remains genuinely "
+        "sign, z/2, and similar handwritten ambiguities. "
+        "When the document mixes printed text with handwritten notes, preserve printed text "
+        "closely, correct only obvious OCR errors in it, and do not rewrite the printed section "
+        "as if it were handwritten. Put handwritten margin notes, equations, arrows, checkmarks, "
+        "or annotations near the printed text they refer to when the image/layout makes that clear. "
+        "If the relationship is not clear, keep annotations under a 'Handwritten annotations' heading. "
+        "Do not include internal labels like [printed] or confidence scores in the final answer. "
+        "Do not let a messy handwritten annotation degrade otherwise clean printed text. "
+        "If an ambiguity remains genuinely "
         "uncertain, preserve the most likely reading and add a short 'Possible OCR Ambiguities' "
         "note at the end. Use [unclear] for words, symbols, or equations that cannot be safely "
         "reconstructed from the OCR text and image. Use markdown-style headings and bullet lists "

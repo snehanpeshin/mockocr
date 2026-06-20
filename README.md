@@ -139,6 +139,12 @@ This sends the processed page image plus the Textract draft to Bedrock. If the s
 does not accept image input, the backend falls back to text-only Bedrock cleanup unless
 `AI_CLEANUP_STRICT=true`.
 
+For mixed pages, such as printed handouts with handwritten margin notes, the backend uses
+Textract line metadata to separate likely printed/typed text from likely handwritten annotations.
+Printed text is preserved with minimal correction, while handwritten annotations receive the
+stronger visual/context review pass and are placed near the printed content they refer to when
+the page layout makes that clear.
+
 ### Cleanote Beta Access
 
 The landing page collects the first beta users at `/`, and the scanner app lives at `/app`.
