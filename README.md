@@ -70,6 +70,8 @@ AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key_id
 AWS_SECRET_ACCESS_KEY=your_secret_access_key
 AI_CLEANUP_PROVIDER=rules
+AI_VISION_REVIEW=true
+AI_VISION_MAX_IMAGE_BYTES=3500000
 BEDROCK_REGION=us-east-1
 BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
 FRONTEND_ORIGINS=https://mockocr.com,https://www.mockocr.com
@@ -121,6 +123,21 @@ docs/stripe-setup.md
 ```
 
 The frontend always submits uploads to the backend as `provider=textract`.
+
+### OCR Cleanup Modes
+
+Cleanote uses Textract for the first OCR pass. For complex notes with formulas, diagrams,
+tables, arrows, and dense visual structure, enable the Bedrock review pass:
+
+```bash
+AI_CLEANUP_PROVIDER=bedrock
+AI_VISION_REVIEW=true
+BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
+```
+
+This sends the processed page image plus the Textract draft to Bedrock. If the selected model
+does not accept image input, the backend falls back to text-only Bedrock cleanup unless
+`AI_CLEANUP_STRICT=true`.
 
 ### Cleanote Beta Access
 
