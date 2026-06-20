@@ -510,6 +510,14 @@ a {
   gap: 3px;
 }
 
+.premium-banner .premium-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .premium-banner strong {
   color: var(--ink);
 }
@@ -530,6 +538,11 @@ a {
   padding: 0 14px;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.premium-banner .premium-actions a:last-child {
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--accent-strong);
 }
 
 .eyebrow {

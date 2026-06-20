@@ -80,7 +80,8 @@ export default function BillingPage() {
             LLC, and Checkout is branded as Cleanote.
           </p>
           <p className="company-line">
-            Cleanote, a product of Karigari Home LLC · <a href="/privacy">Privacy Policy</a>
+            Cleanote, a product of Karigari Home LLC · <a href="/privacy">Privacy Policy</a> ·{" "}
+            <a href="/refund">Refund Policy</a>
           </p>
           {checkoutStatus === "success" ? (
             <a className="primary billing-return-link" href="/app">

@@ -127,7 +127,8 @@ export default function BetaPage() {
       </section>
 
       <p className="company-line">
-        Cleanote, a product of Karigari Home LLC · <a href="/privacy">Privacy Policy</a>
+        Cleanote, a product of Karigari Home LLC · <a href="/privacy">Privacy Policy</a> ·{" "}
+        <a href="/refund">Refund Policy</a>
       </p>
     </main>
   );

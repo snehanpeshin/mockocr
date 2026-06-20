@@ -445,6 +445,7 @@ export default function Home() {
           <div className="topbar-links">
             <a className="policy-link" href="/billing">Premium</a>
             <a className="policy-link" href="/privacy">Privacy Policy</a>
+            <a className="policy-link" href="/refund">Refund Policy</a>
           </div>
         </div>
         <div className="status-strip">
@@ -458,7 +459,10 @@ export default function Home() {
           <strong>Premium is optional during launch</strong>
           <span>Keep scanning for free, or support Cleanote with Monthly Premium $9.99 or Annual Premium $99.</span>
         </div>
-        <a href="/billing">View plans</a>
+        <div className="premium-actions">
+          <a href="/billing">View plans</a>
+          <a href="/refund">Refund policy</a>
+        </div>
       </section>
 
       <section className="workspace">
