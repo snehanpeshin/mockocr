@@ -158,13 +158,14 @@ The Bedrock cleanup prompt is designed for faithful transcription rather than su
 Set `AI_CLEANUP_MAX_TOKENS` high enough for longer pages so readable handwritten lines and
 diagram descriptions are not compressed or cut short.
 
-For math and science notes, Bedrock uses a strict transcription-first verification pass. Equations
-must stay traceable to the image or OCR draft, so Cleanote should not replace visible equations
-with known formulas, theorem names, solutions, or explanations. Likely glyph errors such as `6`
-versus `b`, `0` versus `O`, `1` versus `l`, and `x` versus `×` are corrected only when the image
-and page-level symbol repetition strongly support the change. Non-trivial OCR-level corrections
-are reported in a concise `Corrections made` section; unresolved cases remain in
-`Possible OCR Ambiguities`.
+For math and science notes, Bedrock uses a balanced transcription-first verification pass.
+Cleanote should repair obvious OCR damage without turning the page into a generated explanation.
+Likely glyph errors such as `a`/`6`, `b`/`6`, `0`/`O`, `1`/`l`, `rn`/`m`, and `x`/`×`,
+plus missing parentheses or superscripts, are corrected only when the image, local syntax, and
+page-level symbol repetition strongly support the change. Cleanote should not replace visible
+equations with different known formulas, theorem names, solutions, or explanations. Non-trivial
+OCR-level corrections are reported in a concise `Corrections made` section; unresolved cases
+remain in `Possible OCR Ambiguities`.
 
 ### Cleanote Beta Access
 
