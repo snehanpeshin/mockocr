@@ -106,7 +106,7 @@ def enhance_with_bedrock(
 
     model_id = os.getenv("BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0")
     region = os.getenv("BEDROCK_REGION") or os.getenv("AWS_REGION")
-    max_tokens = int(os.getenv("AI_CLEANUP_MAX_TOKENS", "1800"))
+    max_tokens = int(os.getenv("AI_CLEANUP_MAX_TOKENS", "3200"))
 
     client = boto3.client("bedrock-runtime", region_name=region)
     subject_hint = normalize_subject(subject)
@@ -263,9 +263,10 @@ def _mixed_document_context(lines: list[TextractLine]) -> str:
 
 def _bedrock_system_prompt() -> str:
     return (
-        "You clean OCR text from student handwritten notes. "
+        "You faithfully transcribe and organize OCR text from student handwritten notes. "
+        "Your job is not to summarize, abridge, condense, or simplify the notes. "
         "Correct obvious OCR/spelling mistakes, preserve meaning, "
-        "turn headings and bullet-like lines into clean structure, "
+        "turn headings and bullet-like lines into clean structure without removing detail, "
         "preserve equations, units, symbols, names, and technical terms, "
         "use optional user context only to resolve likely OCR mistakes, "
         "perform a second-pass consistency check across the whole page, "
@@ -279,8 +280,9 @@ def _bedrock_system_prompt() -> str:
         "printed/typed text should usually be preserved with minimal correction, while handwritten "
         "annotations should receive stronger visual/context review and be placed where they belong. "
         "Never invent missing definitions, examples, equations, values, or explanations. "
+        "Never omit readable handwritten lines just because they are repetitive, informal, or messy. "
         "If handwriting is unclear, mark it as [unclear] instead of guessing. "
-        "Return only the cleaned notes using clear headings and bullets."
+        "Return only the faithful cleaned transcription using clear headings and bullets."
     )
 
 
@@ -297,7 +299,12 @@ def _bedrock_user_prompt(
         f"Optional user context: {context_hint or 'none provided'}.\n"
         f"Document analysis context:\n{document_context or 'none provided'}.\n"
         f"{visual_instruction}"
-        "Clean and structure these OCR notes for a student. "
+        "Faithfully transcribe and structure these OCR notes for a student. "
+        "Do not summarize, shorten, abridge, merge away, or rewrite the notes into a study guide. "
+        "The output should contain at least the same level of detail as the readable handwritten "
+        "and printed source content. Preserve every readable line, list item, equation, label, "
+        "abbreviation, example, and side note. Use headings and bullets only to organize the content, "
+        "not to reduce it. "
         "Use the context only for terminology, abbreviations, and likely corrections. "
         "Do not add facts from the context unless they are supported by the OCR text. "
         "Do not complete partial math/science content from memory. "
@@ -318,6 +325,8 @@ def _bedrock_user_prompt(
         "If the relationship is not clear, keep annotations under a 'Handwritten annotations' heading. "
         "Do not include internal labels like [printed] or confidence scores in the final answer. "
         "Do not let a messy handwritten annotation degrade otherwise clean printed text. "
+        "Do not collapse several handwritten lines into one short summary; keep the author's original "
+        "level of detail and sequence whenever readable. "
         "If an ambiguity remains genuinely "
         "uncertain, preserve the most likely reading and add a short 'Possible OCR Ambiguities' "
         "note at the end. Use [unclear] for words, symbols, or equations that cannot be safely "
@@ -337,6 +346,8 @@ def _visual_notes_prompt() -> str:
         "Before finalizing, inspect the image for non-text note content. If visual content is present, "
         "include a 'Visual Notes' or domain-specific section such as 'Geometry Diagram', 'Graph', "
         "'Flowchart', 'Table', 'Circuit Diagram', or 'Chemical Structure'. "
+        "The visual section should be detailed enough that a reader can recognize what was shown "
+        "without seeing the original image, while still avoiding unsupported guesses. "
         "For geometry, identify shapes, vertices, side labels, angle labels, known values, unknowns, "
         "and relationships. For example, a drawn triangle with labels A, B, and C should become a "
         "searchable description of triangle ABC, including which labels appear at which vertices when "

@@ -70,6 +70,7 @@ AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key_id
 AWS_SECRET_ACCESS_KEY=your_secret_access_key
 AI_CLEANUP_PROVIDER=rules
+AI_CLEANUP_MAX_TOKENS=3200
 AI_VISION_REVIEW=true
 AI_VISUAL_NOTES=true
 AI_VISION_MAX_IMAGE_BYTES=3500000
@@ -132,6 +133,7 @@ tables, arrows, and dense visual structure, enable the Bedrock review pass:
 
 ```bash
 AI_CLEANUP_PROVIDER=bedrock
+AI_CLEANUP_MAX_TOKENS=3200
 AI_VISION_REVIEW=true
 AI_VISUAL_NOTES=true
 BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
@@ -151,6 +153,10 @@ When `AI_VISUAL_NOTES=true`, Cleanote also asks the vision model to convert non-
 into searchable notes. Geometry sketches, triangles, graphs, flowcharts, tables, arrows, circuits,
 and chemical structures are described as structured sections with visible labels, relationships,
 known values, and unclear areas marked instead of guessed.
+
+The Bedrock cleanup prompt is designed for faithful transcription rather than summarization.
+Set `AI_CLEANUP_MAX_TOKENS` high enough for longer pages so readable handwritten lines and
+diagram descriptions are not compressed or cut short.
 
 ### Cleanote Beta Access
 
