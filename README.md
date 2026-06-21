@@ -158,6 +158,12 @@ The Bedrock cleanup prompt is designed for faithful transcription rather than su
 Set `AI_CLEANUP_MAX_TOKENS` high enough for longer pages so readable handwritten lines and
 diagram descriptions are not compressed or cut short.
 
+For math and science notes, Bedrock also performs a second-pass symbol consistency check. OCR
+output is treated as a hypothesis, so likely glyph errors such as `6` versus `b`, `0` versus `O`,
+`1` versus `l`, and `x` versus `×` are corrected when nearby equations, variables, identities,
+units, or visual context support the change. Non-trivial corrections are reported in a concise
+`Corrections made` section; unresolved cases remain in `Possible OCR Ambiguities`.
+
 ### Cleanote Beta Access
 
 The landing page collects the first beta users at `/`, and the scanner app lives at `/app`.

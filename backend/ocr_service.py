@@ -273,6 +273,8 @@ def _bedrock_system_prompt() -> str:
         "and do not add facts that are not present in the OCR text. "
         "If an image is provided, use it to verify layout, diagrams, arrows, tables, "
         "equations, visual grouping, and ambiguous handwritten symbols. "
+        "For math and science, OCR is only a hypothesis: verify symbols against page context, "
+        "nearby equations, variable consistency, known identities, units, and visual similarity. "
         "Visual drawings are first-class note content, not decoration. If a drawing, triangle, "
         "graph, axis, table, flowchart, circuit, chemical sketch, or labeled diagram appears, "
         "describe its structure and relationships in text so the note remains searchable. "
@@ -294,11 +296,13 @@ def _bedrock_user_prompt(
     visual_notes_enabled: bool = False,
 ) -> str:
     visual_instruction = _visual_notes_prompt() if visual_notes_enabled else ""
+    math_instruction = _math_symbol_verification_prompt()
     return (
         f"Subject mode: {subject_hint}.\n"
         f"Optional user context: {context_hint or 'none provided'}.\n"
         f"Document analysis context:\n{document_context or 'none provided'}.\n"
         f"{visual_instruction}"
+        f"{math_instruction}"
         "Faithfully transcribe and structure these OCR notes for a student. "
         "Do not summarize, shorten, abridge, merge away, or rewrite the notes into a study guide. "
         "The output should contain at least the same level of detail as the readable handwritten "
@@ -312,9 +316,7 @@ def _bedrock_user_prompt(
         "Treat OCR as a draft, not final truth. If an image is attached, compare the OCR "
         "draft against the visual page before finalizing. Build a page-level symbol inventory, "
         "then fix likely character substitutions using neighboring lines, repeated usage, "
-        "grammar, the image, and domain conventions. For math, verify common identities and "
-        "variable consistency before final output; for example, if OCR reads 6 but nearby "
-        "equations consistently use b and the formula only works with b, correct 6 to b. "
+        "grammar, the image, and domain conventions. "
         "For visual notes, preserve arrow relationships, diagram labels, table rows, and "
         "flowchart-style structure when visible. Watch for b/6, O/0, l/1, x/multiplication "
         "sign, z/2, and similar handwritten ambiguities. "
@@ -333,6 +335,28 @@ def _bedrock_user_prompt(
         "reconstructed from the OCR text and image. Use markdown-style headings and bullet lists "
         "when helpful. If the content contains equations or technical notation, keep it intact.\n\n"
         f"OCR draft:\n{text}"
+    )
+
+
+def _math_symbol_verification_prompt() -> str:
+    return (
+        "Math and scientific symbol verification mode: enabled.\n"
+        "Do not passively repeat OCR for equations. Treat OCR as a hypothesis and reconstruct "
+        "the author's intended notation when the page context supports a correction. "
+        "Before final output, identify the variables and repeated symbols used across the whole page. "
+        "Check equations against nearby equations, repeated variable usage, common mathematical "
+        "identities, dimensional/unit consistency, and standard scientific notation. "
+        "Resolve likely glyph confusions such as b/6, B/8, O/0, o/0, l/1, I/1, S/5, z/2, "
+        "x/×, plus/t, minus/dash, and handwritten Greek/Latin lookalikes. "
+        "If OCR reads '6' but surrounding equations consistently use 'b' and the formula is valid "
+        "with b, correct 6 to b. If OCR reads '0' where surrounding notation expects O or o, correct "
+        "it only when context supports that. Preserve the original variable names and do not invent "
+        "new variables. "
+        "When you make a non-trivial math/science symbol correction, add a brief 'Corrections made' "
+        "section after the transcription. Keep it concise, for example: '6 -> b in a^2 + b^2 because "
+        "nearby equations use b and the identity requires b.' If no meaningful correction was made, "
+        "omit that section. If more than one interpretation remains plausible, include it under "
+        "'Possible OCR Ambiguities' instead of pretending certainty.\n"
     )
 
 
