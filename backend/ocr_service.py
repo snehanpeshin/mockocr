@@ -112,8 +112,14 @@ def enhance_with_bedrock(
     subject_hint = normalize_subject(subject)
     context_hint = normalize_context(context_text)
     system = _bedrock_system_prompt()
-    user_text = _bedrock_user_prompt(text, subject_hint, context_hint, document_context)
     image_block = _bedrock_image_block(image_path)
+    user_text = _bedrock_user_prompt(
+        text,
+        subject_hint,
+        context_hint,
+        document_context,
+        visual_notes_enabled=image_block is not None and _visual_notes_enabled(),
+    )
 
     try:
         response = _converse_cleanup(client, model_id, max_tokens, system, user_text, image_block)
@@ -266,6 +272,9 @@ def _bedrock_system_prompt() -> str:
         "and do not add facts that are not present in the OCR text. "
         "If an image is provided, use it to verify layout, diagrams, arrows, tables, "
         "equations, visual grouping, and ambiguous handwritten symbols. "
+        "Visual drawings are first-class note content, not decoration. If a drawing, triangle, "
+        "graph, axis, table, flowchart, circuit, chemical sketch, or labeled diagram appears, "
+        "describe its structure and relationships in text so the note remains searchable. "
         "For mixed documents, handle printed/typed text differently from handwritten annotations: "
         "printed/typed text should usually be preserved with minimal correction, while handwritten "
         "annotations should receive stronger visual/context review and be placed where they belong. "
@@ -280,11 +289,14 @@ def _bedrock_user_prompt(
     subject_hint: str,
     context_hint: str,
     document_context: str = "",
+    visual_notes_enabled: bool = False,
 ) -> str:
+    visual_instruction = _visual_notes_prompt() if visual_notes_enabled else ""
     return (
         f"Subject mode: {subject_hint}.\n"
         f"Optional user context: {context_hint or 'none provided'}.\n"
         f"Document analysis context:\n{document_context or 'none provided'}.\n"
+        f"{visual_instruction}"
         "Clean and structure these OCR notes for a student. "
         "Use the context only for terminology, abbreviations, and likely corrections. "
         "Do not add facts from the context unless they are supported by the OCR text. "
@@ -312,6 +324,27 @@ def _bedrock_user_prompt(
         "reconstructed from the OCR text and image. Use markdown-style headings and bullet lists "
         "when helpful. If the content contains equations or technical notation, keep it intact.\n\n"
         f"OCR draft:\n{text}"
+    )
+
+
+def _visual_notes_enabled() -> bool:
+    return os.getenv("AI_VISUAL_NOTES", "true").lower() in {"1", "true", "yes", "on"}
+
+
+def _visual_notes_prompt() -> str:
+    return (
+        "Visual notes mode: enabled.\n"
+        "Before finalizing, inspect the image for non-text note content. If visual content is present, "
+        "include a 'Visual Notes' or domain-specific section such as 'Geometry Diagram', 'Graph', "
+        "'Flowchart', 'Table', 'Circuit Diagram', or 'Chemical Structure'. "
+        "For geometry, identify shapes, vertices, side labels, angle labels, known values, unknowns, "
+        "and relationships. For example, a drawn triangle with labels A, B, and C should become a "
+        "searchable description of triangle ABC, including which labels appear at which vertices when "
+        "visible. For graphs, identify axes, curves, intercepts, labels, trends, and marked points. "
+        "For flowcharts, preserve node order and arrow direction. For tables, preserve rows and columns. "
+        "For arrows and annotations, explain what each arrow connects if the relationship is visible. "
+        "If visual content is too unclear, write [unclear diagram] and list only the safe visible labels. "
+        "Do not invent missing values, labels, or relationships.\n"
     )
 
 

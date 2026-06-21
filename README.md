@@ -71,6 +71,7 @@ AWS_ACCESS_KEY_ID=your_access_key_id
 AWS_SECRET_ACCESS_KEY=your_secret_access_key
 AI_CLEANUP_PROVIDER=rules
 AI_VISION_REVIEW=true
+AI_VISUAL_NOTES=true
 AI_VISION_MAX_IMAGE_BYTES=3500000
 BEDROCK_REGION=us-east-1
 BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
@@ -132,6 +133,7 @@ tables, arrows, and dense visual structure, enable the Bedrock review pass:
 ```bash
 AI_CLEANUP_PROVIDER=bedrock
 AI_VISION_REVIEW=true
+AI_VISUAL_NOTES=true
 BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
 ```
 
@@ -144,6 +146,11 @@ Textract line metadata to separate likely printed/typed text from likely handwri
 Printed text is preserved with minimal correction, while handwritten annotations receive the
 stronger visual/context review pass and are placed near the printed content they refer to when
 the page layout makes that clear.
+
+When `AI_VISUAL_NOTES=true`, Cleanote also asks the vision model to convert non-text drawings
+into searchable notes. Geometry sketches, triangles, graphs, flowcharts, tables, arrows, circuits,
+and chemical structures are described as structured sections with visible labels, relationships,
+known values, and unclear areas marked instead of guessed.
 
 ### Cleanote Beta Access
 
