@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from image_preprocess import preprocess_image
 from beta_service import request_beta_access, verify_beta_token
 from note_service import save_note, search_notes
-from ocr_service import extract_text
+from ocr_service import clean_ocr_text, extract_text
 from payment_service import (
     construct_webhook_event,
     create_checkout_session,
@@ -223,7 +223,7 @@ async def run_ocr(
 ) -> dict[str, str]:
     filename = file.filename or "upload"
     suffix = Path(filename).suffix.lower()
-    if suffix not in {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff", ".pdf"}:
+    if suffix not in {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff", ".pdf", ".docx"}:
         record_scan_event(
             {
                 "filename": filename,
@@ -236,7 +236,7 @@ async def run_ocr(
         )
         raise HTTPException(
             status_code=400,
-            detail="Upload an image or PDF file.",
+            detail="Upload an image, PDF, or DOCX file.",
         )
 
     try:
@@ -249,6 +249,29 @@ async def run_ocr(
             with uploaded_path.open("wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
             file_size_bytes = uploaded_path.stat().st_size
+
+            if suffix == ".docx":
+                extracted_text = clean_ocr_text(_extract_docx_text(uploaded_path))
+                record_scan_event(
+                    {
+                        "filename": filename,
+                        "file_type": suffix.lstrip("."),
+                        "file_size_bytes": file_size_bytes,
+                        "provider": "docx",
+                        "subject": subject,
+                        "status": "success",
+                        "page_count": 1,
+                        "text_length": len(extracted_text),
+                    }
+                )
+
+                return {
+                    "text": extracted_text,
+                    "provider": "docx",
+                    "filename": filename,
+                    "subject": subject,
+                    "context_text": context_text,
+                }
 
             if suffix == ".pdf":
                 original_path = _render_pdf_first_page(uploaded_path, original_path)
@@ -320,6 +343,27 @@ def _render_pdf_first_page(pdf_path: Path, output_path: Path) -> Path:
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     cv2.imwrite(str(output_path), image)
     return output_path
+
+
+def _extract_docx_text(docx_path: Path) -> str:
+    document = Document(docx_path)
+    parts: list[str] = []
+
+    for paragraph in document.paragraphs:
+        text = paragraph.text.strip()
+        if text:
+            parts.append(text)
+
+    for table in document.tables:
+        for row in table.rows:
+            cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+            if cells:
+                parts.append(" | ".join(cells))
+
+    text = "\n".join(parts).strip()
+    if not text:
+        raise ValueError("The uploaded DOCX did not contain readable text.")
+    return text
 
 
 @app.post("/api/export/txt")

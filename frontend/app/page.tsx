@@ -41,10 +41,10 @@ export default function LandingPage() {
       <section className="site-hero">
         <div className="site-hero-copy">
           <p className="site-kicker">Handwriting OCR for students and researchers</p>
-          <h1>Turn handwritten notes into editable, searchable text.</h1>
+          <h1>Turn handwritten notes into editable text.</h1>
           <p>
-            Cleanote helps you digitize notebook pages, printed handouts with handwritten
-            annotations, equations, diagrams, and detailed study notes.
+            Upload note photos, PDFs, or annotated handouts. Cleanote converts readable
+            handwriting into text you can edit, search, and export.
           </p>
           <div className="site-actions">
             <a className="site-primary" href="/app">

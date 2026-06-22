@@ -248,7 +248,7 @@ export default function Home() {
 
   async function scanFile() {
     if (!files.length) {
-      setMessage("Choose one or more handwritten images first.");
+      setMessage("Choose one or more images, PDFs, or DOCX files first.");
       return;
     }
 
@@ -469,7 +469,7 @@ export default function Home() {
         <div className="upload-panel">
           <label className="drop-zone">
             <input
-              accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff,application/pdf"
+              accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
               multiple
               onChange={handleFileChange}
               type="file"
@@ -479,11 +479,22 @@ export default function Home() {
                 alt="Uploaded handwriting preview"
                 src={processedPreviewUrl ?? previewUrl ?? undefined}
               />
+            ) : file ? (
+              <div className="file-preview-card">
+                <FileText aria-hidden="true" size={38} />
+                <strong>{file.name}</strong>
+                <span>{fileKind(file)} · {formatFileSize(file.size)}</span>
+                <p>
+                  {file.name.toLowerCase().endsWith(".docx")
+                    ? "Word document selected. Cleanote will extract its text directly."
+                    : "PDF selected. Cleanote will scan the first page for OCR."}
+                </p>
+              </div>
             ) : (
               <div className="empty-state">
                 <ImagePlus aria-hidden="true" size={42} />
-                <strong>Upload handwriting</strong>
-                <span>Select one page or multiple pages</span>
+                <strong>Upload notes</strong>
+                <span>Images, PDFs, or DOCX files</span>
               </div>
             )}
           </label>
@@ -741,6 +752,30 @@ function createNoteTitle(subject: string) {
     minute: "2-digit"
   });
   return `${subject} note ${datePart} ${timePart}`;
+}
+
+function fileKind(file: File) {
+  const lowerName = file.name.toLowerCase();
+  if (file.type === "application/pdf" || lowerName.endsWith(".pdf")) {
+    return "PDF";
+  }
+  if (
+    file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    lowerName.endsWith(".docx")
+  ) {
+    return "DOCX";
+  }
+  if (file.type.startsWith("image/")) {
+    return "Image";
+  }
+  return "File";
+}
+
+function formatFileSize(size: number) {
+  if (size < 1024 * 1024) {
+    return `${Math.max(1, Math.round(size / 1024))} KB`;
+  }
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function buildSimplePdf(text: string) {
