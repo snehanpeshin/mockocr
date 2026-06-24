@@ -78,8 +78,11 @@ a {
 
 .site-shell {
   background:
-    linear-gradient(180deg, #ffffff 0%, #f7f8fb 54%, #eef7f4 100%);
-  color: #15201f;
+    radial-gradient(circle at 84% 18%, rgba(143, 63, 242, 0.42), transparent 34%),
+    radial-gradient(circle at 76% 92%, rgba(255, 107, 92, 0.46), transparent 20%),
+    radial-gradient(circle at 28% 86%, rgba(108, 34, 212, 0.42), transparent 26%),
+    linear-gradient(135deg, #10071d 0%, #210947 46%, #4a18bd 100%);
+  color: #ffffff;
   min-height: 100vh;
   padding: 18px clamp(18px, 4vw, 48px);
 }
@@ -94,7 +97,7 @@ a {
 }
 
 .site-brand {
-  color: #12201e;
+  color: #ffffff;
   font-size: 1.1rem;
   font-weight: 900;
   text-decoration: none;
@@ -108,14 +111,14 @@ a {
 }
 
 .site-nav nav a {
-  color: #4e5d5a;
+  color: rgba(255, 255, 255, 0.76);
   font-size: 0.94rem;
   font-weight: 750;
   text-decoration: none;
 }
 
 .site-nav nav a:first-child {
-  color: #087c68;
+  color: #c9a7ff;
 }
 
 .site-hero {
@@ -135,7 +138,7 @@ a {
 }
 
 .site-kicker {
-  color: #087c68;
+  color: #ff8f80;
   font-size: 0.78rem;
   font-weight: 900;
   letter-spacing: 0;
@@ -144,14 +147,14 @@ a {
 }
 
 .site-hero h1 {
-  color: #111918;
+  color: #ffffff;
   font-size: clamp(2.05rem, 4.6vw, 3.7rem);
   line-height: 1.02;
   max-width: 720px;
 }
 
 .site-hero-copy > p:not(.site-kicker) {
-  color: #52615f;
+  color: rgba(255, 255, 255, 0.8);
   font-size: clamp(0.98rem, 1.35vw, 1.12rem);
   line-height: 1.55;
   margin: 0;
@@ -177,14 +180,14 @@ a {
 }
 
 .site-primary {
-  background: #087c68;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
   color: #ffffff;
 }
 
 .site-secondary {
-  background: #ffffff;
-  border: 1px solid #d9e3e0;
-  color: #1f2b29;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
 .site-checks {
@@ -199,7 +202,7 @@ a {
 
 .site-checks li {
   align-items: center;
-  color: #52615f;
+  color: rgba(255, 255, 255, 0.76);
   display: inline-flex;
   font-size: 0.95rem;
   font-weight: 720;
@@ -208,12 +211,12 @@ a {
 
 .site-checks svg,
 .site-feature-grid svg {
-  color: #087c68;
+  color: #c9a7ff;
 }
 
 .product-preview {
-  background: #ffffff;
-  border: 1px solid #dfe8e5;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.34);
   border-radius: 8px;
   box-shadow: 0 28px 80px rgba(24, 42, 38, 0.14);
   overflow: hidden;
@@ -221,8 +224,8 @@ a {
 
 .preview-toolbar {
   align-items: center;
-  background: #f3f6f5;
-  border-bottom: 1px solid #dfe8e5;
+  background: #f4efff;
+  border-bottom: 1px solid var(--line);
   display: flex;
   gap: 7px;
   min-height: 42px;
@@ -230,7 +233,7 @@ a {
 }
 
 .preview-toolbar span {
-  background: #c8d4d1;
+  background: #c9a7ff;
   border-radius: 50%;
   height: 10px;
   width: 10px;
@@ -246,11 +249,11 @@ a {
 .preview-upload {
   align-content: center;
   background:
-    linear-gradient(0deg, rgba(8, 124, 104, 0.08), rgba(8, 124, 104, 0.08)),
+    linear-gradient(0deg, rgba(143, 63, 242, 0.08), rgba(143, 63, 242, 0.08)),
     #fbfdfc;
-  border: 1px dashed #9ac8bf;
+  border: 1px dashed #b9a2e9;
   border-radius: 8px;
-  color: #1f2b29;
+  color: var(--ink);
   display: grid;
   gap: 8px;
   min-height: 210px;
@@ -267,7 +270,7 @@ a {
 
 .preview-output {
   align-content: start;
-  border: 1px solid #e4ece9;
+  border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
   gap: 12px;
@@ -275,12 +278,12 @@ a {
 }
 
 .preview-output h2 {
-  color: #14201e;
+  color: var(--ink);
   font-size: 1.25rem;
 }
 
 .preview-label {
-  color: #087c68 !important;
+  color: var(--accent-strong) !important;
   font-size: 0.78rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -295,8 +298,8 @@ a {
 }
 
 .site-feature-grid article {
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid #dfe8e5;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 8px;
   display: grid;
   gap: 10px;
@@ -305,18 +308,18 @@ a {
 
 .site-feature-grid h2,
 .site-workflow h2 {
-  color: #14201e;
+  color: #ffffff;
 }
 
 .site-feature-grid p {
-  color: #5c6a67;
+  color: rgba(255, 255, 255, 0.74);
   line-height: 1.55;
   margin: 0;
 }
 
 .site-workflow {
   align-items: center;
-  border-top: 1px solid #dfe8e5;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
   display: grid;
   gap: 24px;
   grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
@@ -336,10 +339,10 @@ a {
 
 .site-workflow li {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #dfe8e5;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 8px;
-  color: #243331;
+  color: var(--ink);
   display: flex;
   font-weight: 780;
   gap: 12px;
@@ -349,7 +352,7 @@ a {
 
 .site-workflow li::before {
   align-items: center;
-  background: #087c68;
+  background: var(--accent-strong);
   border-radius: 999px;
   color: #ffffff;
   content: counter(workflow);
@@ -365,7 +368,7 @@ a {
 
 .site-footer {
   align-items: center;
-  color: #697774;
+  color: rgba(255, 255, 255, 0.7);
   display: flex;
   flex-wrap: wrap;
   font-size: 0.9rem;
@@ -387,7 +390,7 @@ a {
 }
 
 .site-footer a {
-  color: #087c68;
+  color: #c9a7ff;
   font-weight: 800;
   text-decoration: none;
 }
@@ -790,21 +793,22 @@ a {
 
 .app-shell {
   margin: 0 auto;
-  max-width: 1280px;
+  max-width: 1440px;
   min-height: 100vh;
-  padding: 32px;
+  padding: 18px 24px;
 }
 
 .topbar {
   align-items: flex-end;
   display: flex;
-  gap: 24px;
+  gap: 16px;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 10px;
 }
 
 .topbar h1 {
   color: #ffffff;
+  font-size: clamp(1.55rem, 2.8vw, 3.1rem);
   max-width: 760px;
   text-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
 }
@@ -817,8 +821,8 @@ a {
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  margin-bottom: 24px;
-  padding: 14px 16px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
 }
 
 .premium-banner div {
@@ -905,8 +909,9 @@ h2 {
 
 .workspace {
   display: grid;
-  gap: 24px;
-  grid-template-columns: 1fr;
+  gap: 14px;
+  grid-template-columns: minmax(360px, 0.92fr) minmax(460px, 1.08fr);
+  align-items: stretch;
 }
 
 .upload-panel,
@@ -920,13 +925,13 @@ h2 {
 
 .upload-panel {
   display: grid;
-  gap: 16px;
-  padding: 16px;
+  gap: 10px;
+  padding: 12px;
 }
 
 .drop-zone {
   align-items: center;
-  aspect-ratio: 16 / 8;
+  aspect-ratio: 16 / 5.8;
   background:
     linear-gradient(0deg, rgba(143, 63, 242, 0.07), rgba(143, 63, 242, 0.07)),
     #ffffff;
@@ -936,8 +941,8 @@ h2 {
   display: flex;
   justify-content: center;
   justify-self: center;
-  max-height: 520px;
-  max-width: 920px;
+  max-height: 250px;
+  max-width: none;
   overflow: hidden;
   position: relative;
   width: 100%;
@@ -961,7 +966,7 @@ h2 {
   display: grid;
   gap: 10px;
   justify-items: center;
-  padding: 24px;
+  padding: 16px;
   text-align: center;
 }
 
@@ -1007,7 +1012,7 @@ h2 {
   display: flex;
   gap: 8px;
   justify-self: center;
-  max-width: 920px;
+  max-width: none;
   overflow-x: auto;
   padding-bottom: 2px;
   width: 100%;
@@ -1019,7 +1024,7 @@ h2 {
   flex: 0 0 min(190px, 70vw);
   gap: 2px;
   justify-content: stretch;
-  min-height: 56px;
+  min-height: 48px;
   padding: 8px 10px;
   text-align: left;
 }
@@ -1049,7 +1054,7 @@ h2 {
   gap: 10px;
   grid-template-columns: minmax(0, 1fr) auto auto;
   justify-self: center;
-  max-width: 920px;
+  max-width: none;
   width: 100%;
 }
 
@@ -1058,18 +1063,18 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
-  gap: 14px;
+  gap: 8px;
   justify-self: center;
-  max-width: 920px;
-  padding: 12px;
+  max-width: none;
+  padding: 10px;
   width: 100%;
 }
 
 .scan-tip {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 650;
-  line-height: 1.45;
+  line-height: 1.32;
   margin: 0;
 }
 
@@ -1085,8 +1090,8 @@ h2 {
 
 .crop-grid {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .crop-grid label,
@@ -1168,7 +1173,7 @@ h2 {
   min-width: 0;
   padding: 10px 12px;
   justify-self: center;
-  max-width: 920px;
+  max-width: none;
   width: 100%;
 }
 
@@ -1195,7 +1200,7 @@ h2 {
 .context-box,
 .saved-notes-panel {
   justify-self: center;
-  max-width: 920px;
+  max-width: none;
   width: 100%;
 }
 
@@ -1222,8 +1227,8 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
-  gap: 8px;
-  padding: 12px;
+  gap: 6px;
+  padding: 10px;
 }
 
 .context-box span {
@@ -1235,16 +1240,16 @@ h2 {
 
 .context-box textarea {
   background: #fbfcfa;
-  line-height: 22px;
-  min-height: 90px;
-  padding: 10px;
+  line-height: 20px;
+  min-height: 54px;
+  padding: 8px;
 }
 
 .saved-notes-panel {
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 12px;
-  padding-top: 16px;
+  gap: 8px;
+  padding-top: 10px;
 }
 
 .saved-header {
@@ -1278,8 +1283,8 @@ h2 {
 
 .saved-list {
   display: grid;
-  gap: 8px;
-  max-height: 220px;
+  gap: 6px;
+  max-height: 112px;
   overflow: auto;
 }
 
@@ -1288,8 +1293,8 @@ h2 {
   display: grid;
   gap: 4px;
   justify-content: stretch;
-  min-height: 58px;
-  padding: 10px 12px;
+  min-height: 48px;
+  padding: 8px 10px;
   text-align: left;
 }
 
@@ -1311,10 +1316,10 @@ h2 {
 
 .editor-panel {
   display: grid;
-  grid-template-rows: auto minmax(420px, 1fr) auto;
+  grid-template-rows: auto minmax(520px, calc(100vh - 214px)) auto;
   margin: 0 auto;
-  max-width: 920px;
-  padding: 18px;
+  max-width: none;
+  padding: 14px;
   width: 100%;
 }
 
@@ -1323,18 +1328,18 @@ h2 {
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .icon-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .icon-actions button {
-  min-height: 42px;
+  min-height: 36px;
   padding: 0;
-  width: 42px;
+  width: 36px;
 }
 
 .icon-actions button.saved-action {
@@ -1355,9 +1360,9 @@ textarea {
   border-radius: 8px;
   color: var(--ink);
   line-height: 32px;
-  min-height: 420px;
+  min-height: 0;
   outline: none;
-  padding: 16px;
+  padding: 14px;
   resize: vertical;
   width: 100%;
 }
