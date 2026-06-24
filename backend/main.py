@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import escape
 import shutil
 import tempfile
 import os
@@ -324,6 +325,28 @@ async def run_ocr(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@app.post("/api/preview/docx")
+async def preview_docx(file: UploadFile = File(...)) -> dict[str, str]:
+    filename = file.filename or "upload.docx"
+    if not filename.lower().endswith(".docx"):
+        raise HTTPException(status_code=400, detail="Upload a DOCX file.")
+
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            uploaded_path = Path(temp_dir) / "preview.docx"
+            with uploaded_path.open("wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            return {
+                "filename": filename,
+                "html": _docx_preview_html(uploaded_path),
+                "text": clean_ocr_text(_extract_docx_text(uploaded_path)),
+            }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 def _render_pdf_first_page(pdf_path: Path, output_path: Path) -> Path:
     try:
         import pypdfium2 as pdfium
@@ -364,6 +387,91 @@ def _extract_docx_text(docx_path: Path) -> str:
     if not text:
         raise ValueError("The uploaded DOCX did not contain readable text.")
     return text
+
+
+def _docx_preview_html(docx_path: Path) -> str:
+    document = Document(docx_path)
+    parts: list[str] = []
+
+    for block in document.element.body:
+        tag_name = block.tag.rsplit("}", 1)[-1]
+        if tag_name == "p":
+            paragraph = next(
+                (
+                    paragraph
+                    for paragraph in document.paragraphs
+                    if paragraph._element is block
+                ),
+                None,
+            )
+            if paragraph is not None:
+                parts.append(_docx_paragraph_html(paragraph))
+        elif tag_name == "tbl":
+            table = next((table for table in document.tables if table._element is block), None)
+            if table is not None:
+                parts.append(_docx_table_html(table))
+
+    html = "\n".join(part for part in parts if part).strip()
+    if not html:
+        raise ValueError("The uploaded DOCX did not contain readable preview content.")
+    return html
+
+
+def _docx_paragraph_html(paragraph) -> str:
+    text_parts: list[str] = []
+    for run in paragraph.runs:
+        run_text = escape(run.text)
+        if not run_text:
+            continue
+        if run.bold:
+            run_text = f"<strong>{run_text}</strong>"
+        if run.italic:
+            run_text = f"<em>{run_text}</em>"
+        if run.underline:
+            run_text = f"<u>{run_text}</u>"
+        text_parts.append(run_text)
+
+    text = "".join(text_parts).strip()
+    if not text:
+        return ""
+
+    style_name = (paragraph.style.name if paragraph.style else "").lower()
+    if "heading 1" in style_name or style_name == "title":
+        tag = "h1"
+    elif "heading 2" in style_name:
+        tag = "h2"
+    elif "heading" in style_name:
+        tag = "h3"
+    else:
+        tag = "p"
+
+    alignment = paragraph.alignment
+    align_class = ""
+    if alignment is not None:
+        align_value = str(alignment).split(" ")[0].lower()
+        if align_value in {"center", "right", "justify"}:
+            align_class = f' class="docx-align-{align_value}"'
+
+    return f"<{tag}{align_class}>{text}</{tag}>"
+
+
+def _docx_table_html(table) -> str:
+    rows: list[str] = []
+    for row in table.rows:
+        cells = []
+        for cell in row.cells:
+            cell_text = "<br />".join(
+                escape(paragraph.text.strip())
+                for paragraph in cell.paragraphs
+                if paragraph.text.strip()
+            )
+            cells.append(f"<td>{cell_text}</td>")
+        if cells:
+            rows.append(f"<tr>{''.join(cells)}</tr>")
+
+    if not rows:
+        return ""
+    return f"<table><tbody>{''.join(rows)}</tbody></table>"
 
 
 @app.post("/api/export/txt")

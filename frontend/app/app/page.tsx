@@ -60,6 +60,12 @@ type ImageAdjustments = {
   rotation: number;
 };
 
+type DocxPreviewResponse = {
+  filename: string;
+  html: string;
+  text: string;
+};
+
 const SUBJECTS = [
   { label: "General", value: "general" },
   { label: "Biology", value: "biology" },
@@ -91,6 +97,9 @@ export default function Home() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
   const [isScanning, setIsScanning] = useState(false);
   const [isSearchingArchive, setIsSearchingArchive] = useState(false);
+  const [docxPreviewHtml, setDocxPreviewHtml] = useState("");
+  const [isLoadingDocxPreview, setIsLoadingDocxPreview] = useState(false);
+  const [docxPreviewError, setDocxPreviewError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const file = files[activeFileIndex] ?? null;
@@ -215,6 +224,51 @@ export default function Home() {
     };
   }, [file, crop, rotation, contrast]);
 
+  useEffect(() => {
+    if (!file || !isDocxFile(file)) {
+      setDocxPreviewHtml("");
+      setDocxPreviewError(null);
+      setIsLoadingDocxPreview(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadDocxPreview() {
+      setDocxPreviewHtml("");
+      setDocxPreviewError(null);
+      setIsLoadingDocxPreview(true);
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file as File);
+
+        const response = await fetch(`${API_BASE}/api/preview/docx`, {
+          body: formData,
+          method: "POST",
+          signal: controller.signal
+        });
+
+        const payload = (await response.json()) as Partial<DocxPreviewResponse> & { detail?: string };
+        if (!response.ok) {
+          throw new Error(payload.detail ?? "DOCX preview is not available.");
+        }
+        setDocxPreviewHtml(payload.html ?? "");
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        setDocxPreviewError(error instanceof Error ? error.message : "DOCX preview is not available.");
+      } finally {
+        setIsLoadingDocxPreview(false);
+      }
+    }
+
+    loadDocxPreview();
+
+    return () => controller.abort();
+  }, [file]);
+
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const selectedFiles = Array.from(event.target.files ?? []);
     const oversizedFiles = selectedFiles.filter((selectedFile) => selectedFile.size > MAX_UPLOAD_BYTES);
@@ -234,6 +288,9 @@ export default function Home() {
     setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
     setRotation(0);
     setContrast(112);
+    setDocxPreviewHtml("");
+    setDocxPreviewError(null);
+    setIsLoadingDocxPreview(false);
 
     previewUrls.forEach((url) => URL.revokeObjectURL(url));
 
@@ -469,7 +526,11 @@ export default function Home() {
 
       <section className="workspace">
         <div className="upload-panel">
-          <label className={`drop-zone ${file && isPdfFile(file) ? "pdf-drop-zone" : ""}`}>
+          <label
+            className={`drop-zone ${file && isPdfFile(file) ? "pdf-drop-zone" : ""} ${
+              file && isDocxFile(file) ? "docx-drop-zone" : ""
+            }`}
+          >
             <input
               accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
               multiple
@@ -495,16 +556,38 @@ export default function Home() {
                   <p>PDF preview is not available in this browser. Cleanote will scan the first page.</p>
                 </div>
               </object>
+            ) : file && isDocxFile(file) ? (
+              <div className="docx-preview-shell">
+                {isLoadingDocxPreview ? (
+                  <div className="file-preview-card">
+                    <Loader2 aria-hidden="true" className="spin" size={38} />
+                    <strong>{file.name}</strong>
+                    <span>Preparing DOCX preview...</span>
+                  </div>
+                ) : docxPreviewHtml ? (
+                  <article
+                    aria-label={`DOCX preview for ${file.name}`}
+                    className="docx-preview-page"
+                    dangerouslySetInnerHTML={{ __html: docxPreviewHtml }}
+                  />
+                ) : (
+                  <div className="file-preview-card">
+                    <FileText aria-hidden="true" size={38} />
+                    <strong>{file.name}</strong>
+                    <span>DOCX · {formatFileSize(file.size)}</span>
+                    <p>
+                      {docxPreviewError ??
+                        "DOCX preview is not available, but Cleanote can still extract the document text when you scan."}
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : file ? (
               <div className="file-preview-card">
                 <FileText aria-hidden="true" size={38} />
                 <strong>{file.name}</strong>
                 <span>{fileKind(file)} · {formatFileSize(file.size)}</span>
-                <p>
-                  {isDocxFile(file)
-                    ? "DOCX files do not render a visual page preview in the browser. Cleanote will extract the document text when you scan."
-                    : "PDF selected. Cleanote will scan the first page for OCR."}
-                </p>
+                <p>Cleanote will scan this file for OCR.</p>
               </div>
             ) : (
               <div className="empty-state">
