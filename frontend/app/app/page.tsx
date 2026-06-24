@@ -469,7 +469,7 @@ export default function Home() {
 
       <section className="workspace">
         <div className="upload-panel">
-          <label className="drop-zone">
+          <label className={`drop-zone ${file && isPdfFile(file) ? "pdf-drop-zone" : ""}`}>
             <input
               accept="image/png,image/jpeg,image/webp,image/bmp,image/tiff,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
               multiple
@@ -485,7 +485,7 @@ export default function Home() {
               <object
                 aria-label={`PDF preview for ${file.name}`}
                 className="pdf-preview"
-                data={`${previewUrl}#toolbar=0&navpanes=0&page=1`}
+                data={`${previewUrl}#toolbar=0&navpanes=0&page=1&zoom=page-fit`}
                 type="application/pdf"
               >
                 <div className="file-preview-card">
