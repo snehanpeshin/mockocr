@@ -240,7 +240,9 @@ export default function Home() {
     setFiles(validFiles);
     setPreviewUrls(
       validFiles.map((selectedFile) =>
-        selectedFile.type.startsWith("image/") ? URL.createObjectURL(selectedFile) : ""
+        selectedFile.type.startsWith("image/") || isPdfFile(selectedFile)
+          ? URL.createObjectURL(selectedFile)
+          : ""
       )
     );
     event.target.value = "";
@@ -474,19 +476,33 @@ export default function Home() {
               onChange={handleFileChange}
               type="file"
             />
-            {previewUrl || processedPreviewUrl ? (
+            {file?.type.startsWith("image/") && (previewUrl || processedPreviewUrl) ? (
               <img
                 alt="Uploaded handwriting preview"
                 src={processedPreviewUrl ?? previewUrl ?? undefined}
               />
+            ) : file && isPdfFile(file) && previewUrl ? (
+              <object
+                aria-label={`PDF preview for ${file.name}`}
+                className="pdf-preview"
+                data={`${previewUrl}#toolbar=0&navpanes=0&page=1`}
+                type="application/pdf"
+              >
+                <div className="file-preview-card">
+                  <FileText aria-hidden="true" size={38} />
+                  <strong>{file.name}</strong>
+                  <span>PDF · {formatFileSize(file.size)}</span>
+                  <p>PDF preview is not available in this browser. Cleanote will scan the first page.</p>
+                </div>
+              </object>
             ) : file ? (
               <div className="file-preview-card">
                 <FileText aria-hidden="true" size={38} />
                 <strong>{file.name}</strong>
                 <span>{fileKind(file)} · {formatFileSize(file.size)}</span>
                 <p>
-                  {file.name.toLowerCase().endsWith(".docx")
-                    ? "Word document selected. Cleanote will extract its text directly."
+                  {isDocxFile(file)
+                    ? "DOCX files do not render a visual page preview in the browser. Cleanote will extract the document text when you scan."
                     : "PDF selected. Cleanote will scan the first page for OCR."}
                 </p>
               </div>
@@ -755,20 +771,28 @@ function createNoteTitle(subject: string) {
 }
 
 function fileKind(file: File) {
-  const lowerName = file.name.toLowerCase();
-  if (file.type === "application/pdf" || lowerName.endsWith(".pdf")) {
+  if (isPdfFile(file)) {
     return "PDF";
   }
-  if (
-    file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-    lowerName.endsWith(".docx")
-  ) {
+  if (isDocxFile(file)) {
     return "DOCX";
   }
   if (file.type.startsWith("image/")) {
     return "Image";
   }
   return "File";
+}
+
+function isPdfFile(file: File) {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
+function isDocxFile(file: File) {
+  const lowerName = file.name.toLowerCase();
+  return (
+    file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    lowerName.endsWith(".docx")
+  );
 }
 
 function formatFileSize(size: number) {
