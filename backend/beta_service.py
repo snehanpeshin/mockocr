@@ -37,8 +37,30 @@ def request_beta_access(name: str, email: str, role: str) -> dict[str, Any]:
 
     beta_limit = int(os.getenv("BETA_LIMIT", "50"))
     beta_access = _verified_beta_count(table) < beta_limit
-    token = secrets.token_urlsafe(32)
     now = _now()
+
+    if not _email_verification_enabled():
+        table.put_item(
+            Item={
+                "email": normalized_email,
+                "name": normalized_name,
+                "role": normalized_role,
+                "status": "verified",
+                "beta_access": beta_access,
+                "created_at": now.isoformat(),
+                "verified_at": now.isoformat(),
+                "verification_method": "instant_access",
+            }
+        )
+        return {
+            "status": "access_granted" if beta_access else "waitlisted",
+            "beta_access": beta_access,
+            "email": normalized_email,
+            "name": normalized_name,
+            "role": normalized_role,
+        }
+
+    token = secrets.token_urlsafe(32)
     expires_at = now + timedelta(hours=int(os.getenv("BETA_TOKEN_TTL_HOURS", "24")))
 
     table.put_item(
@@ -105,7 +127,9 @@ def verify_beta_token(token: str) -> dict[str, Any]:
 
 
 def _ensure_configured() -> None:
-    required = ["BETA_TABLE_NAME", "SES_FROM_EMAIL", "APP_BASE_URL"]
+    required = ["BETA_TABLE_NAME"]
+    if _email_verification_enabled():
+        required.extend(["SES_FROM_EMAIL", "APP_BASE_URL"])
     missing = [name for name in required if not os.getenv(name)]
     if missing:
         raise RuntimeError(
@@ -113,6 +137,11 @@ def _ensure_configured() -> None:
         )
     if boto3 is None:
         raise RuntimeError("Install AWS support with: python -m pip install -r requirements-aws.txt")
+
+
+def _email_verification_enabled() -> bool:
+    value = os.getenv("BETA_EMAIL_VERIFICATION", "disabled").strip().lower()
+    return value in {"1", "true", "yes", "enabled"}
 
 
 def _table():

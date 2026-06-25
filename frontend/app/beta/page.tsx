@@ -30,14 +30,22 @@ export default function BetaPage() {
       }
 
       const data = await response.json();
+      if (data.beta_access) {
+        window.localStorage.setItem("cleanote.betaAccess", JSON.stringify(data));
+      }
       if (data.status === "already_verified" && data.beta_access) {
-        setMessage("This email is already verified. Open Cleanote when you are ready.");
+        window.location.href = "/app";
+        return;
+      }
+      if (data.status === "access_granted" && data.beta_access) {
+        setMessage("Access granted. Opening Cleanote...");
+        window.location.href = "/app";
         return;
       }
       setMessage(
         data.beta_access
-          ? "Check your email for your Cleanote access link."
-          : "You are on the waitlist. Check your email to verify your spot."
+          ? "Access granted. Open Cleanote when you are ready."
+          : "You are on the waitlist. We saved your spot."
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not join the beta.");
@@ -90,7 +98,7 @@ export default function BetaPage() {
           </label>
           <button className="primary" disabled={isSubmitting} type="submit">
             {isSubmitting ? <Loader2 className="spin" aria-hidden="true" size={18} /> : null}
-            <span>{isSubmitting ? "Sending link" : "Get email link"}</span>
+            <span>{isSubmitting ? "Requesting access" : "Start using Cleanote"}</span>
           </button>
           {message ? <p className="message">{message}</p> : null}
         </form>
@@ -109,8 +117,8 @@ export default function BetaPage() {
         </div>
         <div>
           <LockKeyhole aria-hidden="true" size={22} />
-          <h2>Passwordless beta</h2>
-          <p>Join with your email and click a secure link to access Cleanote.</p>
+          <h2>Simple beta access</h2>
+          <p>Join with your email and open Cleanote immediately during launch.</p>
         </div>
       </section>
 
