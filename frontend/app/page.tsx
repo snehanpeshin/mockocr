@@ -125,6 +125,7 @@ export default function LandingPage() {
         <div>
           <a href="/privacy">Privacy Policy</a>
           <a href="/refund">Refund Policy</a>
+          <a href="/support">Support</a>
         </div>
       </footer>
     </main>
