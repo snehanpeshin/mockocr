@@ -176,6 +176,51 @@ def save_customer_discovery(feedback: dict[str, Any]) -> dict[str, str]:
     return {"status": "saved", "email": normalized_email}
 
 
+def feedback_summary(limit: int = 50) -> dict[str, Any]:
+    _ensure_configured()
+
+    responses: list[dict[str, Any]] = []
+    for item in _scan_all(_table()):
+        user_responses = item.get("discovery_responses") or []
+        if not user_responses and item.get("latest_discovery_response"):
+            user_responses = [item["latest_discovery_response"]]
+
+        for response in user_responses:
+            if not isinstance(response, dict):
+                continue
+            rating = _rating(response.get("rating"))
+            responses.append(
+                {
+                    "email": item.get("email", ""),
+                    "name": item.get("name", ""),
+                    "role": item.get("role", ""),
+                    "created_at": response.get("created_at", ""),
+                    "rating": rating,
+                    "feedback": response.get("feedback", ""),
+                    "worked": response.get("worked", ""),
+                    "missing": response.get("missing", ""),
+                    "pay_value": response.get("pay_value", ""),
+                    "note_filename": response.get("note_filename", ""),
+                    "subject": response.get("subject", ""),
+                    "word_count": int(response.get("word_count") or 0),
+                }
+            )
+
+    responses.sort(key=lambda response: response["created_at"], reverse=True)
+    rated_responses = [response for response in responses if response["rating"] > 0]
+    average_rating = (
+        round(sum(response["rating"] for response in rated_responses) / len(rated_responses), 2)
+        if rated_responses
+        else 0
+    )
+
+    return {
+        "feedback_count": len(responses),
+        "average_rating": average_rating,
+        "recent_feedback": responses[: max(1, min(limit, 200))],
+    }
+
+
 def _ensure_configured() -> None:
     required = ["BETA_TABLE_NAME"]
     if _email_verification_enabled():
@@ -197,6 +242,16 @@ def _email_verification_enabled() -> bool:
 def _table():
     dynamodb = boto3.resource("dynamodb", region_name=_aws_region())
     return dynamodb.Table(os.environ["BETA_TABLE_NAME"])
+
+
+def _scan_all(table) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    response = table.scan()
+    items.extend(response.get("Items", []))
+    while "LastEvaluatedKey" in response:
+        response = table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+        items.extend(response.get("Items", []))
+    return items
 
 
 def _verified_beta_count(table) -> int:

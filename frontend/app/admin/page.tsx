@@ -44,6 +44,27 @@ type ScanSummary = {
   by_subject: Array<{ subject: string; count: number }>;
 };
 
+type FeedbackRow = {
+  email: string;
+  name: string;
+  role: string;
+  created_at: string;
+  rating: number;
+  feedback: string;
+  worked: string;
+  missing: string;
+  pay_value: string;
+  note_filename: string;
+  subject: string;
+  word_count: number;
+};
+
+type FeedbackSummary = {
+  feedback_count: number;
+  average_rating: number;
+  recent_feedback: FeedbackRow[];
+};
+
 type RevenueSummary = {
   total_revenue: string;
   revenue_by_dba: RevenueRow[];
@@ -52,6 +73,7 @@ type RevenueSummary = {
   active_subscription_count: number;
   customers: Customer[];
   scan_summary?: ScanSummary;
+  feedback_summary?: FeedbackSummary;
 };
 
 export default function AdminPage() {
@@ -110,6 +132,53 @@ export default function AdminPage() {
     }
   }
 
+  function downloadFeedbackCsv() {
+    const rows = summary?.feedback_summary?.recent_feedback ?? [];
+    if (!rows.length) {
+      setMessage("No feedback yet.");
+      return;
+    }
+
+    const header = [
+      "created_at",
+      "rating",
+      "email",
+      "name",
+      "role",
+      "subject",
+      "note_filename",
+      "feedback",
+      "worked",
+      "missing",
+      "pay_value"
+    ];
+    const csvRows = [
+      header,
+      ...rows.map((row) => [
+        row.created_at,
+        String(row.rating),
+        row.email,
+        row.name,
+        row.role,
+        row.subject,
+        row.note_filename,
+        row.feedback,
+        row.worked,
+        row.missing,
+        row.pay_value
+      ])
+    ];
+    const csv = csvRows
+      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "cleanote-feedback.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <main className="admin-shell">
       <section className="admin-header">
@@ -151,6 +220,14 @@ export default function AdminPage() {
             <p className="eyebrow">Successful scans</p>
             <strong>{summary.scan_summary?.successful_scans ?? 0}</strong>
           </div>
+          <div className="admin-card metric-card">
+            <p className="eyebrow">Feedback responses</p>
+            <strong>{summary.feedback_summary?.feedback_count ?? 0}</strong>
+          </div>
+          <div className="admin-card metric-card">
+            <p className="eyebrow">Average rating</p>
+            <strong>{summary.feedback_summary?.average_rating ?? 0}/5</strong>
+          </div>
           <div className="admin-card payment-link-card">
             <h2>Create Payment Link</h2>
             <select
@@ -177,7 +254,27 @@ export default function AdminPage() {
               </a>
             ) : null}
           </div>
+          <div className="admin-card payment-link-card">
+            <h2>Feedback Export</h2>
+            <p className="message">Download recent ratings and customer discovery comments.</p>
+            <button className="primary" onClick={downloadFeedbackCsv} type="button">
+              Download CSV
+            </button>
+          </div>
 
+          <Table
+            columns={["Rating", "Email", "Role", "Feedback", "Wrong or missing", "Pay value", "Date"]}
+            rows={(summary.feedback_summary?.recent_feedback ?? []).map((row) => [
+              row.rating ? `${row.rating}/5` : "-",
+              row.email,
+              row.role,
+              row.feedback || row.worked,
+              row.missing,
+              row.pay_value,
+              row.created_at.slice(0, 10)
+            ])}
+            title="Recent feedback"
+          />
           <Table
             columns={["DBA", "Revenue"]}
             rows={summary.revenue_by_dba.map((row) => [row.dba_name ?? "", `$${row.amount}`])}
@@ -252,7 +349,7 @@ function Table({
           rows.map((row, index) => (
             <div className="admin-table-row" key={`${title}-${index}`}>
               {row.map((cell, cellIndex) => (
-                <span key={`${title}-${index}-${cellIndex}`}>{cell}</span>
+                <span key={`${title}-${index}-${cellIndex}`} title={cell}>{cell}</span>
               ))}
             </div>
           ))

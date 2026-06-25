@@ -15,7 +15,12 @@ import numpy as np
 from pydantic import BaseModel
 
 from image_preprocess import preprocess_image
-from beta_service import request_beta_access, save_customer_discovery, verify_beta_token
+from beta_service import (
+    feedback_summary,
+    request_beta_access,
+    save_customer_discovery,
+    verify_beta_token,
+)
 from note_service import save_note, search_notes
 from ocr_service import clean_ocr_text, extract_text
 from payment_service import (
@@ -233,7 +238,11 @@ async def stripe_webhook(request: Request, stripe_signature: str | None = Header
 def admin_revenue(x_admin_token: str | None = Header(default=None)) -> dict[str, object]:
     try:
         validate_admin_token(x_admin_token)
-        return {**revenue_summary(), "scan_summary": scan_summary()}
+        return {
+            **revenue_summary(),
+            "scan_summary": scan_summary(),
+            "feedback_summary": feedback_summary(),
+        }
     except PermissionError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     except RuntimeError as exc:
