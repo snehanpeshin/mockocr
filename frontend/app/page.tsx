@@ -42,11 +42,11 @@ export default function LandingPage() {
 
       <section className="site-hero">
         <div className="site-hero-copy">
-          <p className="site-kicker">Handwriting OCR for students and researchers</p>
+          <p className="site-kicker">Handwriting OCR for students, parents, and researchers</p>
           <h1>Turn handwritten notes into editable text.</h1>
           <p>
-            Upload note photos, PDFs, or annotated handouts. Cleanote converts readable
-            handwriting into text you can edit, search, and export.
+            Upload note photos, worksheets, PDFs, or annotated handouts. Cleanote converts
+            readable handwriting into text you can edit, search, and export.
           </p>
           <div className="site-actions">
             <a className="site-primary" href="/beta">

@@ -297,12 +297,14 @@ def _bedrock_user_prompt(
 ) -> str:
     visual_instruction = _visual_notes_prompt() if visual_notes_enabled else ""
     math_instruction = _math_symbol_verification_prompt()
+    subject_instruction = _subject_specific_prompt(subject_hint)
     return (
         f"Subject mode: {subject_hint}.\n"
         f"Optional user context: {context_hint or 'none provided'}.\n"
         f"Document analysis context:\n{document_context or 'none provided'}.\n"
         f"{visual_instruction}"
         f"{math_instruction}"
+        f"{subject_instruction}"
         "Faithfully transcribe and structure these OCR notes for a student. "
         "Do not summarize, shorten, abridge, merge away, or rewrite the notes into a study guide. "
         "The output should contain at least the same level of detail as the readable handwritten "
@@ -368,6 +370,27 @@ def _math_symbol_verification_prompt() -> str:
         "the same handwritten symbol appears as b elsewhere on the page.' Do not justify a correction "
         "by naming or applying a mathematical identity. If no meaningful correction was made, omit "
         "that section.\n"
+    )
+
+
+def _subject_specific_prompt(subject_hint: str) -> str:
+    if "kids homework" not in subject_hint:
+        return ""
+
+    return (
+        "Kids homework mode: enabled.\n"
+        "This is a parent-supervised learning notebook mode. Preserve child-written work "
+        "faithfully and use a calm, supportive tone. Do not shame, grade, or score the child. "
+        "Do not add open-ended tutoring chat, personal questions, or content unrelated to the "
+        "visible page. If the page is a worksheet, separate printed worksheet prompts from "
+        "child handwritten answers when possible. Treat printed worksheet text as high-confidence "
+        "source text, and child handwriting as lower-confidence text that may require visual review. "
+        "For spelling practice, preserve the child's visible spelling first, then optionally add "
+        "a short 'Possible unclear words' section only when the handwriting is ambiguous. "
+        "For arithmetic, transcribe the visible work and mark unclear digits as [unclear] rather "
+        "than guessing. Do not solve additional problems or create new practice questions. "
+        "For drawings, preserve labels, shapes, arrows, and simple visual relationships so a "
+        "parent can recognize what the child drew.\n"
     )
 
 
@@ -450,6 +473,8 @@ def normalize_subject(subject: str) -> str:
         "engineering": "engineering",
         "medicine": "medicine",
         "research": "research notes",
+        "kids": "kids homework",
+        "kids homework": "kids homework",
     }
     return allowed_subjects.get(subject.lower().strip(), "general notes")
 

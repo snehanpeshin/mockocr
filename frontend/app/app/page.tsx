@@ -71,6 +71,7 @@ type DocxPreviewResponse = {
 
 const SUBJECTS = [
   { label: "General", value: "general" },
+  { label: "Kids Homework", value: "kids" },
   { label: "Biology", value: "biology" },
   { label: "Chemistry", value: "chemistry" },
   { label: "Math", value: "math" },
