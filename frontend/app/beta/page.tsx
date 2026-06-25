@@ -58,6 +58,7 @@ export default function BetaPage() {
     <main className="landing-shell">
       <section className="landing-hero">
         <div className="landing-copy">
+          <img alt="" className="hero-logo" src="/cleanote-icon.png" />
           <p className="eyebrow">Cleanote beta</p>
           <h1>Turn handwritten notes into searchable knowledge.</h1>
           <p>

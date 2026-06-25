@@ -97,10 +97,21 @@ a {
 }
 
 .site-brand {
+  align-items: center;
   color: #ffffff;
+  display: inline-flex;
   font-size: 1.1rem;
   font-weight: 900;
+  gap: 10px;
   text-decoration: none;
+}
+
+.site-brand img {
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+  height: 42px;
+  object-fit: cover;
+  width: 42px;
 }
 
 .site-nav nav {
@@ -426,6 +437,14 @@ a {
   line-height: 1.65;
   margin: 0;
   max-width: 640px;
+}
+
+.hero-logo {
+  border-radius: 18px;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.32);
+  height: 96px;
+  object-fit: cover;
+  width: 96px;
 }
 
 .landing-actions {
@@ -804,6 +823,21 @@ a {
   gap: 16px;
   justify-content: space-between;
   margin-bottom: 10px;
+}
+
+.app-brand-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.app-brand-row img {
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  height: 40px;
+  object-fit: cover;
+  width: 40px;
 }
 
 .topbar h1 {

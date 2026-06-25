@@ -565,7 +565,10 @@ export default function Home() {
     <main className="app-shell">
       <section className="topbar" aria-label="Workspace header">
         <div>
-          <p className="eyebrow">Cleanote</p>
+          <div className="app-brand-row">
+            <img alt="" src="/cleanote-icon.png" />
+            <p className="eyebrow">Cleanote</p>
+          </div>
           <h1>Scan notes into editable text</h1>
           <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
           <div className="topbar-links">

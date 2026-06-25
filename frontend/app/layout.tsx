@@ -4,7 +4,11 @@ import "./styles.css";
 
 export const metadata: Metadata = {
   title: "Cleanote",
-  description: "Upload handwritten notes and convert them into editable text."
+  description: "Upload handwritten notes and convert them into editable text.",
+  icons: {
+    apple: "/cleanote-icon.png",
+    icon: "/cleanote-icon.png",
+  }
 };
 
 export default function RootLayout({

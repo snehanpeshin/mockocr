@@ -29,12 +29,14 @@ export default function LandingPage() {
     <main className="site-shell">
       <header className="site-nav">
         <a className="site-brand" href="/">
+          <img alt="" src="/cleanote-icon.png" />
           <span>Cleanote</span>
         </a>
         <nav aria-label="Cleanote navigation">
-          <a href="/app">Open app</a>
+          <a href="/beta">Request beta</a>
           <a href="/billing">Premium</a>
           <a href="/privacy">Privacy</a>
+          <a href="/app">Open app</a>
         </nav>
       </header>
 
@@ -47,10 +49,10 @@ export default function LandingPage() {
             handwriting into text you can edit, search, and export.
           </p>
           <div className="site-actions">
-            <a className="site-primary" href="/app">
-              Open Cleanote <ArrowRight aria-hidden="true" size={18} />
+            <a className="site-primary" href="/beta">
+              Request beta access <ArrowRight aria-hidden="true" size={18} />
             </a>
-            <a className="site-secondary" href="/beta">Request beta access</a>
+            <a className="site-secondary" href="/app">Returning user? Open app</a>
           </div>
           <ul className="site-checks">
             <li><Check aria-hidden="true" size={16} /> Upload image or PDF</li>
