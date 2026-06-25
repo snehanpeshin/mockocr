@@ -6,6 +6,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
+from uuid import uuid4
 
 try:
     import boto3
@@ -126,6 +127,53 @@ def verify_beta_token(token: str) -> dict[str, Any]:
     }
 
 
+def save_customer_discovery(feedback: dict[str, Any]) -> dict[str, str]:
+    _ensure_configured()
+
+    normalized_email = _normalize_email(str(feedback.get("email", "")))
+    now = _now().isoformat()
+    response = {
+        "discovery_id": str(uuid4()),
+        "created_at": now,
+        "source": _clean_text(feedback.get("source", "post_scan"), 40),
+        "note_filename": _clean_text(feedback.get("note_filename", ""), 160),
+        "subject": _clean_text(feedback.get("subject", ""), 80),
+        "word_count": int(feedback.get("word_count") or 0),
+        "worked": _clean_text(feedback.get("worked", ""), 1000),
+        "missing": _clean_text(feedback.get("missing", ""), 1000),
+        "pay_value": _clean_text(feedback.get("pay_value", ""), 1000),
+    }
+
+    _table().update_item(
+        Key={"email": normalized_email},
+        UpdateExpression=(
+            "SET #name = if_not_exists(#name, :name), "
+            "#role = if_not_exists(#role, :role), "
+            "#status = if_not_exists(#status, :status), "
+            "beta_access = if_not_exists(beta_access, :beta_access), "
+            "latest_discovery_response = :response, "
+            "last_feedback_at = :now, "
+            "discovery_responses = list_append(if_not_exists(discovery_responses, :empty), :responses)"
+        ),
+        ExpressionAttributeNames={
+            "#name": "name",
+            "#role": "role",
+            "#status": "status",
+        },
+        ExpressionAttributeValues={
+            ":name": _clean_text(feedback.get("name", ""), 120),
+            ":role": _clean_text(feedback.get("role", ""), 40),
+            ":status": "verified",
+            ":beta_access": True,
+            ":response": response,
+            ":responses": [response],
+            ":empty": [],
+            ":now": now,
+        },
+    )
+    return {"status": "saved", "email": normalized_email}
+
+
 def _ensure_configured() -> None:
     required = ["BETA_TABLE_NAME"]
     if _email_verification_enabled():
@@ -195,6 +243,10 @@ def _normalize_email(email: str) -> str:
     if "@" not in normalized or "." not in normalized.split("@")[-1]:
         raise ValueError("Enter a valid email address.")
     return normalized
+
+
+def _clean_text(value: Any, max_length: int) -> str:
+    return str(value or "").strip()[:max_length]
 
 
 def _hash_token(token: str) -> str:

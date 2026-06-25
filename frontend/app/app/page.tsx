@@ -45,6 +45,8 @@ type SavedNote = {
 type BetaAccess = {
   beta_access?: boolean;
   email?: string;
+  name?: string;
+  role?: string;
 };
 
 type CropValues = {
@@ -93,6 +95,8 @@ export default function Home() {
   const [savedNotes, setSavedNotes] = useState<SavedNote[]>([]);
   const [cloudNotes, setCloudNotes] = useState<SavedNote[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
   const [isScanning, setIsScanning] = useState(false);
@@ -100,6 +104,13 @@ export default function Home() {
   const [docxPreviewHtml, setDocxPreviewHtml] = useState("");
   const [isLoadingDocxPreview, setIsLoadingDocxPreview] = useState(false);
   const [docxPreviewError, setDocxPreviewError] = useState<string | null>(null);
+  const [showDiscoveryForm, setShowDiscoveryForm] = useState(false);
+  const [discoveryEmail, setDiscoveryEmail] = useState("");
+  const [discoveryWorked, setDiscoveryWorked] = useState("");
+  const [discoveryMissing, setDiscoveryMissing] = useState("");
+  const [discoveryPayValue, setDiscoveryPayValue] = useState("");
+  const [isSubmittingDiscovery, setIsSubmittingDiscovery] = useState(false);
+  const [discoveryMessage, setDiscoveryMessage] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const file = files[activeFileIndex] ?? null;
@@ -137,6 +148,9 @@ export default function Home() {
       const betaAccess = window.localStorage.getItem("cleanote.betaAccess");
       const parsedAccess = betaAccess ? (JSON.parse(betaAccess) as BetaAccess) : null;
       setUserEmail(parsedAccess?.beta_access && parsedAccess.email ? parsedAccess.email : null);
+      setUserName(parsedAccess?.name ?? "");
+      setUserRole(parsedAccess?.role ?? "");
+      setDiscoveryEmail(parsedAccess?.email ?? "");
       const storedNotes =
         window.localStorage.getItem(SAVED_NOTES_KEY) ??
         window.localStorage.getItem(LEGACY_SAVED_NOTES_KEY);
@@ -364,6 +378,9 @@ export default function Home() {
           ? `Text extracted successfully from ${results.length} pages.`
           : `Text extracted successfully from ${noteFilename}.`
       );
+      setShowDiscoveryForm(true);
+      setDiscoveryMessage(null);
+      setDiscoveryEmail((currentEmail) => currentEmail || userEmail || "");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "OCR failed.");
     } finally {
@@ -492,6 +509,49 @@ export default function Home() {
     setContextText(note.contextText ?? "");
     setCurrentNoteId(note.id);
     setMessage(`Opened ${note.filename}`);
+  }
+
+  async function submitDiscovery() {
+    if (!discoveryEmail.trim()) {
+      setDiscoveryMessage("Enter an email so we can connect this feedback to a beta user.");
+      return;
+    }
+
+    setIsSubmittingDiscovery(true);
+    setDiscoveryMessage(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/beta/discovery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: discoveryEmail,
+          name: userName,
+          role: userRole,
+          source: "post_scan",
+          note_filename: filename ?? file?.name ?? "",
+          subject,
+          word_count: wordCount,
+          worked: discoveryWorked,
+          missing: discoveryMissing,
+          pay_value: discoveryPayValue
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response, "Could not save feedback."));
+      }
+
+      setDiscoveryWorked("");
+      setDiscoveryMissing("");
+      setDiscoveryPayValue("");
+      setShowDiscoveryForm(false);
+      setDiscoveryMessage("Thanks. Your feedback was saved.");
+    } catch (error) {
+      setDiscoveryMessage(error instanceof Error ? error.message : "Could not save feedback.");
+    } finally {
+      setIsSubmittingDiscovery(false);
+    }
   }
 
   return (
@@ -804,6 +864,61 @@ export default function Home() {
 
           {message ? <p className="message">{message}</p> : null}
           {filename ? <p className="message">Current note: {filename}</p> : null}
+          {showDiscoveryForm ? (
+            <section className="discovery-panel" aria-label="Post-scan feedback">
+              <div>
+                <p className="eyebrow">Help improve Cleanote</p>
+                <h3>How did this scan do?</h3>
+              </div>
+              <label>
+                <span>Email</span>
+                <input
+                  onChange={(event) => setDiscoveryEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  type="email"
+                  value={discoveryEmail}
+                />
+              </label>
+              <label>
+                <span>What worked well?</span>
+                <textarea
+                  onChange={(event) => setDiscoveryWorked(event.target.value)}
+                  placeholder="Example: headings were good, text was readable, export helped."
+                  value={discoveryWorked}
+                />
+              </label>
+              <label>
+                <span>What was wrong or missing?</span>
+                <textarea
+                  onChange={(event) => setDiscoveryMissing(event.target.value)}
+                  placeholder="Example: math symbols failed, diagram was ignored, handwriting was shortened."
+                  value={discoveryMissing}
+                />
+              </label>
+              <label>
+                <span>What would make this worth paying for?</span>
+                <textarea
+                  onChange={(event) => setDiscoveryPayValue(event.target.value)}
+                  placeholder="Example: better equations, searchable folders, multi-page PDF export."
+                  value={discoveryPayValue}
+                />
+              </label>
+              <div className="discovery-actions">
+                <button disabled={isSubmittingDiscovery} onClick={submitDiscovery} type="button">
+                  {isSubmittingDiscovery ? (
+                    <Loader2 aria-hidden="true" className="spin" size={18} />
+                  ) : (
+                    <Check aria-hidden="true" size={18} />
+                  )}
+                  <span>{isSubmittingDiscovery ? "Saving" : "Save feedback"}</span>
+                </button>
+                <button onClick={() => setShowDiscoveryForm(false)} type="button">
+                  Skip
+                </button>
+              </div>
+            </section>
+          ) : null}
+          {discoveryMessage ? <p className="message">{discoveryMessage}</p> : null}
         </div>
       </section>
     </main>

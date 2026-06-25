@@ -15,7 +15,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from image_preprocess import preprocess_image
-from beta_service import request_beta_access, verify_beta_token
+from beta_service import request_beta_access, save_customer_discovery, verify_beta_token
 from note_service import save_note, search_notes
 from ocr_service import clean_ocr_text, extract_text
 from payment_service import (
@@ -67,6 +67,19 @@ class BetaRequest(BaseModel):
     name: str
     email: str
     role: str
+
+
+class DiscoveryRequest(BaseModel):
+    email: str
+    name: str = ""
+    role: str = ""
+    source: str = "post_scan"
+    note_filename: str = ""
+    subject: str = ""
+    word_count: int = 0
+    worked: str = ""
+    missing: str = ""
+    pay_value: str = ""
 
 
 class NoteRequest(BaseModel):
@@ -123,6 +136,18 @@ def verify_beta(token: str) -> dict[str, object]:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except TimeoutError as exc:
         raise HTTPException(status_code=410, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/beta/discovery")
+def save_beta_discovery(payload: DiscoveryRequest) -> dict[str, str]:
+    try:
+        return save_customer_discovery(payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
