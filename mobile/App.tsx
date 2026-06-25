@@ -38,7 +38,16 @@ type SavedNote = {
   contextText?: string;
 };
 
-const SUBJECTS = ["general", "biology", "chemistry", "math", "engineering", "medicine", "research"];
+const SUBJECTS = [
+  "general",
+  "kids homework",
+  "biology",
+  "chemistry",
+  "math",
+  "engineering",
+  "medicine",
+  "research"
+];
 
 export default function App() {
   const [pickedImages, setPickedImages] = useState<PickedImage[]>([]);
@@ -264,6 +273,7 @@ export default function App() {
       >
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
+            <Image source={require("./assets/icon.png")} style={styles.logo} />
             <Text style={styles.eyebrow}>Cleanote mobile</Text>
             <Text style={styles.title}>Scan notes into searchable text</Text>
             <Text style={styles.companyLine}>Cleanote, a product of Karigari Home LLC</Text>
@@ -540,6 +550,12 @@ const styles = StyleSheet.create({
     color: "#607078",
     fontSize: 13,
     fontWeight: "800"
+  },
+  logo: {
+    borderRadius: 18,
+    height: 92,
+    marginBottom: 4,
+    width: 92
   },
   message: {
     color: "#607078",
