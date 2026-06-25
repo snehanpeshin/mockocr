@@ -105,6 +105,21 @@ export default function LandingPage() {
         </ol>
       </section>
 
+      <section className="tablet-manual-band" aria-label="Cleanote tablet bundle manual">
+        <div>
+          <p className="site-kicker">Tablet bundle concept</p>
+          <h2>Cleanote+ 8.5-inch LCD tablet manual</h2>
+          <p>
+            A parent-friendly operation manual for the writing tablet bundle: setup,
+            scanning, care, safety, and troubleshooting.
+          </p>
+        </div>
+        <a href="/cleanote-tablet-manual.pdf" target="_blank" rel="noreferrer">
+          <FileText aria-hidden="true" size={18} />
+          <span>Open PDF manual</span>
+        </a>
+      </section>
+
       <footer className="site-footer">
         <p>Cleanote, a product of Karigari Home LLC</p>
         <div>
