@@ -1488,7 +1488,8 @@ textarea:focus {
   gap: 6px;
 }
 
-.discovery-panel label span {
+.discovery-panel label span,
+.rating-field > span {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 850;
@@ -1517,6 +1518,40 @@ textarea:focus {
 .discovery-panel textarea:focus {
   border-color: var(--accent-strong);
   box-shadow: 0 0 0 3px rgba(143, 63, 242, 0.16);
+}
+
+.rating-field {
+  display: grid;
+  gap: 6px;
+}
+
+.star-row {
+  display: flex;
+  gap: 4px;
+}
+
+.star-row button {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e5d8ad;
+  border-radius: 8px;
+  color: #9b8b60;
+  cursor: pointer;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  padding: 0;
+  width: 38px;
+}
+
+.star-row button.active {
+  background: #fff0b8;
+  border-color: #d49f16;
+  color: #b97a00;
+}
+
+.star-row button svg {
+  fill: currentColor;
 }
 
 .discovery-actions {

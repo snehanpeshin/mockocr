@@ -77,6 +77,8 @@ class DiscoveryRequest(BaseModel):
     note_filename: str = ""
     subject: str = ""
     word_count: int = 0
+    rating: int = 0
+    feedback: str = ""
     worked: str = ""
     missing: str = ""
     pay_value: str = ""

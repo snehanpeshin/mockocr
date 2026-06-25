@@ -14,6 +14,7 @@ import {
   ScanText,
   Search,
   SlidersHorizontal,
+  Star,
   Trash2,
   Upload
 } from "lucide-react";
@@ -106,6 +107,8 @@ export default function Home() {
   const [docxPreviewError, setDocxPreviewError] = useState<string | null>(null);
   const [showDiscoveryForm, setShowDiscoveryForm] = useState(false);
   const [discoveryEmail, setDiscoveryEmail] = useState("");
+  const [discoveryRating, setDiscoveryRating] = useState(0);
+  const [discoveryFeedback, setDiscoveryFeedback] = useState("");
   const [discoveryWorked, setDiscoveryWorked] = useState("");
   const [discoveryMissing, setDiscoveryMissing] = useState("");
   const [discoveryPayValue, setDiscoveryPayValue] = useState("");
@@ -532,6 +535,8 @@ export default function Home() {
           note_filename: filename ?? file?.name ?? "",
           subject,
           word_count: wordCount,
+          rating: discoveryRating,
+          feedback: discoveryFeedback,
           worked: discoveryWorked,
           missing: discoveryMissing,
           pay_value: discoveryPayValue
@@ -545,6 +550,8 @@ export default function Home() {
       setDiscoveryWorked("");
       setDiscoveryMissing("");
       setDiscoveryPayValue("");
+      setDiscoveryFeedback("");
+      setDiscoveryRating(0);
       setShowDiscoveryForm(false);
       setDiscoveryMessage("Thanks. Your feedback was saved.");
     } catch (error) {
@@ -877,6 +884,30 @@ export default function Home() {
                   placeholder="you@example.com"
                   type="email"
                   value={discoveryEmail}
+                />
+              </label>
+              <div className="rating-field">
+                <span>Rating</span>
+                <div className="star-row" aria-label="Rate this scan">
+                  {[1, 2, 3, 4, 5].map((ratingValue) => (
+                    <button
+                      aria-label={`${ratingValue} star${ratingValue === 1 ? "" : "s"}`}
+                      className={ratingValue <= discoveryRating ? "active" : ""}
+                      key={ratingValue}
+                      onClick={() => setDiscoveryRating(ratingValue)}
+                      type="button"
+                    >
+                      <Star aria-hidden="true" size={20} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label>
+                <span>Quick feedback</span>
+                <textarea
+                  onChange={(event) => setDiscoveryFeedback(event.target.value)}
+                  placeholder="Example: useful, but it missed two equations."
+                  value={discoveryFeedback}
                 />
               </label>
               <label>

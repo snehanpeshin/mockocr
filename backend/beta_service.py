@@ -139,6 +139,8 @@ def save_customer_discovery(feedback: dict[str, Any]) -> dict[str, str]:
         "note_filename": _clean_text(feedback.get("note_filename", ""), 160),
         "subject": _clean_text(feedback.get("subject", ""), 80),
         "word_count": int(feedback.get("word_count") or 0),
+        "rating": _rating(feedback.get("rating")),
+        "feedback": _clean_text(feedback.get("feedback", ""), 1500),
         "worked": _clean_text(feedback.get("worked", ""), 1000),
         "missing": _clean_text(feedback.get("missing", ""), 1000),
         "pay_value": _clean_text(feedback.get("pay_value", ""), 1000),
@@ -247,6 +249,13 @@ def _normalize_email(email: str) -> str:
 
 def _clean_text(value: Any, max_length: int) -> str:
     return str(value or "").strip()[:max_length]
+
+
+def _rating(value: Any) -> int:
+    try:
+        return max(0, min(5, int(value or 0)))
+    except (TypeError, ValueError):
+        return 0
 
 
 def _hash_token(token: str) -> str:
