@@ -165,19 +165,26 @@ export default function LandingPage() {
         </ol>
       </section>
 
-      <section className="tablet-manual-band" aria-label="Cleanote tablet bundle manual">
+      <section className="tablet-manual-band" aria-label="Cleanote tablet bundle preorder">
         <div>
-          <p className="site-kicker">Tablet bundle concept</p>
-          <h2>Cleanote+ 8.5-inch LCD tablet manual</h2>
+          <p className="site-kicker">Tablet bundle</p>
+          <h2>Cleanote+ 8.5-inch writing tablet package.</h2>
           <p>
-            A parent-friendly operation manual for the writing tablet bundle: setup,
-            scanning, care, safety, and troubleshooting.
+            We are exploring a kid-friendly bundle with an 8.5-inch reusable writing tablet,
+            Cleanote scanning, and parent-guided note organization. Pre-order interest is open
+            for early families, tutors, and classrooms.
           </p>
         </div>
-        <a href="/cleanote-tablet-manual.pdf" target="_blank" rel="noreferrer">
-          <FileText aria-hidden="true" size={18} />
-          <span>Open PDF manual</span>
-        </a>
+        <div className="tablet-actions">
+          <a href="/beta">
+            <ArrowRight aria-hidden="true" size={18} />
+            <span>Join preorder list</span>
+          </a>
+          <a href="/cleanote-tablet-manual.pdf" target="_blank" rel="noreferrer">
+            <FileText aria-hidden="true" size={18} />
+            <span>Open PDF manual</span>
+          </a>
+        </div>
       </section>
 
       <footer className="site-footer">

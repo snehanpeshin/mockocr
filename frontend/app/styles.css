@@ -487,6 +487,18 @@ a {
   white-space: nowrap;
 }
 
+.tablet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.tablet-actions a:first-child {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #ffffff;
+}
+
 .site-footer {
   align-items: center;
   color: rgba(255, 255, 255, 0.7);
@@ -1854,6 +1866,15 @@ textarea:focus {
   }
 
   .site-actions a {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .tablet-actions {
+    justify-content: stretch;
+  }
+
+  .tablet-actions a {
     justify-content: center;
     width: 100%;
   }
