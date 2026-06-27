@@ -126,6 +126,12 @@ export default function LandingPage() {
           <a href="/privacy">Privacy Policy</a>
           <a href="/refund">Refund Policy</a>
           <a href="/support">Support</a>
+          <a href="https://www.facebook.com/profile.php?id=61591217794113" target="_blank" rel="noreferrer">
+            Facebook
+          </a>
+          <a href="https://www.instagram.com/cleanote4/" target="_blank" rel="noreferrer">
+            Instagram
+          </a>
         </div>
       </footer>
     </main>
