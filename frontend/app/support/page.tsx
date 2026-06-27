@@ -41,6 +41,21 @@ export default function SupportPage() {
           </p>
         </section>
 
+        <section>
+          <h2>Follow Cleanote</h2>
+          <p>
+            For product updates, follow Cleanote on{" "}
+            <a href="https://www.facebook.com/profile.php?id=61591217794113" target="_blank" rel="noreferrer">
+              Facebook
+            </a>{" "}
+            or{" "}
+            <a href="https://www.instagram.com/cleanote4/" target="_blank" rel="noreferrer">
+              Instagram
+            </a>
+            .
+          </p>
+        </section>
+
         <a href="/">Back to Cleanote</a>
       </article>
     </main>

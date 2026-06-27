@@ -1,4 +1,15 @@
-import { ArrowRight, Check, FileText, Search, Sparkles, Upload } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Calculator,
+  Check,
+  FileStack,
+  FileText,
+  PenLine,
+  Search,
+  Sparkles,
+  Upload
+} from "lucide-react";
 
 const FEATURES = [
   {
@@ -24,6 +35,33 @@ const STEPS = [
   "Edit, save, search, or export"
 ];
 
+const USE_CASES = [
+  {
+    icon: PenLine,
+    title: "Mixed print and handwriting",
+    description:
+      "Use Cleanote on printed worksheets, PDFs, and handouts with handwritten annotations."
+  },
+  {
+    icon: Calculator,
+    title: "Equations and diagrams",
+    description:
+      "Keep formulas, labels, and visual notes visible while you review and correct the text."
+  },
+  {
+    icon: FileStack,
+    title: "Multi-page notes",
+    description:
+      "Scan a lecture, notebook chapter, or research record as a connected set of pages."
+  },
+  {
+    icon: BookOpen,
+    title: "Study and research archive",
+    description:
+      "Save searchable notes by subject so old pages become easier to find and reuse."
+  }
+];
+
 export default function LandingPage() {
   return (
     <main className="site-shell">
@@ -36,6 +74,7 @@ export default function LandingPage() {
           <a href="/beta">Request beta</a>
           <a href="/billing">Premium</a>
           <a href="/privacy">Privacy</a>
+          <a href="/support">Support</a>
           <a href="/app">Open app</a>
         </nav>
       </header>
@@ -43,10 +82,10 @@ export default function LandingPage() {
       <section className="site-hero">
         <div className="site-hero-copy">
           <p className="site-kicker">Handwriting OCR for students, parents, and researchers</p>
-          <h1>Turn handwritten notes into editable text.</h1>
+          <h1>Turn messy notes into searchable knowledge.</h1>
           <p>
-            Upload note photos, worksheets, PDFs, or annotated handouts. Cleanote converts
-            readable handwriting into text you can edit, search, and export.
+            Upload notebook pages, worksheets, PDFs, diagrams, and annotated handouts. Cleanote
+            helps convert readable handwriting into text you can edit, search, and export.
           </p>
           <div className="site-actions">
             <a className="site-primary" href="/beta">
@@ -70,14 +109,15 @@ export default function LandingPage() {
           <div className="preview-grid">
             <section className="preview-upload">
               <FileText aria-hidden="true" size={28} />
-              <strong>Lecture-notes.jpg</strong>
-              <p>Handwritten page detected</p>
+              <strong>Algebra-worksheet.jpg</strong>
+              <p>Printed text and handwritten notes detected</p>
             </section>
             <section className="preview-output">
               <p className="preview-label">Extracted text</p>
-              <h2>Photosynthesis Notes</h2>
-              <p>Plants convert light energy into chemical energy.</p>
-              <p>Equation and diagram labels are kept readable for review.</p>
+              <h2>Chapter 4 Review</h2>
+              <p>(a+b)^2 = a^2 + b^2 + 2ab</p>
+              <p>Triangle diagram: base, height, and angle labels preserved for review.</p>
+              <p className="preview-note">Original image stays nearby so uncertain text can be checked.</p>
             </section>
           </div>
         </div>
@@ -91,6 +131,26 @@ export default function LandingPage() {
             <p>{feature.description}</p>
           </article>
         ))}
+      </section>
+
+      <section className="site-use-cases" aria-label="Cleanote use cases">
+        <div className="site-section-heading">
+          <p className="site-kicker">Built for real notes</p>
+          <h2>More than a plain text scanner.</h2>
+          <p>
+            Cleanote is being shaped around the hard cases: mixed documents, formulas, visual
+            notes, multi-page scans, and archives students can actually search later.
+          </p>
+        </div>
+        <div className="site-use-case-grid">
+          {USE_CASES.map((useCase) => (
+            <article key={useCase.title}>
+              <useCase.icon aria-hidden="true" size={22} />
+              <h3>{useCase.title}</h3>
+              <p>{useCase.description}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="site-workflow">

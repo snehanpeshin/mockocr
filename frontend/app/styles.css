@@ -300,6 +300,15 @@ a {
   text-transform: uppercase;
 }
 
+.preview-note {
+  background: #fff7dc;
+  border: 1px solid #f3df9f;
+  border-radius: 8px;
+  color: #5b4a11 !important;
+  font-size: 0.92rem;
+  padding: 10px;
+}
+
 .site-feature-grid {
   display: grid;
   gap: 14px;
@@ -325,6 +334,67 @@ a {
 .site-feature-grid p {
   color: rgba(255, 255, 255, 0.74);
   line-height: 1.55;
+  margin: 0;
+}
+
+.site-section-heading {
+  display: grid;
+  gap: 8px;
+  max-width: 780px;
+}
+
+.site-section-heading h2 {
+  color: #ffffff;
+  font-size: clamp(1.4rem, 2.5vw, 2.1rem);
+  line-height: 1.12;
+  margin: 0;
+}
+
+.site-section-heading p:not(.site-kicker) {
+  color: rgba(255, 255, 255, 0.76);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.site-use-cases {
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  display: grid;
+  gap: 18px;
+  margin: 22px auto 0;
+  max-width: 1160px;
+  padding: 22px 0 0;
+}
+
+.site-use-case-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.site-use-case-grid article {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  color: var(--ink);
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.site-use-case-grid svg {
+  color: var(--accent-strong);
+}
+
+.site-use-case-grid h3 {
+  font-size: 1rem;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.site-use-case-grid p {
+  color: #667572;
+  font-size: 0.94rem;
+  line-height: 1.5;
   margin: 0;
 }
 
@@ -1686,6 +1756,7 @@ textarea:focus {
 
   .site-hero,
   .site-feature-grid,
+  .site-use-case-grid,
   .tablet-manual-band,
   .site-workflow {
     grid-template-columns: 1fr;
