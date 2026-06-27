@@ -624,7 +624,7 @@ export default function Home() {
                   <FileText aria-hidden="true" size={38} />
                   <strong>{file.name}</strong>
                   <span>PDF · {formatFileSize(file.size)}</span>
-                  <p>PDF preview is not available in this browser. Cleanote will scan the first page.</p>
+                  <p>PDF preview is not available in this browser. Cleanote will scan the document pages.</p>
                 </div>
               </object>
             ) : file && isDocxFile(file) ? (
@@ -688,7 +688,8 @@ export default function Home() {
           {file?.type.startsWith("image/") ? (
             <div className="scan-controls" aria-label="Scan cleanup controls">
               <p className="scan-tip">
-                Crop is optional. Use a bright, flat photo with dark handwriting for better results.
+                Crop is optional. Cleanote now tests several cleanup versions automatically, but a bright,
+                flat photo with dark handwriting still gives the best result.
               </p>
               <div className="control-header">
                 <Crop aria-hidden="true" size={18} />

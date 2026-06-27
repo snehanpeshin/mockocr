@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 import numpy as np
 from pydantic import BaseModel
 
-from image_preprocess import preprocess_image
+from image_preprocess import preprocess_image_variants
 from beta_service import (
     feedback_summary,
     request_beta_access,
@@ -281,7 +281,6 @@ async def run_ocr(
             temp_path = Path(temp_dir)
             uploaded_path = temp_path / f"upload{suffix}"
             original_path = temp_path / "original.png" if suffix == ".pdf" else uploaded_path
-            processed_path = temp_path / "processed.png"
 
             with uploaded_path.open("wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
@@ -310,27 +309,39 @@ async def run_ocr(
                     "context_text": context_text,
                 }
 
-            if suffix == ".pdf":
-                original_path = _render_pdf_first_page(uploaded_path, original_path)
+            page_paths = (
+                _render_pdf_pages(uploaded_path, temp_path / "pdf_pages")
+                if suffix == ".pdf"
+                else [original_path]
+            )
+            page_results: list[dict[str, str]] = []
+            for page_index, page_path in enumerate(page_paths):
+                processed_paths = preprocess_image_variants(
+                    page_path,
+                    temp_path / f"ocr_candidates_page_{page_index + 1}",
+                )
+                if not processed_paths:
+                    raise ValueError("Could not prepare this image for OCR.")
+                page_results.append(extract_text(processed_paths, provider, subject, context_text))
 
-            preprocess_image(original_path, processed_path)
-            result = extract_text(processed_path, provider, subject, context_text)
+            result_text = _combine_page_results(page_results)
+            result_provider = _combine_providers(page_results)
             record_scan_event(
                 {
                     "filename": filename,
                     "file_type": suffix.lstrip("."),
                     "file_size_bytes": file_size_bytes,
-                    "provider": result["provider"],
+                    "provider": result_provider,
                     "subject": subject,
                     "status": "success",
-                    "page_count": 1,
-                    "text_length": len(result["text"]),
+                    "page_count": len(page_paths),
+                    "text_length": len(result_text),
                 }
             )
 
             return {
-                "text": result["text"],
-                "provider": result["provider"],
+                "text": result_text,
+                "provider": result_provider,
                 "filename": filename,
                 "subject": subject,
                 "context_text": context_text,
@@ -383,7 +394,7 @@ async def preview_docx(file: UploadFile = File(...)) -> dict[str, str]:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-def _render_pdf_first_page(pdf_path: Path, output_path: Path) -> Path:
+def _render_pdf_pages(pdf_path: Path, output_dir: Path) -> list[Path]:
     try:
         import pypdfium2 as pdfium
     except ImportError as exc:
@@ -393,15 +404,42 @@ def _render_pdf_first_page(pdf_path: Path, output_path: Path) -> Path:
     if len(document) == 0:
         raise ValueError("The uploaded PDF has no pages.")
 
-    page = document[0]
-    bitmap = page.render(scale=2.5)
-    image = np.asarray(bitmap.to_numpy())
-    if image.shape[-1] == 4:
-        image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGR)
-    else:
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    cv2.imwrite(str(output_path), image)
-    return output_path
+    output_dir.mkdir(parents=True, exist_ok=True)
+    max_pages = max(1, int(os.getenv("OCR_MAX_PDF_PAGES", "5")))
+    rendered_paths: list[Path] = []
+
+    for page_index in range(min(len(document), max_pages)):
+        page = document[page_index]
+        output_path = output_dir / f"page_{page_index + 1}.png"
+        bitmap = page.render(scale=3.0)
+        image = np.asarray(bitmap.to_numpy())
+        if image.shape[-1] == 4:
+            image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGR)
+        else:
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        cv2.imwrite(str(output_path), image)
+        rendered_paths.append(output_path)
+
+    return rendered_paths
+
+
+def _combine_page_results(page_results: list[dict[str, str]]) -> str:
+    if len(page_results) == 1:
+        return page_results[0]["text"]
+
+    return "\n\n---\n\n".join(
+        f"Page {index + 1}\n\n{result['text']}" for index, result in enumerate(page_results)
+    )
+
+
+def _combine_providers(page_results: list[dict[str, str]]) -> str:
+    providers = [result["provider"] for result in page_results if result.get("provider")]
+    if not providers:
+        return "unknown"
+    unique_providers = list(dict.fromkeys(providers))
+    if len(unique_providers) == 1:
+        return unique_providers[0]
+    return f"{unique_providers[0]}+{len(unique_providers)}pages"
 
 
 def _extract_docx_text(docx_path: Path) -> str:

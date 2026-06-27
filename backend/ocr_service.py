@@ -18,8 +18,17 @@ class TextractLine:
     confidence: float
 
 
+@dataclass
+class TextractCandidate:
+    image_path: Path
+    line_items: list[TextractLine]
+    raw_text: str
+    score: float
+    quality_notes: str
+
+
 def extract_text(
-    image_path: Path,
+    image_path: Path | list[Path],
     provider_override: str | None = None,
     subject: str = "general",
     context_text: str = "",
@@ -38,7 +47,11 @@ def extract_text(
     }
 
 
-def _extract_with_textract(image_path: Path, subject: str, context_text: str = "") -> OcrResult:
+def _extract_with_textract(
+    image_path: Path | list[Path],
+    subject: str,
+    context_text: str = "",
+) -> OcrResult:
     try:
         import boto3
     except ImportError as exc:
@@ -47,24 +60,52 @@ def _extract_with_textract(image_path: Path, subject: str, context_text: str = "
         ) from exc
 
     client = boto3.client("textract", region_name=os.getenv("AWS_REGION"))
-    response = client.detect_document_text(
-        Document={"Bytes": image_path.read_bytes()},
-    )
+    image_paths = image_path if isinstance(image_path, list) else [image_path]
+    max_candidates = max(1, int(os.getenv("OCR_MAX_IMAGE_CANDIDATES", "4")))
+    candidates = [
+        _extract_textract_candidate(client, candidate_path)
+        for candidate_path in image_paths[:max_candidates]
+    ]
+    if not candidates:
+        raise RuntimeError("No OCR image candidates were generated.")
 
-    line_items = _extract_textract_lines(response.get("Blocks", []))
+    best_candidate = max(candidates, key=lambda candidate: candidate.score)
+    line_items = best_candidate.line_items
     lines = [line.text for line in line_items]
     mixed_document_context = _mixed_document_context(line_items)
+    selection_context = _candidate_selection_context(candidates, best_candidate)
+    document_context = "\n\n".join(
+        section for section in [selection_context, mixed_document_context] if section
+    )
 
     cleaned_text = clean_ocr_text("\n".join(lines))
     enhanced_text, cleanup_provider = enhance_with_ai(
         cleaned_text,
         subject,
         context_text,
-        image_path,
-        mixed_document_context,
+        best_candidate.image_path,
+        document_context,
     )
-    provider = "textract" if cleanup_provider == "rules" else f"textract+{cleanup_provider}"
+    variant_name = best_candidate.image_path.stem
+    provider_base = f"textract:{variant_name}"
+    provider = provider_base if cleanup_provider == "rules" else f"{provider_base}+{cleanup_provider}"
     return {"provider": provider, "text": enhanced_text}
+
+
+def _extract_textract_candidate(client, image_path: Path) -> TextractCandidate:
+    response = client.detect_document_text(
+        Document={"Bytes": image_path.read_bytes()},
+    )
+    line_items = _extract_textract_lines(response.get("Blocks", []))
+    raw_text = "\n".join(line.text for line in line_items)
+    score, quality_notes = _score_textract_candidate(line_items, raw_text)
+    return TextractCandidate(
+        image_path=image_path,
+        line_items=line_items,
+        raw_text=raw_text,
+        score=score,
+        quality_notes=quality_notes,
+    )
 
 
 def enhance_with_ai(
@@ -259,6 +300,79 @@ def _mixed_document_context(lines: list[TextractLine]) -> str:
         summary.extend(samples)
 
     return "\n".join(summary)
+
+
+def _score_textract_candidate(lines: list[TextractLine], text: str) -> tuple[float, str]:
+    if not lines:
+        return -1000.0, "no readable lines"
+
+    confidences = [line.confidence for line in lines if line.confidence > 0]
+    avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+    meaningful_chars = len(re.findall(r"[A-Za-z0-9]", text))
+    line_count = len(lines)
+    handwritten_count = sum(
+        1 for line in lines if line.text_type in {"handwritten", "handwritten annotation"}
+    )
+    printed_count = sum(1 for line in lines if line.text_type == "printed")
+    garbage_ratio = _garbage_ratio(text)
+    repetition_penalty = _repetition_penalty(lines)
+    short_line_penalty = max(0, 8 - meaningful_chars) * 4
+
+    score = (
+        avg_confidence * 1.12
+        + min(meaningful_chars, 5000) / 70
+        + min(line_count, 80) * 1.8
+        + min(handwritten_count, 30) * 1.4
+        + min(printed_count, 40) * 0.8
+        - garbage_ratio * 65
+        - repetition_penalty
+        - short_line_penalty
+    )
+    quality_notes = (
+        f"score={score:.1f}; avg_confidence={avg_confidence:.1f}; "
+        f"lines={line_count}; meaningful_chars={meaningful_chars}; "
+        f"handwritten_or_annotation_lines={handwritten_count}; printed_lines={printed_count}; "
+        f"garbage_ratio={garbage_ratio:.2f}"
+    )
+    return score, quality_notes
+
+
+def _garbage_ratio(text: str) -> float:
+    if not text:
+        return 1.0
+    compact = re.sub(r"\s+", "", text)
+    if not compact:
+        return 1.0
+    suspicious = len(re.findall(r"[^A-Za-z0-9\s.,;:!?()[\]{}+\-*/=<>^_×≤≥≠'\"%$#&@]", compact))
+    orphan_symbols = len(re.findall(r"(?<![A-Za-z0-9])[+\-*/=<>^_×≤≥≠]{2,}(?![A-Za-z0-9])", compact))
+    return min(1.0, (suspicious + orphan_symbols * 2) / max(1, len(compact)))
+
+
+def _repetition_penalty(lines: list[TextractLine]) -> float:
+    normalized = [re.sub(r"\W+", "", line.text.lower()) for line in lines if line.text.strip()]
+    normalized = [line for line in normalized if line]
+    if len(normalized) < 4:
+        return 0.0
+    unique_ratio = len(set(normalized)) / len(normalized)
+    return 18.0 if unique_ratio < 0.45 else 0.0
+
+
+def _candidate_selection_context(
+    candidates: list[TextractCandidate],
+    best_candidate: TextractCandidate,
+) -> str:
+    if len(candidates) <= 1:
+        return ""
+
+    lines = ["OCR preprocessing candidate selection:"]
+    for candidate in sorted(candidates, key=lambda item: item.score, reverse=True):
+        marker = "selected" if candidate.image_path == best_candidate.image_path else "rejected"
+        lines.append(f"- {candidate.image_path.stem}: {marker}; {candidate.quality_notes}")
+    lines.append(
+        "The selected preprocessing candidate produced the strongest OCR signal. Use the image "
+        "as the final authority for ambiguous handwriting."
+    )
+    return "\n".join(lines)
 
 
 def _bedrock_system_prompt() -> str:
