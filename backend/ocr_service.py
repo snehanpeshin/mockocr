@@ -22,6 +22,7 @@ class TextractLine:
 class TextractCandidate:
     image_path: Path
     line_items: list[TextractLine]
+    low_confidence_words: list[str]
     raw_text: str
     score: float
     quality_notes: str
@@ -96,12 +97,15 @@ def _extract_textract_candidate(client, image_path: Path) -> TextractCandidate:
     response = client.detect_document_text(
         Document={"Bytes": image_path.read_bytes()},
     )
-    line_items = _extract_textract_lines(response.get("Blocks", []))
+    blocks = response.get("Blocks", [])
+    line_items = _extract_textract_lines(blocks)
+    low_confidence_words = _extract_low_confidence_words(blocks)
     raw_text = "\n".join(line.text for line in line_items)
     score, quality_notes = _score_textract_candidate(line_items, raw_text)
     return TextractCandidate(
         image_path=image_path,
         line_items=line_items,
+        low_confidence_words=low_confidence_words,
         raw_text=raw_text,
         score=score,
         quality_notes=quality_notes,
@@ -220,6 +224,25 @@ def _extract_textract_lines(blocks: list[dict]) -> list[TextractLine]:
         )
 
     return line_items
+
+
+def _extract_low_confidence_words(blocks: list[dict]) -> list[str]:
+    words: list[tuple[float, str]] = []
+    for block in blocks:
+        text = str(block.get("Text", "")).strip()
+        if block.get("BlockType") != "WORD" or not text:
+            continue
+        confidence = float(block.get("Confidence") or 0)
+        if confidence < 92:
+            text_type = str(block.get("TextType", "")).lower()
+            label = f"{text} ({confidence:.1f}%"
+            if text_type:
+                label += f", {text_type}"
+            label += ")"
+            words.append((confidence, label))
+
+    words.sort(key=lambda item: item[0])
+    return [word for _, word in words[:40]]
 
 
 def _classify_textract_line(block: dict, word_by_id: dict[str, dict]) -> str:
@@ -373,13 +396,20 @@ def _candidate_selection_context(
         "The selected preprocessing candidate produced the strongest OCR signal. Use the image "
         "as the final authority for ambiguous handwriting."
     )
+    if best_candidate.low_confidence_words:
+        lines.append("Lowest-confidence OCR words from the selected candidate:")
+        lines.extend(f"- {word}" for word in best_candidate.low_confidence_words)
     return "\n".join(lines)
 
 
 def _bedrock_system_prompt() -> str:
     return (
         "You faithfully transcribe and organize OCR text from student handwritten notes. "
-        "Your job is not to summarize, abridge, condense, or simplify the notes. "
+        "Use a staged OCR reasoning process internally: first inspect visible characters and "
+        "symbols, then reconstruct words, then reconstruct lines/sentences, and only then create "
+        "a short separate summary if requested by the output format. "
+        "Your primary job is transcription, not summarization. "
+        "Do not abridge, condense, or simplify the transcription. "
         "Correct obvious OCR/spelling mistakes, preserve meaning, "
         "turn headings and bullet-like lines into clean structure without removing detail, "
         "preserve equations, units, symbols, names, and technical terms, "
@@ -399,7 +429,8 @@ def _bedrock_system_prompt() -> str:
         "Never invent missing definitions, examples, equations, values, or explanations. "
         "Never omit readable handwritten lines just because they are repetitive, informal, or messy. "
         "If handwriting is unclear, mark it as [unclear] instead of guessing. "
-        "Return only the faithful cleaned transcription using clear headings and bullets. "
+        "Never let a summary replace the transcription. "
+        "Return a faithful cleaned transcription using clear headings and bullets. "
         "Do not wrap the answer in a markdown code fence. "
         "If you include corrections, group repeated corrections once and never repeat the same "
         "correction line more than once."
@@ -423,8 +454,29 @@ def _bedrock_user_prompt(
         f"{visual_instruction}"
         f"{math_instruction}"
         f"{subject_instruction}"
+        "Staged OCR pipeline to follow internally:\n"
+        "1. Character/symbol pass: inspect the image and OCR draft for ambiguous glyphs such as "
+        "a/6, b/6, O/0, l/1, z/2, x/×, +/t, superscripts, brackets, and punctuation.\n"
+        "2. Word pass: reconstruct words only when surrounding letters, word shape, OCR confidence, "
+        "and the image support the correction. Keep unclear words as [unclear].\n"
+        "3. Line/sentence pass: preserve the original line order and rebuild readable sentences "
+        "without changing the author's meaning.\n"
+        "4. Structure pass: add headings/bullets only to organize what is already present.\n"
+        "5. Summary pass: add a short summary only after the full transcription, and only from "
+        "content already present in the transcription.\n"
+        "Required output format:\n"
+        "Clean Transcription\n"
+        "- Faithful text from the page, preserving details, equations, labels, and line order.\n"
+        "Brief Summary\n"
+        "- 1 to 3 bullets summarizing only the transcribed content. If the OCR is too unclear, write "
+        "'Summary unavailable because the scan is unclear.'\n"
+        "Possible OCR Ambiguities\n"
+        "- Include only genuinely unclear words/symbols, or omit this section if none.\n"
+        "Corrections made\n"
+        "- Optional, max 5 unique OCR-level corrections.\n"
         "Faithfully transcribe and structure these OCR notes for a student. "
-        "Do not summarize, shorten, abridge, merge away, or rewrite the notes into a study guide. "
+        "Inside the Clean Transcription section, do not summarize, shorten, abridge, merge away, "
+        "or rewrite the notes into a study guide. "
         "The output should contain at least the same level of detail as the readable handwritten "
         "and printed source content. Preserve every readable line, list item, equation, label, "
         "abbreviation, example, and side note. Use headings and bullets only to organize the content, "
