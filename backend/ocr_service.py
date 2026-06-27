@@ -171,6 +171,7 @@ def enhance_with_bedrock(
 
     content = response.get("output", {}).get("message", {}).get("content", [])
     enhanced = "".join(block.get("text", "") for block in content).strip()
+    enhanced = _postprocess_ai_transcription(enhanced, text)
     return enhanced or text
 
 
@@ -398,7 +399,10 @@ def _bedrock_system_prompt() -> str:
         "Never invent missing definitions, examples, equations, values, or explanations. "
         "Never omit readable handwritten lines just because they are repetitive, informal, or messy. "
         "If handwriting is unclear, mark it as [unclear] instead of guessing. "
-        "Return only the faithful cleaned transcription using clear headings and bullets."
+        "Return only the faithful cleaned transcription using clear headings and bullets. "
+        "Do not wrap the answer in a markdown code fence. "
+        "If you include corrections, group repeated corrections once and never repeat the same "
+        "correction line more than once."
     )
 
 
@@ -450,7 +454,11 @@ def _bedrock_user_prompt(
         "uncertain, preserve the most likely reading and add a short 'Possible OCR Ambiguities' "
         "note at the end. Use [unclear] for words, symbols, or equations that cannot be safely "
         "reconstructed from the OCR text and image. Use markdown-style headings and bullet lists "
-        "when helpful. If the content contains equations or technical notation, keep it intact.\n\n"
+        "when helpful. If the content contains equations or technical notation, keep it intact. "
+        "Do not wrap the final answer in ```markdown or any code fence. "
+        "If you include a 'Corrections made' section, it must contain at most 5 bullets, each "
+        "unique. Combine repeated substitutions into one bullet, for example '6 -> b in repeated "
+        "variable symbols.' Never list the same correction repeatedly.\n\n"
         f"OCR draft:\n{text}"
     )
 
@@ -482,7 +490,10 @@ def _math_symbol_verification_prompt() -> str:
         "When you make a conservative symbol correction, add a brief 'Corrections made' section "
         "after the transcription. Explain only OCR-level corrections, for example '6 -> b because "
         "the same handwritten symbol appears as b elsewhere on the page.' Do not justify a correction "
-        "by naming or applying a mathematical identity. If no meaningful correction was made, omit "
+        "by naming or applying a mathematical identity. List each distinct correction once only. "
+        "The 'Corrections made' section must have at most 5 bullets total. If the OCR is too degraded "
+        "to support a correction, do not force the correction; keep the uncertain symbol as [?] or "
+        "[unclear]. If no meaningful correction was made, omit "
         "that section.\n"
     )
 
@@ -529,6 +540,113 @@ def _visual_notes_prompt() -> str:
         "If visual content is too unclear, write [unclear diagram] and list only the safe visible labels. "
         "Do not invent missing values, labels, or relationships.\n"
     )
+
+
+def _postprocess_ai_transcription(enhanced: str, fallback_text: str) -> str:
+    enhanced = _strip_markdown_fence(enhanced.strip())
+    if not enhanced:
+        return fallback_text
+
+    enhanced = _collapse_repeated_corrections(enhanced)
+    if _looks_like_runaway_response(enhanced):
+        return _strip_markdown_fence(fallback_text.strip())
+    return enhanced
+
+
+def _strip_markdown_fence(text: str) -> str:
+    text = text.strip()
+    fenced = re.fullmatch(r"```(?:markdown|md|text)?\s*(.*?)\s*```", text, flags=re.I | re.S)
+    if fenced:
+        return fenced.group(1).strip()
+    text = re.sub(r"^```(?:markdown|md|text)?\s*", "", text, flags=re.I).strip()
+    text = re.sub(r"\s*```$", "", text).strip()
+    return text
+
+
+def _collapse_repeated_corrections(text: str) -> str:
+    match = re.search(
+        r"(?im)^#{0,3}\s*Corrections made\s*$",
+        text,
+    )
+    if not match:
+        return _dedupe_adjacent_lines(text)
+
+    before = text[: match.start()].rstrip()
+    section_and_after = text[match.end() :].strip()
+    next_heading = re.search(r"(?m)^\s*#{1,3}\s+\S", section_and_after)
+    if next_heading:
+        correction_block = section_and_after[: next_heading.start()].strip()
+        after = section_and_after[next_heading.start() :].strip()
+    else:
+        correction_block = section_and_after
+        after = ""
+
+    bullets = re.findall(r"(?m)^\s*[-*]\s+(.+?)\s*$", correction_block)
+    if not bullets:
+        return text
+
+    unique_bullets: list[str] = []
+    seen: set[str] = set()
+    duplicate_counts: dict[str, int] = {}
+    for bullet in bullets:
+        normalized = _normalize_correction_bullet(bullet)
+        duplicate_counts[normalized] = duplicate_counts.get(normalized, 0) + 1
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        unique_bullets.append(bullet.strip())
+
+    collapsed: list[str] = []
+    for bullet in unique_bullets[:5]:
+        normalized = _normalize_correction_bullet(bullet)
+        count = duplicate_counts.get(normalized, 1)
+        if count > 1:
+            collapsed.append(f"- {bullet} (grouped from repeated OCR corrections)")
+        else:
+            collapsed.append(f"- {bullet}")
+
+    parts = [before, "Corrections made", "\n".join(collapsed)]
+    if len(unique_bullets) > 5:
+        parts.append("- Additional repeated correction notes omitted.")
+    if after:
+        parts.append(after)
+    return "\n\n".join(part for part in parts if part).strip()
+
+
+def _normalize_correction_bullet(bullet: str) -> str:
+    bullet = re.sub(r"\s+", " ", bullet.strip().lower())
+    bullet = re.sub(r"\b\d+\s+time[s]?\b", "repeated", bullet)
+    return bullet
+
+
+def _dedupe_adjacent_lines(text: str) -> str:
+    cleaned_lines: list[str] = []
+    previous = ""
+    repeat_count = 0
+    for line in text.splitlines():
+        normalized = re.sub(r"\s+", " ", line.strip().lower())
+        if normalized and normalized == previous:
+            repeat_count += 1
+            if repeat_count > 1:
+                continue
+        else:
+            previous = normalized
+            repeat_count = 0
+        cleaned_lines.append(line)
+    return "\n".join(cleaned_lines).strip()
+
+
+def _looks_like_runaway_response(text: str) -> bool:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if len(lines) < 30:
+        return False
+    normalized = [re.sub(r"\W+", "", line.lower()) for line in lines if line]
+    normalized = [line for line in normalized if line]
+    if not normalized:
+        return False
+    unique_ratio = len(set(normalized)) / len(normalized)
+    correction_lines = sum(1 for line in lines if re.match(r"^[-*]\s+.+->.+", line))
+    return unique_ratio < 0.25 or correction_lines > 20
 
 
 def _bedrock_image_block(image_path: Path | None) -> dict[str, object] | None:
