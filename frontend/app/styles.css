@@ -1326,6 +1326,18 @@ h2 {
   margin: 0;
 }
 
+.scan-recommendation {
+  background: #eef9ff;
+  border: 1px solid #b7e4ff;
+  border-radius: 8px;
+  color: #17536f;
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.32;
+  margin: 0;
+  padding: 8px 10px;
+}
+
 .control-header {
   align-items: center;
   color: var(--muted);

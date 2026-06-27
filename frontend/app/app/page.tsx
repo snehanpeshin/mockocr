@@ -63,6 +63,11 @@ type ImageAdjustments = {
   rotation: number;
 };
 
+type ImageQualityRecommendation = {
+  message: string;
+  recommendedContrast: number;
+};
+
 type DocxPreviewResponse = {
   filename: string;
   html: string;
@@ -88,6 +93,7 @@ export default function Home() {
   const [crop, setCrop] = useState({ top: 0, right: 0, bottom: 0, left: 0 });
   const [rotation, setRotation] = useState(0);
   const [contrast, setContrast] = useState(112);
+  const [scanRecommendation, setScanRecommendation] = useState<string | null>(null);
   const [subject, setSubject] = useState("general");
   const [contextText, setContextText] = useState("");
   const [text, setText] = useState("");
@@ -287,6 +293,38 @@ export default function Home() {
     return () => controller.abort();
   }, [file]);
 
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function recommendImageSettings() {
+      if (!file || !file.type.startsWith("image/")) {
+        setScanRecommendation(null);
+        return;
+      }
+
+      try {
+        const recommendation = await analyzeImageQuality(file);
+        if (!isCurrent) {
+          return;
+        }
+        setContrast(recommendation.recommendedContrast);
+        setScanRecommendation(recommendation.message);
+      } catch {
+        if (isCurrent) {
+          setScanRecommendation(
+            "Auto check could not read this preview. Use a bright, flat image for best OCR."
+          );
+        }
+      }
+    }
+
+    recommendImageSettings();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [file]);
+
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const selectedFiles = Array.from(event.target.files ?? []);
     const oversizedFiles = selectedFiles.filter((selectedFile) => selectedFile.size > MAX_UPLOAD_BYTES);
@@ -306,6 +344,7 @@ export default function Home() {
     setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
     setRotation(0);
     setContrast(112);
+    setScanRecommendation(null);
     setDocxPreviewHtml("");
     setDocxPreviewError(null);
     setIsLoadingDocxPreview(false);
@@ -691,6 +730,9 @@ export default function Home() {
                 Crop is optional. Cleanote now tests several cleanup versions automatically, but a bright,
                 flat photo with dark handwriting still gives the best result.
               </p>
+              {scanRecommendation ? (
+                <p className="scan-recommendation">{scanRecommendation}</p>
+              ) : null}
               <div className="control-header">
                 <Crop aria-hidden="true" size={18} />
                 <span>Crop</span>
@@ -1188,6 +1230,63 @@ async function buildProcessedImage(file: File, adjustments: ImageAdjustments): P
       height: Math.max(1, height - top - bottom)
     };
   }
+}
+
+async function analyzeImageQuality(file: File): Promise<ImageQualityRecommendation> {
+  const image = await loadImage(file);
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+
+  if (!context) {
+    throw new Error("Could not inspect image.");
+  }
+
+  const sampleWidth = 180;
+  const sampleHeight = Math.max(1, Math.round((image.naturalHeight / image.naturalWidth) * sampleWidth));
+  canvas.width = sampleWidth;
+  canvas.height = sampleHeight;
+  context.drawImage(image, 0, 0, sampleWidth, sampleHeight);
+
+  const pixels = context.getImageData(0, 0, sampleWidth, sampleHeight).data;
+  const luminanceValues: number[] = [];
+
+  for (let index = 0; index < pixels.length; index += 4) {
+    const luminance = 0.2126 * pixels[index] + 0.7152 * pixels[index + 1] + 0.0722 * pixels[index + 2];
+    luminanceValues.push(luminance);
+  }
+
+  const average = luminanceValues.reduce((sum, value) => sum + value, 0) / luminanceValues.length;
+  const variance =
+    luminanceValues.reduce((sum, value) => sum + (value - average) ** 2, 0) / luminanceValues.length;
+  const deviation = Math.sqrt(variance);
+  const darkRatio = luminanceValues.filter((value) => value < 85).length / luminanceValues.length;
+  const brightRatio = luminanceValues.filter((value) => value > 210).length / luminanceValues.length;
+
+  if (average < 105 || darkRatio > 0.38) {
+    return {
+      recommendedContrast: 166,
+      message: "Auto check: this image looks dark, so Cleanote raised contrast before scanning."
+    };
+  }
+
+  if (deviation < 38 && brightRatio < 0.55) {
+    return {
+      recommendedContrast: 148,
+      message: "Auto check: this image has low contrast, so Cleanote boosted text separation."
+    };
+  }
+
+  if (brightRatio > 0.82 && deviation > 62) {
+    return {
+      recommendedContrast: 122,
+      message: "Auto check: this looks well lit. A light contrast boost is enough."
+    };
+  }
+
+  return {
+    recommendedContrast: 132,
+    message: "Auto check: image quality looks usable. Cleanote set a moderate contrast boost."
+  };
 }
 
 async function loadImage(file: File): Promise<HTMLImageElement> {
