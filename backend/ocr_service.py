@@ -176,7 +176,56 @@ def enhance_with_bedrock(
     content = response.get("output", {}).get("message", {}).get("content", [])
     enhanced = "".join(block.get("text", "") for block in content).strip()
     enhanced = _postprocess_ai_transcription(enhanced, text)
+    if _ai_verification_enabled() and enhanced:
+        try:
+            enhanced = _verify_with_bedrock(
+                client=client,
+                model_id=model_id,
+                max_tokens=max_tokens,
+                system=system,
+                raw_text=text,
+                cleaned_text=enhanced,
+                subject_hint=subject_hint,
+                context_hint=context_hint,
+                document_context=document_context,
+                image_block=image_block,
+            )
+        except Exception:
+            if os.getenv("AI_CLEANUP_STRICT", "false").lower() == "true":
+                raise
     return enhanced or text
+
+
+def _verify_with_bedrock(
+    client,
+    model_id: str,
+    max_tokens: int,
+    system: str,
+    raw_text: str,
+    cleaned_text: str,
+    subject_hint: str,
+    context_hint: str,
+    document_context: str,
+    image_block: dict[str, object] | None,
+) -> str:
+    user_text = _bedrock_verification_prompt(
+        raw_text=raw_text,
+        cleaned_text=cleaned_text,
+        subject_hint=subject_hint,
+        context_hint=context_hint,
+        document_context=document_context,
+    )
+
+    try:
+        response = _converse_cleanup(client, model_id, max_tokens, system, user_text, image_block)
+    except Exception:
+        if image_block is None or os.getenv("AI_CLEANUP_STRICT", "false").lower() == "true":
+            raise
+        response = _converse_cleanup(client, model_id, max_tokens, system, user_text, None)
+
+    content = response.get("output", {}).get("message", {}).get("content", [])
+    verified = "".join(block.get("text", "") for block in content).strip()
+    return _postprocess_ai_transcription(verified, cleaned_text) or cleaned_text
 
 
 def _converse_cleanup(
@@ -575,6 +624,10 @@ def _visual_notes_enabled() -> bool:
     return os.getenv("AI_VISUAL_NOTES", "true").lower() in {"1", "true", "yes", "on"}
 
 
+def _ai_verification_enabled() -> bool:
+    return os.getenv("AI_VERIFICATION_PASS", "true").lower() in {"1", "true", "yes", "on"}
+
+
 def _visual_notes_prompt() -> str:
     return (
         "Visual notes mode: enabled.\n"
@@ -591,6 +644,50 @@ def _visual_notes_prompt() -> str:
         "For arrows and annotations, explain what each arrow connects if the relationship is visible. "
         "If visual content is too unclear, write [unclear diagram] and list only the safe visible labels. "
         "Do not invent missing values, labels, or relationships.\n"
+    )
+
+
+def _bedrock_verification_prompt(
+    raw_text: str,
+    cleaned_text: str,
+    subject_hint: str,
+    context_hint: str,
+    document_context: str,
+) -> str:
+    return (
+        "Final OCR verification pass.\n"
+        "You are checking a proposed Cleanote transcription against the noisy OCR draft and, when "
+        "provided, the image. Your job is not to improve style. Your job is to decide whether the "
+        "proposed transcription is faithful, readable, and supported by visible evidence.\n\n"
+        f"Subject mode: {subject_hint}.\n"
+        f"Optional user context: {context_hint or 'none provided'}.\n"
+        f"Document analysis context:\n{document_context or 'none provided'}.\n\n"
+        "Verification method:\n"
+        "1. Read the raw OCR draft as noisy evidence, not as final truth.\n"
+        "2. Read the proposed cleaned transcription as a candidate final answer.\n"
+        "3. If a line, word, equation, or label in the cleaned transcription seems unsupported, "
+        "compare it to the OCR draft and the image character by character around the mismatch.\n"
+        "4. Use sentence meaning only as a warning signal. Meaning can tell you where to recheck, "
+        "but it cannot justify inventing content.\n"
+        "5. Apply minimal corrections only when the surrounding visible characters, OCR tokens, "
+        "line order, repeated symbols, and page context strongly support them.\n"
+        "6. Preserve the author's original wording and detail level. Do not rewrite notes into a "
+        "study guide, factsheet, answer key, or explanation.\n"
+        "7. Remove or replace unsupported additions with [unclear]. Unsupported additions include "
+        "formula names, theorem names, definitions, geography facts, values, labels, or equations "
+        "that are not visible or directly recoverable from OCR evidence.\n"
+        "8. For mathematics, verify every variable, operator, exponent, bracket, and number against "
+        "the page. Use math syntax only to identify suspicious OCR, not to generate a known formula. "
+        "Never replace a visible equation with a different formula.\n"
+        "9. For printed plus handwritten documents, keep printed text close to its source and use "
+        "the recheck mainly for handwritten annotations and low-confidence words.\n"
+        "10. If the cleaned transcription is already faithful, return it unchanged.\n\n"
+        "Return only the corrected final answer in the same section format as the proposed "
+        "transcription. Do not include your verification notes, chain of thought, or a code fence. "
+        "Keep 'Corrections made' to at most 5 unique OCR-level corrections, and include only "
+        "corrections actually applied during transcription.\n\n"
+        f"Raw OCR draft:\n{raw_text}\n\n"
+        f"Proposed cleaned transcription:\n{cleaned_text}"
     )
 
 
