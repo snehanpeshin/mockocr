@@ -545,6 +545,7 @@ def _bedrock_user_prompt(
     visual_instruction = _visual_notes_prompt() if visual_notes_enabled else ""
     math_instruction = _math_symbol_verification_prompt()
     subject_instruction = _subject_specific_prompt(subject_hint)
+    forensic_instruction = _forensic_transcription_prompt(_forensic_json_output_enabled())
     return (
         f"Subject mode: {subject_hint}.\n"
         f"Optional user context: {context_hint or 'none provided'}.\n"
@@ -552,6 +553,7 @@ def _bedrock_user_prompt(
         f"{visual_instruction}"
         f"{math_instruction}"
         f"{subject_instruction}"
+        f"{forensic_instruction}"
         "Staged OCR pipeline to follow internally:\n"
         "1. Character/symbol pass: inspect the image and OCR draft for ambiguous glyphs such as "
         "a/6, b/6, O/0, l/1, z/2, x/×, +/t, superscripts, brackets, and punctuation.\n"
@@ -560,20 +562,11 @@ def _bedrock_user_prompt(
         "3. Line/sentence pass: preserve the original line order and rebuild readable sentences "
         "without changing the author's meaning.\n"
         "4. Structure pass: add headings/bullets only to organize what is already present.\n"
-        "5. Summary pass: add a short summary only after the full transcription, and only from "
-        "content already present in the transcription.\n"
-        "Required output format:\n"
-        "Clean Transcription\n"
-        "- Faithful text from the page, preserving details, equations, labels, and line order.\n"
-        "Brief Summary\n"
-        "- 1 to 3 bullets summarizing only the transcribed content. If the OCR is too unclear, write "
-        "'Summary unavailable because the scan is unclear.'\n"
-        "Possible OCR Ambiguities\n"
-        "- Include only genuinely unclear words/symbols, or omit this section if none.\n"
-        "Corrections made\n"
-        "- Optional, max 5 unique OCR-level corrections.\n"
+        "5. Independent review pass: compare the literal transcription with the corrected "
+        "transcription, then reject any correction that is not supported by repeated handwriting "
+        "patterns, English grammar, mathematical consistency, or factual context visible on the page.\n"
         "Faithfully transcribe and structure these OCR notes for a student. "
-        "Inside the Clean Transcription section, do not summarize, shorten, abridge, merge away, "
+        "Inside the transcription sections, do not summarize, shorten, abridge, merge away, "
         "or rewrite the notes into a study guide. "
         "The output should contain at least the same level of detail as the readable handwritten "
         "and printed source content. Preserve every readable line, list item, equation, label, "
@@ -677,6 +670,10 @@ def _ai_verification_enabled() -> bool:
     return os.getenv("AI_VERIFICATION_PASS", "true").lower() in {"1", "true", "yes", "on"}
 
 
+def _forensic_json_output_enabled() -> bool:
+    return os.getenv("AI_FORENSIC_JSON_OUTPUT", "false").lower() in {"1", "true", "yes", "on"}
+
+
 def _visual_notes_prompt() -> str:
     return (
         "Visual notes mode: enabled.\n"
@@ -693,6 +690,65 @@ def _visual_notes_prompt() -> str:
         "For arrows and annotations, explain what each arrow connects if the relationship is visible. "
         "If visual content is too unclear, write [unclear diagram] and list only the safe visible labels. "
         "Do not invent missing values, labels, or relationships.\n"
+    )
+
+
+def _forensic_transcription_prompt(json_output: bool = False) -> str:
+    output_instruction = (
+        "Return JSON only, with this exact top-level shape:\n"
+        '{\n'
+        '  "math": [\n'
+        '    {"original": "", "corrected": "", "latex": "", "confidence": 98}\n'
+        "  ],\n"
+        '  "text": {\n'
+        '    "literal": "",\n'
+        '    "corrected": "",\n'
+        '    "corrections": [\n'
+        '      {"from": "", "to": "", "confidence": 95, "reason": ""}\n'
+        "    ]\n"
+        "  }\n"
+        "}\n"
+        "Use valid JSON strings only. Do not include markdown or code fences.\n"
+        if json_output
+        else (
+            "Return readable text sections, not raw JSON:\n"
+            "Literal Transcription\n"
+            "- Preserve line breaks and write exactly what is readable from OCR/image, using "
+            "[unclear] for unreadable words or symbols.\n"
+            "Corrected Transcription\n"
+            "- Fix only obvious OCR or handwriting interpretation errors.\n"
+            "Mathematical Expressions\n"
+            "- Separate math from prose when present and preserve notation using LaTeX where helpful.\n"
+            "Corrections made\n"
+            "- For every correction, include original text, corrected text, confidence 0-100%, "
+            "and the reason. List each distinct correction once.\n"
+            "Possible Alternatives\n"
+            "- Include this only when multiple readings are plausible.\n"
+        )
+    )
+
+    return (
+        "Forensic handwriting transcription rules: enabled.\n"
+        "Task:\n"
+        "1. Read the handwritten image exactly as written.\n"
+        "2. Produce a literal transcription first, preserving line breaks.\n"
+        "3. Then produce a corrected transcription by fixing only obvious OCR or handwriting "
+        "interpretation errors.\n"
+        "4. Do not invent missing words.\n"
+        "5. Use context, repeated letter shapes, grammar, and surrounding text to resolve ambiguous "
+        "characters.\n"
+        "6. For every correction, provide original text, corrected text, confidence 0-100%, and "
+        "reason for the correction.\n"
+        "7. If multiple readings are plausible, list the alternatives instead of guessing.\n"
+        "8. Preserve mathematical notation using LaTeX.\n"
+        "9. Separate mathematical expressions from prose.\n"
+        "10. Mark anything unreadable as [unclear] instead of hallucinating.\n"
+        "After producing the corrected transcription, perform a second independent review. Compare "
+        "the literal transcription with the corrected version. Reject any correction that is not "
+        "supported by repeated handwriting patterns, English grammar, mathematical consistency, or "
+        "factual context visible in the page/OCR evidence. Prefer uncertainty over incorrect "
+        "corrections.\n"
+        f"{output_instruction}"
     )
 
 
@@ -738,9 +794,16 @@ def _bedrock_verification_prompt(
         "10. Final sense check: every sentence should be grammatical when the handwriting supports "
         "that reading, and every equation should be locally coherent when the symbols support that "
         "reading. Fix OCR-level nonsense, but do not add explanations or facts.\n"
-        "11. If the cleaned transcription is already faithful, return it unchanged.\n\n"
+        "11. Compare the literal transcription against the corrected transcription. Reject any "
+        "correction that is not supported by repeated handwriting patterns, English grammar, "
+        "mathematical consistency, or factual context visible in the page/OCR evidence.\n"
+        "12. For every remaining correction, make sure original text, corrected text, confidence, "
+        "and reason are present. If confidence is below 90%, move it to alternatives/ambiguities "
+        "instead of applying it.\n"
+        "13. If the cleaned transcription is already faithful, return it unchanged.\n\n"
         "Return only the corrected final answer in the same section format as the proposed "
-        "transcription. Do not include your verification notes, chain of thought, or a code fence. "
+        "transcription. If the proposed transcription is JSON, return valid JSON only with the same "
+        "top-level keys. Do not include your verification notes, chain of thought, or a code fence. "
         "Keep 'Corrections made' to at most 5 unique OCR-level corrections, and include only "
         "corrections actually applied during transcription.\n\n"
         f"Raw OCR draft:\n{raw_text}\n\n"
