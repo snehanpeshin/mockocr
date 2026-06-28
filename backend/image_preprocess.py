@@ -34,6 +34,7 @@ def preprocess_image_variants(input_path: Path, output_dir: Path) -> list[Path]:
         ("02_adaptive_text", _adaptive_text(deskewed)),
         ("03_shadow_clean", _shadow_clean_text(deskewed)),
         ("04_pencil_light", _pencil_light_text(deskewed)),
+        ("05_dark_background", _dark_background_text(deskewed)),
     ]
 
     paths: list[Path] = []
@@ -105,6 +106,11 @@ def _pencil_light_text(gray: np.ndarray) -> np.ndarray:
     gamma = 0.82
     table = np.array([((i / 255.0) ** gamma) * 255 for i in range(256)]).astype("uint8")
     return cv2.LUT(enhanced, table)
+
+
+def _dark_background_text(gray: np.ndarray) -> np.ndarray:
+    inverted = cv2.bitwise_not(gray)
+    return _shadow_clean_text(inverted)
 
 
 def _remove_tiny_noise(binary: np.ndarray) -> np.ndarray:

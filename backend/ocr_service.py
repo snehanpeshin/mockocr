@@ -62,7 +62,7 @@ def _extract_with_textract(
 
     client = boto3.client("textract", region_name=os.getenv("AWS_REGION"))
     image_paths = image_path if isinstance(image_path, list) else [image_path]
-    max_candidates = max(1, int(os.getenv("OCR_MAX_IMAGE_CANDIDATES", "4")))
+    max_candidates = max(1, int(os.getenv("OCR_MAX_IMAGE_CANDIDATES", "5")))
     candidates = [
         _extract_textract_candidate(client, candidate_path)
         for candidate_path in image_paths[:max_candidates]
@@ -70,7 +70,7 @@ def _extract_with_textract(
     if not candidates:
         raise RuntimeError("No OCR image candidates were generated.")
 
-    best_candidate = max(candidates, key=lambda candidate: candidate.score)
+    best_candidate = _select_best_candidate(candidates)
     line_items = best_candidate.line_items
     lines = [line.text for line in line_items]
     mixed_document_context = _mixed_document_context(line_items)
@@ -91,6 +91,22 @@ def _extract_with_textract(
     provider_base = f"textract:{variant_name}"
     provider = provider_base if cleanup_provider == "rules" else f"{provider_base}+{cleanup_provider}"
     return {"provider": provider, "text": enhanced_text}
+
+
+def _select_best_candidate(candidates: list[TextractCandidate]) -> TextractCandidate:
+    if len(candidates) == 1:
+        return candidates[0]
+
+    max_chars = max(_meaningful_char_count(candidate.raw_text) for candidate in candidates) or 1
+    max_lines = max(len(candidate.line_items) for candidate in candidates) or 1
+
+    def adjusted_score(candidate: TextractCandidate) -> float:
+        char_ratio = _meaningful_char_count(candidate.raw_text) / max_chars
+        line_ratio = len(candidate.line_items) / max_lines
+        completeness_bonus = char_ratio * 12 + line_ratio * 8
+        return candidate.score + completeness_bonus
+
+    return max(candidates, key=adjusted_score)
 
 
 def _extract_textract_candidate(client, image_path: Path) -> TextractCandidate:
@@ -381,7 +397,7 @@ def _score_textract_candidate(lines: list[TextractLine], text: str) -> tuple[flo
 
     confidences = [line.confidence for line in lines if line.confidence > 0]
     avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-    meaningful_chars = len(re.findall(r"[A-Za-z0-9]", text))
+    meaningful_chars = _meaningful_char_count(text)
     line_count = len(lines)
     handwritten_count = sum(
         1 for line in lines if line.text_type in {"handwritten", "handwritten annotation"}
@@ -410,6 +426,10 @@ def _score_textract_candidate(lines: list[TextractLine], text: str) -> tuple[flo
     return score, quality_notes
 
 
+def _meaningful_char_count(text: str) -> int:
+    return len(re.findall(r"[A-Za-z0-9]", text))
+
+
 def _garbage_ratio(text: str) -> float:
     if not text:
         return 1.0
@@ -434,21 +454,50 @@ def _candidate_selection_context(
     candidates: list[TextractCandidate],
     best_candidate: TextractCandidate,
 ) -> str:
-    if len(candidates) <= 1:
-        return ""
-
     lines = ["OCR preprocessing candidate selection:"]
-    for candidate in sorted(candidates, key=lambda item: item.score, reverse=True):
-        marker = "selected" if candidate.image_path == best_candidate.image_path else "rejected"
-        lines.append(f"- {candidate.image_path.stem}: {marker}; {candidate.quality_notes}")
-    lines.append(
-        "The selected preprocessing candidate produced the strongest OCR signal. Use the image "
-        "as the final authority for ambiguous handwriting."
-    )
+    ranked_candidates = _rank_candidates_for_context(candidates, best_candidate)
+    if len(candidates) > 1:
+        for candidate in ranked_candidates:
+            marker = "selected" if candidate.image_path == best_candidate.image_path else "alternate"
+            lines.append(f"- {candidate.image_path.stem}: {marker}; {candidate.quality_notes}")
+        lines.append(
+            "The selected preprocessing candidate balanced confidence and completeness. Use alternate "
+            "OCR readings as supporting evidence for ambiguous symbols, but use the image as the final "
+            "authority."
+        )
+    else:
+        lines.append(f"- {best_candidate.image_path.stem}: selected; {best_candidate.quality_notes}")
+
     if best_candidate.low_confidence_words:
         lines.append("Lowest-confidence OCR words from the selected candidate:")
         lines.extend(f"- {word}" for word in best_candidate.low_confidence_words)
+
+    if len(candidates) > 1:
+        lines.append("Alternative OCR readings for comparison:")
+        for candidate in ranked_candidates[:3]:
+            marker = "selected" if candidate.image_path == best_candidate.image_path else "alternate"
+            excerpt = _ocr_excerpt(candidate.raw_text)
+            if excerpt:
+                lines.append(f"{candidate.image_path.stem} ({marker}):\n{excerpt}")
     return "\n".join(lines)
+
+
+def _rank_candidates_for_context(
+    candidates: list[TextractCandidate],
+    best_candidate: TextractCandidate,
+) -> list[TextractCandidate]:
+    alternates = [
+        candidate for candidate in candidates if candidate.image_path != best_candidate.image_path
+    ]
+    alternates.sort(key=lambda item: item.score, reverse=True)
+    return [best_candidate, *alternates]
+
+
+def _ocr_excerpt(text: str, max_chars: int = 900) -> str:
+    cleaned = clean_ocr_text(text)
+    if len(cleaned) <= max_chars:
+        return cleaned
+    return cleaned[:max_chars].rsplit("\n", 1)[0].strip() + "\n[...]"
 
 
 def _bedrock_system_prompt() -> str:
