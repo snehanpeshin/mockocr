@@ -33,18 +33,9 @@ export default function BetaPage() {
       if (data.beta_access) {
         window.localStorage.setItem("cleanote.betaAccess", JSON.stringify(data));
       }
-      if (data.status === "already_verified" && data.beta_access) {
-        window.location.href = "/app";
-        return;
-      }
-      if (data.status === "access_granted" && data.beta_access) {
-        setMessage("Access granted. Opening Cleanote...");
-        window.location.href = "/app";
-        return;
-      }
       setMessage(
         data.beta_access
-          ? "Access granted. Open Cleanote when you are ready."
+          ? data.message ?? "Thanks. Your beta details were saved. You can open Cleanote now, and we will get back to you within 1-2 days."
           : "You are on the waitlist. We saved your spot."
       );
     } catch (error) {
@@ -99,9 +90,14 @@ export default function BetaPage() {
           </label>
           <button className="primary" disabled={isSubmitting} type="submit">
             {isSubmitting ? <Loader2 className="spin" aria-hidden="true" size={18} /> : null}
-            <span>{isSubmitting ? "Requesting access" : "Start using Cleanote"}</span>
+            <span>{isSubmitting ? "Saving details" : "Request beta access"}</span>
           </button>
           {message ? <p className="message">{message}</p> : null}
+          {message ? (
+            <a className="beta-open-app-link" href="/app">
+              Open Cleanote scanner <ArrowRight aria-hidden="true" size={18} />
+            </a>
+          ) : null}
         </form>
       </section>
 

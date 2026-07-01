@@ -634,6 +634,20 @@ a {
   box-shadow: 0 0 0 4px rgba(143, 63, 242, 0.14);
 }
 
+.beta-open-app-link {
+  align-items: center;
+  background: #eef7ff;
+  border: 1px solid #c6dff7;
+  border-radius: 8px;
+  color: var(--accent-strong);
+  display: inline-flex;
+  font-weight: 900;
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  text-decoration: none;
+}
+
 .landing-band {
   border-bottom: 1px solid rgba(255, 255, 255, 0.16);
   border-top: 1px solid rgba(255, 255, 255, 0.16);

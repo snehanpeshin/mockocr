@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from image_preprocess import preprocess_image_variants
 from beta_service import (
+    beta_summary,
     feedback_summary,
     request_beta_access,
     save_customer_discovery,
@@ -240,6 +241,7 @@ def admin_revenue(x_admin_token: str | None = Header(default=None)) -> dict[str,
         validate_admin_token(x_admin_token)
         return {
             **revenue_summary(),
+            "beta_summary": beta_summary(),
             "scan_summary": scan_summary(),
             "feedback_summary": feedback_summary(),
         }

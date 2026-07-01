@@ -30,10 +30,39 @@ def request_beta_access(name: str, email: str, role: str) -> dict[str, Any]:
     existing_response = table.get_item(Key={"email": normalized_email})
     existing_item = existing_response.get("Item")
     if existing_item and existing_item.get("status") == "verified":
+        now = _now().isoformat()
+        table.update_item(
+            Key={"email": normalized_email},
+            UpdateExpression=(
+                "SET #name = :name, #role = :role, last_requested_at = :now, "
+                "app_link = :app_link, premium_link = :premium_link, "
+                "tablet_bundle_status = :tablet_bundle_status, "
+                "followup_status = if_not_exists(followup_status, :followup_status), "
+                "auto_reply_status = if_not_exists(auto_reply_status, :auto_reply_status), "
+                "manual_email_subject = :manual_email_subject, "
+                "manual_email_body = :manual_email_body"
+            ),
+            ExpressionAttributeNames={"#name": "name", "#role": "role"},
+            ExpressionAttributeValues={
+                ":name": normalized_name,
+                ":role": normalized_role,
+                ":now": now,
+                ":app_link": _app_link(),
+                ":premium_link": _premium_link(),
+                ":tablet_bundle_status": "coming_soon_preorder_interest",
+                ":followup_status": "needs_manual_followup",
+                ":auto_reply_status": "manual_required_ses_disabled",
+                ":manual_email_subject": _manual_followup_subject(),
+                ":manual_email_body": _manual_followup_body(normalized_name),
+            },
+        )
         return {
             "status": "already_verified",
             "beta_access": bool(existing_item.get("beta_access", False)),
             "email": normalized_email,
+            "name": normalized_name,
+            "role": normalized_role,
+            "message": _signup_message(),
         }
 
     beta_limit = int(os.getenv("BETA_LIMIT", "50"))
@@ -51,6 +80,13 @@ def request_beta_access(name: str, email: str, role: str) -> dict[str, Any]:
                 "created_at": now.isoformat(),
                 "verified_at": now.isoformat(),
                 "verification_method": "instant_access",
+                "app_link": _app_link(),
+                "premium_link": _premium_link(),
+                "tablet_bundle_status": "coming_soon_preorder_interest",
+                "followup_status": "needs_manual_followup",
+                "auto_reply_status": "manual_required_ses_disabled",
+                "manual_email_subject": _manual_followup_subject(),
+                "manual_email_body": _manual_followup_body(normalized_name),
             }
         )
         return {
@@ -59,6 +95,7 @@ def request_beta_access(name: str, email: str, role: str) -> dict[str, Any]:
             "email": normalized_email,
             "name": normalized_name,
             "role": normalized_role,
+            "message": _signup_message(),
         }
 
     token = secrets.token_urlsafe(32)
@@ -221,6 +258,56 @@ def feedback_summary(limit: int = 50) -> dict[str, Any]:
     }
 
 
+def beta_summary(limit: int = 200) -> dict[str, Any]:
+    _ensure_configured()
+
+    signups: list[dict[str, Any]] = []
+    for item in _scan_all(_table()):
+        email = item.get("email", "")
+        if not email:
+            continue
+        signups.append(
+            {
+                "email": email,
+                "name": item.get("name", ""),
+                "role": item.get("role", ""),
+                "status": item.get("status", ""),
+                "beta_access": bool(item.get("beta_access", False)),
+                "created_at": item.get("created_at", ""),
+                "verified_at": item.get("verified_at", ""),
+                "last_requested_at": item.get("last_requested_at", ""),
+                "last_feedback_at": item.get("last_feedback_at", ""),
+                "followup_status": item.get("followup_status", "needs_manual_followup"),
+                "auto_reply_status": item.get("auto_reply_status", "manual_required_ses_disabled"),
+                "tablet_bundle_status": item.get("tablet_bundle_status", "coming_soon_preorder_interest"),
+                "app_link": item.get("app_link", _app_link()),
+                "premium_link": item.get("premium_link", _premium_link()),
+                "manual_email_subject": item.get("manual_email_subject", _manual_followup_subject()),
+                "manual_email_body": item.get("manual_email_body", _manual_followup_body(item.get("name", ""))),
+            }
+        )
+
+    signups.sort(
+        key=lambda signup: signup.get("last_requested_at") or signup.get("created_at") or "",
+        reverse=True,
+    )
+    emailed_count = sum(
+        1 for signup in signups if str(signup.get("auto_reply_status", "")).startswith("sent")
+    )
+    manual_required_count = sum(
+        1 for signup in signups if signup.get("auto_reply_status") == "manual_required_ses_disabled"
+    )
+    beta_access_count = sum(1 for signup in signups if signup.get("beta_access"))
+
+    return {
+        "signup_count": len(signups),
+        "beta_access_count": beta_access_count,
+        "manual_required_count": manual_required_count,
+        "emailed_count": emailed_count,
+        "recent_signups": signups[: max(1, min(limit, 500))],
+    }
+
+
 def _ensure_configured() -> None:
     required = ["BETA_TABLE_NAME"]
     if _email_verification_enabled():
@@ -292,6 +379,50 @@ Cleanote
             "Subject": {"Data": subject},
             "Body": {"Text": {"Data": body}},
         },
+    )
+
+
+def _app_base_url() -> str:
+    return os.getenv("APP_BASE_URL", "https://www.cleanote.in").rstrip("/")
+
+
+def _app_link() -> str:
+    return f"{_app_base_url()}/app"
+
+
+def _premium_link() -> str:
+    return f"{_app_base_url()}/billing"
+
+
+def _manual_followup_subject() -> str:
+    return "Welcome to Cleanote beta"
+
+
+def _manual_followup_body(name: str = "") -> str:
+    greeting = f"Hi {name}," if str(name).strip() else "Hi,"
+    return f"""{greeting}
+
+Thanks for joining the Cleanote beta. You can start using the scanner here:
+
+{_app_link()}
+
+Cleanote turns handwritten notes, worksheets, and annotated documents into editable, searchable text.
+
+We are also exploring the Cleanote+ 8.5-inch writing tablet bundle. Premium access is available at $9.99/month here:
+
+{_premium_link()}
+
+We will get back to you within 1-2 days with next steps and beta updates.
+
+Cleanote
+Karigari Home LLC
+"""
+
+
+def _signup_message() -> str:
+    return (
+        "Thanks. Your beta details were saved. You can open Cleanote now, and we will get "
+        "back to you within 1-2 days with app and tablet bundle details."
     )
 
 

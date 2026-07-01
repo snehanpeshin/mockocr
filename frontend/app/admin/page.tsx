@@ -65,6 +65,33 @@ type FeedbackSummary = {
   recent_feedback: FeedbackRow[];
 };
 
+type BetaSignup = {
+  email: string;
+  name: string;
+  role: string;
+  status: string;
+  beta_access: boolean;
+  created_at: string;
+  verified_at: string;
+  last_requested_at: string;
+  last_feedback_at: string;
+  followup_status: string;
+  auto_reply_status: string;
+  tablet_bundle_status: string;
+  app_link: string;
+  premium_link: string;
+  manual_email_subject: string;
+  manual_email_body: string;
+};
+
+type BetaSummary = {
+  signup_count: number;
+  beta_access_count: number;
+  manual_required_count: number;
+  emailed_count: number;
+  recent_signups: BetaSignup[];
+};
+
 type RevenueSummary = {
   total_revenue: string;
   revenue_by_dba: RevenueRow[];
@@ -74,6 +101,7 @@ type RevenueSummary = {
   customers: Customer[];
   scan_summary?: ScanSummary;
   feedback_summary?: FeedbackSummary;
+  beta_summary?: BetaSummary;
 };
 
 export default function AdminPage() {
@@ -179,6 +207,57 @@ export default function AdminPage() {
     URL.revokeObjectURL(url);
   }
 
+  function downloadBetaCsv() {
+    const rows = summary?.beta_summary?.recent_signups ?? [];
+    if (!rows.length) {
+      setMessage("No beta signups yet.");
+      return;
+    }
+
+    const header = [
+      "created_at",
+      "email",
+      "name",
+      "role",
+      "status",
+      "beta_access",
+      "followup_status",
+      "auto_reply_status",
+      "tablet_bundle_status",
+      "app_link",
+      "premium_link",
+      "manual_email_subject",
+      "manual_email_body"
+    ];
+    const csvRows = [
+      header,
+      ...rows.map((row) => [
+        row.created_at,
+        row.email,
+        row.name,
+        row.role,
+        row.status,
+        row.beta_access ? "yes" : "no",
+        row.followup_status,
+        row.auto_reply_status,
+        row.tablet_bundle_status,
+        row.app_link,
+        row.premium_link,
+        row.manual_email_subject,
+        row.manual_email_body
+      ])
+    ];
+    const csv = csvRows
+      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "cleanote-beta-signups.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <main className="admin-shell">
       <section className="admin-header">
@@ -228,6 +307,14 @@ export default function AdminPage() {
             <p className="eyebrow">Average rating</p>
             <strong>{summary.feedback_summary?.average_rating ?? 0}/5</strong>
           </div>
+          <div className="admin-card metric-card">
+            <p className="eyebrow">Beta signups</p>
+            <strong>{summary.beta_summary?.signup_count ?? 0}</strong>
+          </div>
+          <div className="admin-card metric-card">
+            <p className="eyebrow">Manual emails needed</p>
+            <strong>{summary.beta_summary?.manual_required_count ?? 0}</strong>
+          </div>
           <div className="admin-card payment-link-card">
             <h2>Create Payment Link</h2>
             <select
@@ -261,7 +348,30 @@ export default function AdminPage() {
               Download CSV
             </button>
           </div>
+          <div className="admin-card payment-link-card">
+            <h2>Beta Signup Export</h2>
+            <p className="message">
+              Download beta leads with app link, Premium link, and manual email copy.
+            </p>
+            <button className="primary" onClick={downloadBetaCsv} type="button">
+              Download beta CSV
+            </button>
+          </div>
 
+          <Table
+            columns={["Name", "Email", "Role", "Access", "Email status", "Follow-up", "App link", "Premium"]}
+            rows={(summary.beta_summary?.recent_signups ?? []).map((row) => [
+              row.name || "Unknown",
+              row.email,
+              row.role,
+              row.beta_access ? "yes" : "waitlist",
+              row.auto_reply_status,
+              row.followup_status,
+              row.app_link,
+              row.premium_link
+            ])}
+            title="Beta signup list"
+          />
           <Table
             columns={["Rating", "Email", "Role", "Feedback", "Wrong or missing", "Pay value", "Date"]}
             rows={(summary.feedback_summary?.recent_feedback ?? []).map((row) => [
