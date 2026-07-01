@@ -1862,8 +1862,8 @@ textarea:focus {
   grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
   margin: 0 auto;
   max-width: 1180px;
-  min-height: calc(100vh - 190px);
-  padding: clamp(34px, 6vh, 72px) 0 34px;
+  min-height: calc(100vh - 250px);
+  padding: clamp(30px, 5vh, 58px) 0 28px;
 }
 
 .doc-hero-copy {
@@ -1882,18 +1882,18 @@ textarea:focus {
 
 .doc-hero h1 {
   color: var(--ink);
-  font-size: clamp(2rem, 4.3vw, 3.9rem);
-  font-weight: 820;
-  line-height: 1.06;
-  max-width: 720px;
+  font-size: clamp(2rem, 3.6vw, 3.35rem);
+  font-weight: 790;
+  line-height: 1.12;
+  max-width: 680px;
 }
 
 .doc-hero-copy > p:not(.doc-kicker) {
   color: var(--muted);
   font-size: clamp(1rem, 1.2vw, 1.12rem);
-  line-height: 1.72;
+  line-height: 1.68;
   margin: 0;
-  max-width: 680px;
+  max-width: 620px;
 }
 
 .doc-actions {
@@ -1995,6 +1995,75 @@ textarea:focus {
   min-height: 230px;
   padding: 26px;
   text-align: center;
+}
+
+.simple-hero {
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 0.72fr);
+}
+
+.simple-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  max-width: 640px;
+}
+
+.simple-benefits span {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: #415066;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 820;
+  gap: 7px;
+  padding: 8px 12px;
+}
+
+.simple-benefits svg {
+  color: var(--accent);
+}
+
+.simple-preview {
+  gap: 12px;
+  padding: 14px;
+}
+
+.simple-preview .doc-drop-preview {
+  min-height: 220px;
+}
+
+.simple-output-preview {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.simple-output-preview p {
+  color: var(--accent-strong);
+  font-size: 0.78rem;
+  font-weight: 900;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.simple-output-preview strong {
+  color: var(--ink);
+  font-size: 1.02rem;
+}
+
+.simple-output-preview span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.simple-trust {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 4px;
 }
 
 .doc-drop-preview svg {
@@ -2164,6 +2233,10 @@ textarea:focus {
   background: #122033;
   border-color: #1d334f;
   grid-template-columns: minmax(0, 0.95fr) minmax(220px, 0.62fr) auto;
+}
+
+.simple-tablet {
+  margin-top: 24px;
 }
 
 .doc-tablet-band h2 {
