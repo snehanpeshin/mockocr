@@ -241,7 +241,7 @@ def admin_revenue(x_admin_token: str | None = Header(default=None)) -> dict[str,
         validate_admin_token(x_admin_token)
         return {
             **revenue_summary(),
-            "beta_summary": beta_summary(),
+            "beta_summary": _safe_beta_summary(),
             "scan_summary": scan_summary(),
             "feedback_summary": feedback_summary(),
         }
@@ -251,6 +251,21 @@ def admin_revenue(x_admin_token: str | None = Header(default=None)) -> dict[str,
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+def _safe_beta_summary() -> dict[str, object]:
+    try:
+        return beta_summary()
+    except Exception as exc:
+        return {
+            "available": False,
+            "error": str(exc),
+            "signup_count": 0,
+            "beta_access_count": 0,
+            "manual_required_count": 0,
+            "emailed_count": 0,
+            "recent_signups": [],
+        }
 
 
 @app.post("/api/ocr")

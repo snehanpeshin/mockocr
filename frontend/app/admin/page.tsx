@@ -85,6 +85,8 @@ type BetaSignup = {
 };
 
 type BetaSummary = {
+  available?: boolean;
+  error?: string;
   signup_count: number;
   beta_access_count: number;
   manual_required_count: number;
@@ -350,9 +352,16 @@ export default function AdminPage() {
           </div>
           <div className="admin-card payment-link-card">
             <h2>Beta Signup Export</h2>
-            <p className="message">
-              Download beta leads with app link, Premium link, and manual email copy.
-            </p>
+            {summary.beta_summary?.available === false ? (
+              <p className="message">
+                Beta list unavailable: {summary.beta_summary.error}. Add dynamodb:Scan on
+                cleanote-beta to the backend task role.
+              </p>
+            ) : (
+              <p className="message">
+                Download beta leads with app link, Premium link, and manual email copy.
+              </p>
+            )}
             <button className="primary" onClick={downloadBetaCsv} type="button">
               Download beta CSV
             </button>
