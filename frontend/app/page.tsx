@@ -207,17 +207,27 @@ export default function LandingPage() {
       </section>
 
       <section className="doc-tablet-band" aria-label="Cleanote tablet bundle preorder">
-        <div>
-          <p className="doc-kicker">Tablet bundle</p>
-          <h2>Cleanote+ writing tablet package.</h2>
+        <div className="doc-tablet-copy">
+          <p className="doc-kicker">Coming soon</p>
+          <h2>Cleanote+ writing tablet bundle.</h2>
           <p>
-            We are exploring an 8.5-inch reusable writing tablet bundle for kids, tutors, and
-            families who want paper-like writing with searchable digital notes.
+            A simple 8.5-inch writing tablet concept for kids, tutors, and families: write on the
+            tablet, scan with Cleanote, then turn the page into searchable digital text.
           </p>
+          <div className="doc-price-callout">
+            <strong>$9.99/month</strong>
+            <span>Cleanote Premium access today, plus preorder interest for the tablet bundle.</span>
+          </div>
         </div>
+        <figure className="doc-tablet-figure">
+          <img alt="Cleanote tablet bundle concept with Cleanote logo and QR code" src="/cleanote-tablet-concept.jpg" />
+        </figure>
         <div className="doc-tablet-actions">
+          <a href="/billing">
+            Get $9.99 Premium <ArrowRight aria-hidden="true" size={17} />
+          </a>
           <a href="/beta">
-            Join preorder list <ArrowRight aria-hidden="true" size={17} />
+            Join preorder list
           </a>
           <a href="/cleanote-tablet-manual.pdf" target="_blank" rel="noreferrer">
             <FileText aria-hidden="true" size={17} />
