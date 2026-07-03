@@ -10,9 +10,15 @@ import {
 } from "lucide-react";
 
 const BENEFITS = [
-  "Upload notes, PDFs, or worksheets",
-  "Review editable text beside the scan",
-  "Save, search, copy, or export"
+  "Capture full pages and PDFs",
+  "Keep equations, labels, and side notes",
+  "Search, edit, copy, or export"
+];
+
+const OUTCOMES = [
+  "Less retyping after class",
+  "Cleaner study material",
+  "Notes you can actually find later"
 ];
 
 export default function LandingPage() {
@@ -36,10 +42,10 @@ export default function LandingPage() {
       <section className="doc-hero simple-hero">
         <div className="doc-hero-copy">
           <p className="doc-kicker">Handwriting OCR</p>
-          <h1>Turn handwritten notes into searchable text.</h1>
+          <h1>Convert handwritten notes into searchable documents.</h1>
           <p>
-            Upload a notebook page, worksheet, PDF, or annotated handout. Cleanote gives you
-            editable text you can review, save, and export.
+            Cleanote helps students, parents, researchers, and professionals turn notebook pages,
+            worksheets, PDFs, and annotated handouts into editable text they can review and use.
           </p>
           <div className="doc-actions">
             <a className="doc-primary" href="/app">
@@ -58,6 +64,11 @@ export default function LandingPage() {
               </span>
             ))}
           </div>
+          <div className="doc-outcomes" aria-label="What Cleanote helps with">
+            {OUTCOMES.map((outcome) => (
+              <span key={outcome}>{outcome}</span>
+            ))}
+          </div>
         </div>
 
         <div className="doc-tool-preview simple-preview" aria-label="Cleanote preview">
@@ -68,16 +79,16 @@ export default function LandingPage() {
           </div>
           <div className="simple-output-preview">
             <p>Result</p>
-            <strong>Editable transcription</strong>
-            <span>Equations, labels, and unclear words stay visible for review.</span>
+            <strong>Text you can work with</strong>
+            <span>Cleanote keeps readable written material visible, including side notes, labels, and equations.</span>
           </div>
         </div>
       </section>
 
       <section className="doc-trust-bar simple-trust" aria-label="Cleanote highlights">
-        <span><Sparkles aria-hidden="true" size={18} /> AI-assisted cleanup</span>
-        <span><Search aria-hidden="true" size={18} /> Search saved notes</span>
-        <span><Lock aria-hidden="true" size={18} /> Simple document workflow</span>
+        <span><Sparkles aria-hidden="true" size={18} /> Finds more page detail</span>
+        <span><Search aria-hidden="true" size={18} /> Makes notes searchable</span>
+        <span><Lock aria-hidden="true" size={18} /> Keeps review in your hands</span>
       </section>
 
       <section className="doc-tablet-band simple-tablet" aria-label="Cleanote tablet bundle preorder">
@@ -85,8 +96,8 @@ export default function LandingPage() {
           <p className="doc-kicker">Coming soon</p>
           <h2>Cleanote+ writing tablet bundle.</h2>
           <p>
-            A simple 8.5-inch writing tablet concept for kids, tutors, and families. Write,
-            scan, and organize notes with Cleanote.
+            A simple 8.5-inch writing tablet concept for kids, tutors, and families who want
+            less paper clutter and a cleaner way to save handwritten learning.
           </p>
           <div className="doc-price-callout">
             <strong>$9.99/month</strong>
