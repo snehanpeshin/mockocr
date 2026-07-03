@@ -75,10 +75,11 @@ def _extract_with_textract(
     lines = [line.text for line in line_items]
     mixed_document_context = _mixed_document_context(line_items)
     selection_context = _candidate_selection_context(candidates, best_candidate)
+    region_context = _region_ocr_context(client, best_candidate)
     coverage_context = _ocr_coverage_context(line_items)
     document_context = "\n\n".join(
         section
-        for section in [selection_context, mixed_document_context, coverage_context]
+        for section in [selection_context, mixed_document_context, region_context, coverage_context]
         if section
     )
 
@@ -128,6 +129,208 @@ def _extract_textract_candidate(client, image_path: Path) -> TextractCandidate:
         raw_text=raw_text,
         score=score,
         quality_notes=quality_notes,
+    )
+
+
+def _region_ocr_context(client, best_candidate: TextractCandidate) -> str:
+    if os.getenv("OCR_REGION_PASS", "true").lower() not in {"1", "true", "yes", "on"}:
+        return ""
+    if not _should_run_region_pass(best_candidate):
+        return ""
+
+    region_paths = _text_region_paths(best_candidate.image_path)
+    if not region_paths:
+        return ""
+
+    max_regions = max(1, int(os.getenv("OCR_REGION_MAX_CALLS", "6")))
+    region_candidates: list[TextractCandidate] = []
+    for region_path in region_paths[:max_regions]:
+        try:
+            candidate = _extract_textract_candidate(client, region_path)
+        except Exception:
+            continue
+        if candidate.line_items:
+            region_candidates.append(candidate)
+
+    if not region_candidates:
+        return ""
+
+    context_lines = [
+        "Additional region OCR pass:",
+        "- The page was dense or long, so Cleanote also scanned overlapping text bands.",
+        "- Use these band readings to recover readable words, phrases, labels, equations, "
+        "or side notes missed by the full-page pass.",
+        "- Deduplicate repeated text where a band overlaps another band or duplicates full-page OCR.",
+        "- Preserve the original page order and do not show region IDs in the final answer.",
+    ]
+    max_lines = max(20, int(os.getenv("OCR_REGION_CONTEXT_MAX_LINES", "120")))
+    emitted = 0
+    for region_index, candidate in enumerate(region_candidates, start=1):
+        context_lines.append(f"Region R{region_index:02d} ({candidate.image_path.stem}):")
+        for line_index, line in enumerate(candidate.line_items, start=1):
+            if emitted >= max_lines:
+                context_lines.append(
+                    "- Region OCR context truncated; use the image for any remaining visible content."
+                )
+                return "\n".join(context_lines)
+            context_lines.append(
+                f"R{region_index:02d}-L{line_index:02d} "
+                f"[{line.text_type}; confidence {line.confidence:.1f}] {line.text}"
+            )
+            emitted += 1
+
+    return "\n".join(context_lines)
+
+
+def _should_run_region_pass(candidate: TextractCandidate) -> bool:
+    try:
+        import cv2
+    except ImportError:
+        return False
+
+    image = cv2.imread(str(candidate.image_path), cv2.IMREAD_GRAYSCALE)
+    if image is None:
+        return False
+
+    height, width = image.shape[:2]
+    line_count = len(candidate.line_items)
+    meaningful_chars = _meaningful_char_count(candidate.raw_text)
+    aspect_ratio = height / max(1, width)
+    min_lines = max(6, int(os.getenv("OCR_REGION_MIN_LINES", "10")))
+    min_height = max(900, int(os.getenv("OCR_REGION_MIN_HEIGHT", "1500")))
+    return (
+        line_count >= min_lines
+        or height >= min_height
+        or aspect_ratio >= 1.45
+        or meaningful_chars >= 900
+    )
+
+
+def _text_region_paths(image_path: Path) -> list[Path]:
+    try:
+        import cv2
+        import numpy as np
+    except ImportError:
+        return []
+
+    gray = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
+    if gray is None:
+        return []
+
+    height, width = gray.shape[:2]
+    if height < 600:
+        return []
+
+    binary = cv2.threshold(
+        gray,
+        0,
+        255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU,
+    )[1]
+    horizontal_kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT,
+        (max(18, width // 55), max(3, height // 420)),
+    )
+    connected = cv2.dilate(binary, horizontal_kernel, iterations=1)
+    row_ink = np.sum(connected > 0, axis=1)
+    active_threshold = max(4, int(width * 0.006))
+    active_rows = row_ink > active_threshold
+    runs = _active_row_runs(active_rows)
+    if not runs:
+        return []
+
+    gap = max(10, height // 130)
+    min_height = max(8, height // 450)
+    runs = _merge_close_runs(
+        [(start, end) for start, end in runs if end - start >= min_height],
+        gap,
+    )
+    if len(runs) < 2:
+        return []
+
+    regions = _group_runs_into_regions(runs, height)
+    if len(regions) < 2:
+        return []
+
+    output_paths: list[Path] = []
+    for index, (start, end) in enumerate(regions, start=1):
+        if end - start >= height * 0.85:
+            continue
+        crop = gray[start:end, :]
+        if crop.size == 0:
+            continue
+        crop = _pad_region_for_ocr(crop)
+        path = image_path.parent / f"region_{index:02d}_{image_path.stem}.png"
+        cv2.imwrite(str(path), crop)
+        output_paths.append(path)
+
+    return output_paths
+
+
+def _active_row_runs(active_rows) -> list[tuple[int, int]]:
+    runs: list[tuple[int, int]] = []
+    start: int | None = None
+    for index, is_active in enumerate(active_rows):
+        if is_active and start is None:
+            start = index
+        elif not is_active and start is not None:
+            runs.append((start, index))
+            start = None
+    if start is not None:
+        runs.append((start, len(active_rows)))
+    return runs
+
+
+def _merge_close_runs(runs: list[tuple[int, int]], max_gap: int) -> list[tuple[int, int]]:
+    if not runs:
+        return []
+
+    merged = [runs[0]]
+    for start, end in runs[1:]:
+        previous_start, previous_end = merged[-1]
+        if start - previous_end <= max_gap:
+            merged[-1] = (previous_start, max(previous_end, end))
+        else:
+            merged.append((start, end))
+    return merged
+
+
+def _group_runs_into_regions(runs: list[tuple[int, int]], image_height: int) -> list[tuple[int, int]]:
+    max_regions = max(2, int(os.getenv("OCR_REGION_MAX_CALLS", "6")))
+    max_region_height = max(420, int(os.getenv("OCR_REGION_MAX_HEIGHT", "900")))
+    pad = max(28, int(image_height * 0.025))
+    regions: list[tuple[int, int]] = []
+    current_start, current_end = runs[0]
+
+    for start, end in runs[1:]:
+        projected_height = end - current_start
+        if projected_height > max_region_height and len(regions) < max_regions - 1:
+            regions.append((max(0, current_start - pad), min(image_height, current_end + pad)))
+            current_start, current_end = start, end
+        else:
+            current_end = end
+
+    regions.append((max(0, current_start - pad), min(image_height, current_end + pad)))
+    return regions[:max_regions]
+
+
+def _pad_region_for_ocr(region):
+    try:
+        import cv2
+    except ImportError:
+        return region
+
+    height, width = region.shape[:2]
+    margin_y = max(18, int(height * 0.08))
+    margin_x = max(18, int(width * 0.025))
+    return cv2.copyMakeBorder(
+        region,
+        margin_y,
+        margin_y,
+        margin_x,
+        margin_x,
+        cv2.BORDER_CONSTANT,
+        value=255,
     )
 
 
