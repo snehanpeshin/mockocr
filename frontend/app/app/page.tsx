@@ -19,10 +19,9 @@ import {
   Upload
 } from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { getApiBase } from "../apiBase";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://mo-9f59128d1e0048feab5efaaaa71df90c.ecs.us-east-1.on.aws";
+const API_BASE = getApiBase();
 const SAVED_NOTES_KEY = "cleanote.savedNotes";
 const LEGACY_SAVED_NOTES_KEY = "pen2txt.savedNotes";
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -427,7 +426,12 @@ export default function Home() {
       setDiscoveryMessage(null);
       setDiscoveryEmail((currentEmail) => currentEmail || userEmail || "");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "OCR failed.");
+      const errorMessage = error instanceof Error ? error.message : "OCR failed.";
+      setMessage(
+        errorMessage === "Failed to fetch"
+          ? `Failed to fetch from ${API_BASE}. Check that the backend is running and this URL is reachable.`
+          : errorMessage
+      );
     } finally {
       setIsScanning(false);
     }

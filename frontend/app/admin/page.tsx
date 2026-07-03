@@ -1,10 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { getApiBase } from "../apiBase";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://mo-9f59128d1e0048feab5efaaaa71df90c.ecs.us-east-1.on.aws";
+const API_BASE = getApiBase();
 
 const PRODUCTS = [
   { key: "cleanote_monthly_premium", label: "Monthly Premium ($9.99)" },
