@@ -20,7 +20,9 @@ import {
 } from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  "https://mo-9f59128d1e0048feab5efaaaa71df90c.ecs.us-east-1.on.aws";
 const SAVED_NOTES_KEY = "cleanote.savedNotes";
 const LEGACY_SAVED_NOTES_KEY = "pen2txt.savedNotes";
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;

@@ -3,7 +3,9 @@
 import { ArrowRight, Check, Loader2, LockKeyhole, Search, Sparkles } from "lucide-react";
 import { FormEvent, useState } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  "https://mo-9f59128d1e0048feab5efaaaa71df90c.ecs.us-east-1.on.aws";
 
 export default function BetaPage() {
   const [name, setName] = useState("");
