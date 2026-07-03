@@ -604,17 +604,17 @@ export default function Home() {
   return (
     <main className="app-shell">
       <section className="topbar" aria-label="Workspace header">
-        <div>
-          <div className="app-brand-row">
-            <img alt="" src="/cleanote-icon.png" />
+        <div className="app-title-lockup">
+          <img className="app-header-logo" alt="" src="/cleanote-icon.png" />
+          <div className="app-title-copy">
             <p className="eyebrow">Cleanote</p>
-          </div>
-          <h1>Scan notes into editable text</h1>
-          <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
-          <div className="topbar-links">
-            <a className="policy-link" href="/billing">Premium</a>
-            <a className="policy-link" href="/privacy">Privacy Policy</a>
-            <a className="policy-link" href="/refund">Refund Policy</a>
+            <h1>Scan notes into editable text</h1>
+            <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
+            <div className="topbar-links">
+              <a className="policy-link" href="/billing">Premium</a>
+              <a className="policy-link" href="/privacy">Privacy Policy</a>
+              <a className="policy-link" href="/refund">Refund Policy</a>
+            </div>
           </div>
         </div>
         <div className="status-strip">
