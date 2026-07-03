@@ -33,10 +33,11 @@ def extract_text(
     provider_override: str | None = None,
     subject: str = "general",
     context_text: str = "",
+    fast_mode: bool = False,
 ) -> OcrResult:
     provider = (provider_override or os.getenv("OCR_PROVIDER", "mock")).lower()
     if provider in {"aws", "textract"}:
-        return _extract_with_textract(image_path, subject, context_text)
+        return _extract_with_textract(image_path, subject, context_text, fast_mode)
 
     return {
         "provider": "mock",
@@ -52,6 +53,7 @@ def _extract_with_textract(
     image_path: Path | list[Path],
     subject: str,
     context_text: str = "",
+    fast_mode: bool = False,
 ) -> OcrResult:
     try:
         import boto3
@@ -62,7 +64,7 @@ def _extract_with_textract(
 
     client = boto3.client("textract", region_name=os.getenv("AWS_REGION"))
     image_paths = image_path if isinstance(image_path, list) else [image_path]
-    max_candidates = max(1, int(os.getenv("OCR_MAX_IMAGE_CANDIDATES", "5")))
+    max_candidates = _max_ocr_candidates(fast_mode)
     candidates = [
         _extract_textract_candidate(client, candidate_path)
         for candidate_path in image_paths[:max_candidates]
@@ -75,7 +77,7 @@ def _extract_with_textract(
     lines = [line.text for line in line_items]
     mixed_document_context = _mixed_document_context(line_items)
     selection_context = _candidate_selection_context(candidates, best_candidate)
-    region_context = _region_ocr_context(client, best_candidate)
+    region_context = "" if fast_mode else _region_ocr_context(client, best_candidate)
     coverage_context = _ocr_coverage_context(line_items)
     document_context = "\n\n".join(
         section
@@ -84,6 +86,11 @@ def _extract_with_textract(
     )
 
     cleaned_text = clean_ocr_text("\n".join(lines))
+    variant_name = best_candidate.image_path.stem
+    provider_base = f"textract:{variant_name}" if not fast_mode else f"textract:{variant_name}:fast"
+    if fast_mode:
+        return {"provider": provider_base, "text": cleaned_text}
+
     enhanced_text, cleanup_provider = enhance_with_ai(
         cleaned_text,
         subject,
@@ -91,10 +98,14 @@ def _extract_with_textract(
         best_candidate.image_path,
         document_context,
     )
-    variant_name = best_candidate.image_path.stem
-    provider_base = f"textract:{variant_name}"
     provider = provider_base if cleanup_provider == "rules" else f"{provider_base}+{cleanup_provider}"
     return {"provider": provider, "text": enhanced_text}
+
+
+def _max_ocr_candidates(fast_mode: bool) -> int:
+    env_name = "OCR_FAST_IMAGE_CANDIDATES" if fast_mode else "OCR_MAX_IMAGE_CANDIDATES"
+    default = "2" if fast_mode else "5"
+    return max(1, int(os.getenv(env_name, default)))
 
 
 def _select_best_candidate(candidates: list[TextractCandidate]) -> TextractCandidate:

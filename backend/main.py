@@ -332,6 +332,7 @@ async def run_ocr(
                 else [original_path]
             )
             page_results: list[dict[str, str]] = []
+            fast_multi_page = len(page_paths) > 1
             for page_index, page_path in enumerate(page_paths):
                 processed_paths = preprocess_image_variants(
                     page_path,
@@ -339,7 +340,15 @@ async def run_ocr(
                 )
                 if not processed_paths:
                     raise ValueError("Could not prepare this image for OCR.")
-                page_results.append(extract_text(processed_paths, provider, subject, context_text))
+                page_results.append(
+                    extract_text(
+                        processed_paths,
+                        provider,
+                        subject,
+                        context_text,
+                        fast_mode=fast_multi_page,
+                    )
+                )
 
             result_text = _combine_page_results(page_results)
             result_provider = _combine_providers(page_results)
