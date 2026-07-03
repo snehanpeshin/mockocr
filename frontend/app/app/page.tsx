@@ -25,6 +25,8 @@ const API_BASE = getApiBase();
 const SAVED_NOTES_KEY = "cleanote.savedNotes";
 const LEGACY_SAVED_NOTES_KEY = "pen2txt.savedNotes";
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+const MAX_PROCESSED_IMAGE_SIDE = 2200;
+const PROCESSED_IMAGE_QUALITY = 0.88;
 
 type OcrResponse = {
   text: string;
@@ -429,7 +431,7 @@ export default function Home() {
       const errorMessage = error instanceof Error ? error.message : "OCR failed.";
       setMessage(
         errorMessage === "Failed to fetch"
-          ? `Failed to fetch from ${API_BASE}. Check that the backend is running and this URL is reachable.`
+          ? `Failed to fetch from ${API_BASE}. Try a smaller/clearer image first; large scans or long PDFs can time out before the backend returns.`
           : errorMessage
       );
     } finally {
@@ -1012,7 +1014,7 @@ export default function Home() {
 async function buildProcessedImageFile(file: File, adjustments: ImageAdjustments): Promise<File> {
   const blob = await buildProcessedImage(file, adjustments);
   const baseName = file.name.replace(/\.[^.]+$/, "") || "scan";
-  return new File([blob], `${baseName}-cleaned.png`, { type: "image/png" });
+  return new File([blob], `${baseName}-cleaned.jpg`, { type: "image/jpeg" });
 }
 
 async function syncNoteToCloud(note: SavedNote, email: string) {
@@ -1185,19 +1187,25 @@ async function buildProcessedImage(file: File, adjustments: ImageAdjustments): P
   const cropBox = getCropBox(image.naturalWidth, image.naturalHeight, adjustments.crop);
   const rotation = adjustments.rotation;
   const isSideways = rotation === 90 || rotation === 270;
-  canvas.width = isSideways ? cropBox.height : cropBox.width;
-  canvas.height = isSideways ? cropBox.width : cropBox.height;
+  const rotatedWidth = isSideways ? cropBox.height : cropBox.width;
+  const rotatedHeight = isSideways ? cropBox.width : cropBox.height;
+  const scale = Math.min(1, MAX_PROCESSED_IMAGE_SIDE / Math.max(rotatedWidth, rotatedHeight));
+  canvas.width = Math.max(1, Math.round(rotatedWidth * scale));
+  canvas.height = Math.max(1, Math.round(rotatedHeight * scale));
 
   context.save();
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.scale(scale, scale);
   context.filter = `contrast(${adjustments.contrast}%) grayscale(100%)`;
   if (rotation === 90) {
-    context.translate(canvas.width, 0);
+    context.translate(rotatedWidth, 0);
     context.rotate(Math.PI / 2);
   } else if (rotation === 180) {
-    context.translate(canvas.width, canvas.height);
+    context.translate(rotatedWidth, rotatedHeight);
     context.rotate(Math.PI);
   } else if (rotation === 270) {
-    context.translate(0, canvas.height);
+    context.translate(0, rotatedHeight);
     context.rotate((3 * Math.PI) / 2);
   }
 
@@ -1221,7 +1229,7 @@ async function buildProcessedImage(file: File, adjustments: ImageAdjustments): P
       } else {
         reject(new Error("Could not prepare image."));
       }
-    }, "image/png");
+    }, "image/jpeg", PROCESSED_IMAGE_QUALITY);
   });
 
   function getCropBox(width: number, height: number, crop: CropValues) {
