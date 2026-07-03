@@ -75,8 +75,11 @@ def _extract_with_textract(
     lines = [line.text for line in line_items]
     mixed_document_context = _mixed_document_context(line_items)
     selection_context = _candidate_selection_context(candidates, best_candidate)
+    coverage_context = _ocr_coverage_context(line_items)
     document_context = "\n\n".join(
-        section for section in [selection_context, mixed_document_context] if section
+        section
+        for section in [selection_context, mixed_document_context, coverage_context]
+        if section
     )
 
     cleaned_text = clean_ocr_text("\n".join(lines))
@@ -167,7 +170,7 @@ def enhance_with_bedrock(
 
     model_id = os.getenv("BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0")
     region = os.getenv("BEDROCK_REGION") or os.getenv("AWS_REGION")
-    max_tokens = int(os.getenv("AI_CLEANUP_MAX_TOKENS", "3200"))
+    max_tokens = int(os.getenv("AI_CLEANUP_MAX_TOKENS", "4500"))
 
     client = boto3.client("bedrock-runtime", region_name=region)
     subject_hint = normalize_subject(subject)
@@ -391,6 +394,41 @@ def _mixed_document_context(lines: list[TextractLine]) -> str:
     return "\n".join(summary)
 
 
+def _ocr_coverage_context(lines: list[TextractLine]) -> str:
+    if not lines:
+        return ""
+
+    max_lines = max(20, int(os.getenv("AI_COVERAGE_MAX_LINES", "180")))
+    max_chars = max(2000, int(os.getenv("AI_COVERAGE_MAX_CHARS", "14000")))
+    context_lines = [
+        "OCR coverage checklist:",
+        f"- Detected OCR lines: {len(lines)}",
+        "- Before writing the final answer, account for every readable line below.",
+        "- Do not ignore short lines, labels, margin notes, headings, crossed-looking notes, side notes, or repeated handwritten lines.",
+        "- Merge lines only when they are visibly part of the same sentence or equation.",
+        "- If a line is low confidence or visually unclear, include the safest reading with [unclear] instead of dropping it.",
+        "- The final answer should not show these line IDs; use them only to prevent omissions.",
+        "Detected lines in page order:",
+    ]
+
+    current_chars = sum(len(line) + 1 for line in context_lines)
+    emitted = 0
+    for index, line in enumerate(lines[:max_lines], start=1):
+        item = f"L{index:03d} [{line.text_type}; confidence {line.confidence:.1f}] {line.text}"
+        if current_chars + len(item) + 1 > max_chars:
+            break
+        context_lines.append(item)
+        current_chars += len(item) + 1
+        emitted += 1
+
+    if emitted < len(lines):
+        context_lines.append(
+            f"- Coverage list truncated after {emitted} lines; still use the full OCR draft and image for remaining visible content."
+        )
+
+    return "\n".join(context_lines)
+
+
 def _score_textract_candidate(lines: list[TextractLine], text: str) -> tuple[float, str]:
     if not lines:
         return -1000.0, "no readable lines"
@@ -526,6 +564,8 @@ def _bedrock_system_prompt() -> str:
         "annotations should receive stronger visual/context review and be placed where they belong. "
         "Never invent missing definitions, examples, equations, values, or explanations. "
         "Never omit readable handwritten lines just because they are repetitive, informal, or messy. "
+        "Completeness is more important than neatness: every readable text region, line, label, "
+        "annotation, and equation should be represented in the final transcription. "
         "If handwriting is unclear, mark it as [unclear] instead of guessing. "
         "Never let a summary replace the transcription. "
         "Return a faithful cleaned transcription using clear headings and bullets. "
@@ -565,6 +605,10 @@ def _bedrock_user_prompt(
         "5. Independent review pass: compare the literal transcription with the corrected "
         "transcription, then reject any correction that is not supported by repeated handwriting "
         "patterns, English grammar, mathematical consistency, or factual context visible on the page.\n"
+        "6. Coverage pass: compare the final transcription against the OCR coverage checklist line "
+        "by line. If a detected readable line, label, side note, heading, or equation is missing, "
+        "add it in the correct nearby section before returning the answer. Do not mention line IDs "
+        "in the final answer.\n"
         "Faithfully transcribe and structure these OCR notes for a student. "
         "Inside the transcription sections, do not summarize, shorten, abridge, merge away, "
         "or rewrite the notes into a study guide. "
@@ -772,35 +816,39 @@ def _bedrock_verification_prompt(
         "2. Read the proposed cleaned transcription as a candidate final answer.\n"
         "3. If a line, word, equation, or label in the cleaned transcription seems unsupported, "
         "compare it to the OCR draft and the image character by character around the mismatch.\n"
-        "4. Use sentence meaning only as a warning signal. Meaning can tell you where to recheck, "
+        "4. Compare the candidate final answer against the OCR coverage checklist in the document "
+        "analysis context. If a readable OCR line, handwritten side note, label, table row, diagram "
+        "label, heading, or equation is missing from the candidate answer, restore it in the most "
+        "appropriate nearby section. Do not show OCR line IDs in the final answer.\n"
+        "5. Use sentence meaning only as a warning signal. Meaning can tell you where to recheck, "
         "but it cannot justify inventing content. Use semantic consistency to choose between "
         "visually similar OCR candidates only, such as b/6, a/6, O/0, o/0, l/1, I/1, S/5, "
         "z/2, x/×, rn/m, vv/w, +/t, and missing superscripts or brackets.\n"
-        "5. Apply minimal corrections only when the surrounding visible characters, OCR tokens, "
+        "6. Apply minimal corrections only when the surrounding visible characters, OCR tokens, "
         "line order, repeated symbols, and page context strongly support them.\n"
-        "6. Preserve the author's original wording and detail level. Do not rewrite notes into a "
+        "7. Preserve the author's original wording and detail level. Do not rewrite notes into a "
         "study guide, factsheet, answer key, or explanation.\n"
-        "7. Remove or replace unsupported additions with [unclear]. Unsupported additions include "
+        "8. Remove or replace unsupported additions with [unclear]. Unsupported additions include "
         "formula names, theorem names, definitions, geography facts, values, labels, or equations "
         "that are not visible or directly recoverable from OCR evidence.\n"
-        "8. For mathematics, verify every variable, operator, exponent, bracket, and number against "
+        "9. For mathematics, verify every variable, operator, exponent, bracket, and number against "
         "the page. Use math syntax only to identify suspicious OCR, not to generate a known formula. "
         "Never replace a visible equation with a different formula. If OCR reads '6' in a place "
         "where the same handwritten mark is used as variable 'b' elsewhere and the equation remains "
         "locally consistent as 'b', correct 6 -> b. If both are plausible, mark the character as "
         "[?] and list the ambiguity instead of guessing.\n"
-        "9. For printed plus handwritten documents, keep printed text close to its source and use "
+        "10. For printed plus handwritten documents, keep printed text close to its source and use "
         "the recheck mainly for handwritten annotations and low-confidence words.\n"
-        "10. Final sense check: every sentence should be grammatical when the handwriting supports "
+        "11. Final sense check: every sentence should be grammatical when the handwriting supports "
         "that reading, and every equation should be locally coherent when the symbols support that "
         "reading. Fix OCR-level nonsense, but do not add explanations or facts.\n"
-        "11. Compare the literal transcription against the corrected transcription. Reject any "
+        "12. Compare the literal transcription against the corrected transcription. Reject any "
         "correction that is not supported by repeated handwriting patterns, English grammar, "
         "mathematical consistency, or factual context visible in the page/OCR evidence.\n"
-        "12. For every remaining correction, make sure original text, corrected text, confidence, "
+        "13. For every remaining correction, make sure original text, corrected text, confidence, "
         "and reason are present. If confidence is below 90%, move it to alternatives/ambiguities "
         "instead of applying it.\n"
-        "13. If the cleaned transcription is already faithful, return it unchanged.\n\n"
+        "14. If the cleaned transcription is already faithful and complete, return it unchanged.\n\n"
         "Return only the corrected final answer in the same section format as the proposed "
         "transcription. If the proposed transcription is JSON, return valid JSON only with the same "
         "top-level keys. Do not include your verification notes, chain of thought, or a code fence. "
