@@ -543,7 +543,7 @@ Thanks for joining the Cleanote beta. You can start using the scanner here:
 
 Cleanote turns handwritten notes, worksheets, and annotated documents into editable, searchable text.
 
-We are also exploring the Cleanote+ 8.5-inch writing tablet bundle. Premium access is available at $9.99/month here:
+We are also exploring the Cleanote+ 8.5-inch writing tablet bundle. One-time Premium is available for $0.99 here:
 
 {_premium_link()}
 

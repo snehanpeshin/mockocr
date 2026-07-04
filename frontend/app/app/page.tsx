@@ -634,7 +634,7 @@ export default function Home() {
       <section className="premium-banner" aria-label="Cleanote Premium">
         <div>
           <strong>Premium is optional during launch</strong>
-          <span>Keep scanning for free, or support Cleanote with Monthly Premium $9.99 or Annual Premium $99.</span>
+          <span>Keep scanning for free, or support Cleanote with One-Time Premium for $0.99.</span>
         </div>
         <div className="premium-actions">
           <a href="/billing">View plans</a>

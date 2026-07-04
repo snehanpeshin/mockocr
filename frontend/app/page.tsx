@@ -99,7 +99,7 @@ export default function LandingPage() {
               Try Cleanote
             </a>
             <a className="doc-secondary" href="/billing">
-              Premium $9.99/mo
+              Premium $0.99
             </a>
             <a className="app-store-badge" href={APP_STORE_URL} rel="noreferrer" target="_blank">
               <Smartphone aria-hidden="true" size={22} />
@@ -153,7 +153,7 @@ export default function LandingPage() {
             less paper clutter and a cleaner way to save handwritten learning.
           </p>
           <div className="doc-price-callout">
-            <strong>$9.99/month</strong>
+            <strong>$0.99 one-time</strong>
             <span>Premium access now. Early tablet bundle interest captured for launch updates.</span>
           </div>
         </div>

@@ -6,8 +6,7 @@ import { getApiBase } from "../apiBase";
 const API_BASE = getApiBase();
 
 const PRODUCTS = [
-  { key: "cleanote_monthly_premium", label: "Monthly Premium ($9.99)" },
-  { key: "cleanote_annual_premium", label: "Annual Premium ($99)" }
+  { key: "cleanote_one_time_premium", label: "One-Time Premium ($0.99)" }
 ];
 
 type RevenueRow = {

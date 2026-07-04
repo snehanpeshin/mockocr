@@ -11,7 +11,7 @@ export default function RefundPage() {
           <h2>Overview</h2>
           <p>
             Cleanote offers digital OCR and note conversion tools. If you are not satisfied
-            with a paid Cleanote plan, you may request a refund within 7 days of purchase.
+            with a paid Cleanote purchase, you may request a refund within 7 days of purchase.
           </p>
         </section>
 
@@ -25,10 +25,10 @@ export default function RefundPage() {
         </section>
 
         <section>
-          <h2>Subscriptions</h2>
+          <h2>One-Time Premium</h2>
           <p>
-            Subscription cancellations stop future billing but do not automatically refund past
-            payments. If a refund is approved, it will be returned to the original payment method.
+            One-Time Premium is not a recurring subscription. If a refund is approved, it will be
+            returned to the original payment method.
           </p>
         </section>
 

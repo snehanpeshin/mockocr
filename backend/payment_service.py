@@ -21,19 +21,14 @@ except ImportError:  # pragma: no cover - keep non-billing local dev working.
 CLEANOTE_DBA = "Cleanote"
 
 PRODUCT_CONFIG = {
-    "cleanote_monthly_premium": {
+    "cleanote_one_time_premium": {
         "dba_name": CLEANOTE_DBA,
-        "product_name": "Cleanote Monthly Premium",
-        "mode": "subscription",
-        "product_env": "STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRODUCT_ID",
-        "price_env": "STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRICE_ID",
-    },
-    "cleanote_annual_premium": {
-        "dba_name": CLEANOTE_DBA,
-        "product_name": "Cleanote Annual Premium",
-        "mode": "subscription",
-        "product_env": "STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRODUCT_ID",
-        "price_env": "STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRICE_ID",
+        "product_name": "Cleanote One-Time Premium",
+        "mode": "payment",
+        "product_env": "STRIPE_CLEANOTE_ONE_TIME_PREMIUM_PRODUCT_ID",
+        "price_env": "STRIPE_CLEANOTE_ONE_TIME_PREMIUM_PRICE_ID",
+        "default_product_id": "prod_UpH9Wwph6Epw45",
+        "default_price_id": "price_1TpcbeFpqcjE8MaKolB8O4rS",
     },
 }
 
@@ -319,7 +314,7 @@ def _product_config(product_key: str) -> dict[str, str]:
 
 
 def _price_id(config: dict[str, str]) -> str:
-    price_id = os.getenv(config["price_env"], "").strip()
+    price_id = os.getenv(config["price_env"], "").strip() or config.get("default_price_id", "").strip()
     if not price_id:
         raise RuntimeError(f"Missing Stripe price env var: {config['price_env']}")
     return price_id
@@ -332,7 +327,10 @@ def _product_name_from_key(product_key: str) -> str:
 
 def _product_key_from_price(price_id: str) -> str:
     for product_key, config in PRODUCT_CONFIG.items():
-        if price_id and os.getenv(config["price_env"]) == price_id:
+        configured_price_id = os.getenv(config["price_env"], "").strip() or config.get(
+            "default_price_id", ""
+        ).strip()
+        if price_id and configured_price_id == price_id:
             return product_key
     return ""
 

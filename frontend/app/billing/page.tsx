@@ -9,18 +9,11 @@ const PREMIUM_ACCESS_KEY = "cleanote.premiumAccess";
 
 const PRODUCTS = [
   {
-    key: "cleanote_monthly_premium",
-    name: "Monthly Premium",
-    price: "$9.99/mo",
-    description: "Premium Cleanote access for OCR, cleanup, note search, and exports.",
-    cta: "Subscribe monthly"
-  },
-  {
-    key: "cleanote_annual_premium",
-    name: "Annual Premium",
-    price: "$99/yr",
-    description: "A full year of Cleanote Premium with two months effectively included.",
-    cta: "Subscribe annually"
+    key: "cleanote_one_time_premium",
+    name: "One-Time Premium",
+    price: "$0.99",
+    description: "Support Cleanote during launch with a simple one-time premium payment.",
+    cta: "Get premium"
   }
 ];
 
@@ -37,7 +30,7 @@ export default function BillingPage() {
       window.localStorage.setItem(PREMIUM_ACCESS_KEY, "true");
       setMessage("Premium is active on this browser. You can return to the scanner.");
     } else if (status === "cancelled") {
-      setMessage("Checkout was cancelled. You can choose a plan when you are ready.");
+      setMessage("Checkout was cancelled. You can try again when you are ready.");
     }
   }, []);
 
@@ -75,10 +68,10 @@ export default function BillingPage() {
       <section className="landing-hero billing-hero">
         <div className="landing-copy">
           <p className="eyebrow">Cleanote checkout</p>
-          <h1>Choose a Cleanote plan.</h1>
+          <h1>Get Cleanote Premium.</h1>
           <p>
-            Secure Checkout is powered by Stripe. The Stripe account is owned by Karigari Home
-            LLC, and Checkout is branded as Cleanote.
+            Premium is a one-time $0.99 launch payment. Secure Checkout is powered by Stripe,
+            owned by Karigari Home LLC, and branded as Cleanote.
           </p>
           <p className="company-line">
             Cleanote, a product of Karigari Home LLC · <a href="/privacy">Privacy Policy</a> ·{" "}

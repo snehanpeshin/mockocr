@@ -7,23 +7,16 @@ Cleanote by setting the Checkout Session `branding_settings.display_name` to `Cl
 
 Create these products in the same Stripe account:
 
-1. Cleanote Monthly Premium
-   - Price: $9.99 USD
-   - Pricing type: recurring monthly
-   - Copy the Product ID and Price ID.
-
-2. Cleanote Annual Premium
-   - Price: $99 USD
-   - Pricing type: recurring yearly
+1. Cleanote One-Time Premium
+   - Price: $0.99 USD
+   - Pricing type: one-time payment
    - Copy the Product ID and Price ID.
 
 Set the IDs in the backend environment:
 
 ```bash
-STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRODUCT_ID=prod_...
-STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRICE_ID=price_...
-STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRODUCT_ID=prod_...
-STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRICE_ID=price_...
+STRIPE_CLEANOTE_ONE_TIME_PREMIUM_PRODUCT_ID=prod_UpH9Wwph6Epw45
+STRIPE_CLEANOTE_ONE_TIME_PREMIUM_PRICE_ID=price_1TpcbeFpqcjE8MaKolB8O4rS
 ```
 
 ## Backend Environment Variables
@@ -31,10 +24,8 @@ STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRICE_ID=price_...
 ```bash
 STRIPE_SECRET_KEY=sk_live_or_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRODUCT_ID=prod_...
-STRIPE_CLEANOTE_MONTHLY_PREMIUM_PRICE_ID=price_...
-STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRODUCT_ID=prod_...
-STRIPE_CLEANOTE_ANNUAL_PREMIUM_PRICE_ID=price_...
+STRIPE_CLEANOTE_ONE_TIME_PREMIUM_PRODUCT_ID=prod_UpH9Wwph6Epw45
+STRIPE_CLEANOTE_ONE_TIME_PREMIUM_PRICE_ID=price_1TpcbeFpqcjE8MaKolB8O4rS
 STRIPE_PAYMENT_TABLE_NAME=cleanote-payments
 STRIPE_SUBSCRIPTION_TABLE_NAME=cleanote-subscriptions
 ADMIN_DASHBOARD_TOKEN=use_a_long_random_secret
@@ -164,7 +155,7 @@ POST /api/stripe/checkout-session
 
 ```json
 {
-  "product_key": "cleanote_monthly_premium",
+  "product_key": "cleanote_one_time_premium",
   "customer_email": "student@example.com",
   "success_url": "https://cleanote.in/billing?status=success",
   "cancel_url": "https://cleanote.in/billing?status=cancelled"
@@ -180,7 +171,7 @@ X-Admin-Token: your_admin_token
 
 ```json
 {
-  "product_key": "cleanote_annual_premium"
+  "product_key": "cleanote_one_time_premium"
 }
 ```
 
