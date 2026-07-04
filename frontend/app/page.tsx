@@ -6,6 +6,7 @@ import {
   Check,
   FileText,
   Lock,
+  LogOut,
   Search,
   Smartphone,
   Sparkles,
@@ -13,30 +14,90 @@ import {
 } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { getApiBase } from "./apiBase";
+import { authErrorMessage, useAuth } from "./lib/auth";
 
 const API_BASE = getApiBase();
 const APP_STORE_URL = "https://apps.apple.com/bz/app/cleanote/id6784403759";
 
-const BENEFITS = [
-  "Capture full pages and PDFs",
-  "Keep equations, labels, and side notes",
-  "Search, edit, copy, or export"
+const VISUAL_STEPS = [
+  {
+    label: "Import",
+    text: "Capture notebook pages, PDFs, screenshots, worksheets, and rough study material."
+  },
+  {
+    label: "Clean",
+    text: "Turn cluttered handwriting and annotations into organized, readable output."
+  },
+  {
+    label: "Export",
+    text: "Review the result, copy text, save notes, or export when you need a usable document."
+  }
 ];
 
-const OUTCOMES = [
-  "Less retyping after class",
-  "Cleaner study material",
-  "Notes you can actually find later"
+const HOW_IT_WORKS = [
+  "Upload or capture your notes",
+  "Let Cleanote organize the content",
+  "Review, export, or save the cleaned version"
+];
+
+const USE_CASES = [
+  "Students cleaning lecture notes",
+  "Researchers organizing PDFs",
+  "Professionals cleaning meeting notes",
+  "Creators turning rough drafts into readable content"
+];
+
+const FAQS = [
+  {
+    question: "Is Cleanote free?",
+    answer: "Cleanote for iPhone is available as a one-time $0.99 App Store download."
+  },
+  {
+    question: "Do I need an account?",
+    answer:
+      "You can use the iOS app after download. A Cleanote account is useful for supported sync, web access, and future account features."
+  },
+  {
+    question: "Can I use Cleanote on the web?",
+    answer:
+      "The website supports account access and may support web features depending on the current product version."
+  },
+  {
+    question: "Why is the app $0.99?",
+    answer: "The small one-time price helps support development, maintenance, and new features."
+  },
+  {
+    question: "Is my data private?",
+    answer:
+      "Cleanote explains what data is stored and how it is used in the Privacy Policy."
+  },
+  {
+    question: "Where can I get support?",
+    answer: "Visit the Support page for help with the app, website, OCR results, or your account."
+  }
 ];
 
 export default function LandingPage() {
+  const { user, isAuthLoading, logout } = useAuth();
   const [preorderName, setPreorderName] = useState("");
   const [preorderEmail, setPreorderEmail] = useState("");
   const [preorderRole, setPreorderRole] = useState("Parent");
   const [preorderQuantity, setPreorderQuantity] = useState("1");
   const [preorderUseCase, setPreorderUseCase] = useState("");
   const [preorderMessage, setPreorderMessage] = useState<string | null>(null);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [isSubmittingPreorder, setIsSubmittingPreorder] = useState(false);
+
+  const userLabel = user?.displayName || user?.email || "Cleanote user";
+
+  async function submitLogout() {
+    setAuthMessage(null);
+    try {
+      await logout();
+    } catch (error) {
+      setAuthMessage(authErrorMessage(error));
+    }
+  }
 
   async function submitTabletPreorder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,72 +137,128 @@ export default function LandingPage() {
           <span>Cleanote</span>
         </a>
         <nav aria-label="Cleanote navigation">
-          <a href="/app">App</a>
-          <a href="/billing">Premium</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="#pricing">Pricing</a>
+          <a href="/app">Web access</a>
           <a href="/support">Support</a>
         </nav>
-        <a className="doc-nav-cta" href="/app">
-          Open scanner <ArrowRight aria-hidden="true" size={17} />
-        </a>
+        <div className="doc-auth-actions">
+          {!isAuthLoading && user ? (
+            <>
+              <span className="doc-user-pill">{user.photoURL ? <img alt="" src={user.photoURL} /> : null}{userLabel}</span>
+              <button className="doc-logout" onClick={submitLogout} type="button">
+                <LogOut aria-hidden="true" size={16} />
+                Logout
+              </button>
+            </>
+          ) : (
+            <a className="doc-signin-link" href="/login">Sign in</a>
+          )}
+          <a className="doc-nav-cta app-store-mini" href={APP_STORE_URL} rel="noreferrer" target="_blank">
+            Download on the App Store
+          </a>
+        </div>
       </header>
+      {authMessage ? <p className="doc-auth-message">{authMessage}</p> : null}
 
       <section className="doc-hero simple-hero">
         <div className="doc-hero-copy">
-          <p className="doc-kicker">Handwriting OCR</p>
-          <h1>Convert handwritten notes into searchable documents.</h1>
+          <p className="doc-kicker">Cleanote for iPhone</p>
+          <h1>Clean notes from messy documents.</h1>
           <p>
-            Cleanote helps students, parents, researchers, and professionals turn notebook pages,
-            worksheets, PDFs, and annotated handouts into editable text they can review and use.
+            Cleanote helps you turn cluttered notes, PDFs, screenshots, and study material into
+            organized, readable outputs.
           </p>
           <div className="doc-actions">
-            <a className="doc-primary" href="/app">
-              <Upload aria-hidden="true" size={18} />
-              Try Cleanote
+            <a className="doc-primary app-store-primary" href={APP_STORE_URL} rel="noreferrer" target="_blank">
+              <Smartphone aria-hidden="true" size={18} />
+              Download on the App Store
             </a>
-            <a className="doc-secondary" href="/billing">
-              Premium $0.99
-            </a>
-            <a className="app-store-badge" href={APP_STORE_URL} rel="noreferrer" target="_blank">
-              <Smartphone aria-hidden="true" size={22} />
-              <span>
-                <small>Download on the</small>
-                App Store
-              </span>
+            <a className="doc-secondary" href={user ? "/app" : "/login"}>
+              {user ? "Try Cleanote Web" : "Sign in"}
             </a>
           </div>
-          <div className="simple-benefits" aria-label="Cleanote benefits">
-            {BENEFITS.map((benefit) => (
+          <p className="app-price-note">One-time $0.99 iPhone download. Account access is optional.</p>
+          <div className="simple-benefits" aria-label="Cleanote highlights">
+            {["Messy notes", "PDFs and screenshots", "Study material", "Readable exports"].map((benefit) => (
               <span key={benefit}>
                 <Check aria-hidden="true" size={16} />
                 {benefit}
               </span>
             ))}
           </div>
-          <div className="doc-outcomes" aria-label="What Cleanote helps with">
-            {OUTCOMES.map((outcome) => (
-              <span key={outcome}>{outcome}</span>
-            ))}
-          </div>
         </div>
 
-        <div className="doc-tool-preview simple-preview" aria-label="Cleanote preview">
-          <div className="doc-drop-preview">
-            <FileText aria-hidden="true" size={38} />
-            <strong>Drop a note here</strong>
-            <span>Image · PDF · DOCX</span>
+        <div className="product-visual" aria-label="Cleanote product preview">
+          <div className="phone-mockup">
+            <div className="phone-topbar" />
+            <div className="phone-card">
+              <FileText aria-hidden="true" size={28} />
+              <strong>Cluttered worksheet</strong>
+              <span>PDF · screenshot · handwritten page</span>
+            </div>
+            <div className="phone-card active">
+              <Sparkles aria-hidden="true" size={28} />
+              <strong>Cleaned output</strong>
+              <span>Readable sections, extracted text, review-ready notes</span>
+            </div>
           </div>
-          <div className="simple-output-preview">
-            <p>Result</p>
-            <strong>Text you can work with</strong>
-            <span>Cleanote keeps readable written material visible, including side notes, labels, and equations.</span>
+          <div className="visual-step-stack">
+            {VISUAL_STEPS.map((step) => (
+              <article key={step.label}>
+                <strong>{step.label}</strong>
+                <span>{step.text}</span>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
       <section className="doc-trust-bar simple-trust" aria-label="Cleanote highlights">
-        <span><Sparkles aria-hidden="true" size={18} /> Finds more page detail</span>
-        <span><Search aria-hidden="true" size={18} /> Makes notes searchable</span>
-        <span><Lock aria-hidden="true" size={18} /> Keeps review in your hands</span>
+        <span><Upload aria-hidden="true" size={18} /> Capture document mess</span>
+        <span><Search aria-hidden="true" size={18} /> Make notes searchable</span>
+        <span><Lock aria-hidden="true" size={18} /> Keep review in your hands</span>
+      </section>
+
+      <section className="doc-process-section" id="how-it-works">
+        <div className="doc-section-heading">
+          <p className="doc-kicker">How it works</p>
+          <h2>From rough capture to usable notes.</h2>
+        </div>
+        <div className="launch-step-grid">
+          {HOW_IT_WORKS.map((step, index) => (
+            <article key={step}>
+              <span>{index + 1}</span>
+              <h3>{step}</h3>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="doc-use-case-band launch-use-cases">
+        <div>
+          <p className="doc-kicker">Use cases</p>
+          <h2>Built for people with real paper and rough files.</h2>
+        </div>
+        <div className="doc-use-case-list">
+          {USE_CASES.map((useCase) => (
+            <span key={useCase}><Check aria-hidden="true" size={15} />{useCase}</span>
+          ))}
+        </div>
+      </section>
+
+      <section className="pricing-panel" id="pricing">
+        <div>
+          <p className="doc-kicker">Pricing</p>
+          <h2>Cleanote for iPhone is available as a one-time $0.99 App Store download.</h2>
+          <p>
+            An account is optional and helps with supported web access, syncing, and future features.
+          </p>
+        </div>
+        <a className="doc-primary" href={APP_STORE_URL} rel="noreferrer" target="_blank">
+          <Smartphone aria-hidden="true" size={18} />
+          Download on the App Store
+        </a>
       </section>
 
       <section className="doc-tablet-band simple-tablet" aria-label="Cleanote tablet bundle preorder">
@@ -153,8 +270,8 @@ export default function LandingPage() {
             less paper clutter and a cleaner way to save handwritten learning.
           </p>
           <div className="doc-price-callout">
-            <strong>$0.99 one-time</strong>
-            <span>Premium access now. Early tablet bundle interest captured for launch updates.</span>
+            <strong>Coming soon</strong>
+            <span>Early tablet bundle interest is captured for launch updates.</span>
           </div>
         </div>
         <figure className="doc-tablet-figure">
@@ -200,23 +317,53 @@ export default function LandingPage() {
           <button className="primary tablet-preorder-button" disabled={isSubmittingPreorder} type="submit">
             {isSubmittingPreorder ? "Saving" : "Save my interest"}
           </button>
-          <a className="tablet-premium-link" href="/billing">
-            Get Premium now <ArrowRight aria-hidden="true" size={16} />
+          <a className="tablet-premium-link" href={APP_STORE_URL} rel="noreferrer" target="_blank">
+            Download the iPhone app <ArrowRight aria-hidden="true" size={16} />
           </a>
           {preorderMessage ? <p className="tablet-preorder-message">{preorderMessage}</p> : null}
         </form>
       </section>
 
+      <section className="faq-section" aria-label="Cleanote FAQ">
+        <div className="doc-section-heading">
+          <p className="doc-kicker">FAQ</p>
+          <h2>Questions before you download.</h2>
+        </div>
+        <div className="faq-grid">
+          {FAQS.map((faq) => (
+            <article key={faq.question}>
+              <h3>{faq.question}</h3>
+              <p>
+                {faq.question === "Is my data private?" ? (
+                  <>
+                    Cleanote explains what data is stored and how it is used in the{" "}
+                    <a href="/privacy">Privacy Policy</a>.
+                  </>
+                ) : faq.question === "Where can I get support?" ? (
+                  <>
+                    Visit the <a href="/support">Support page</a> for help with the app, website,
+                    OCR results, or your account.
+                  </>
+                ) : (
+                  faq.answer
+                )}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <footer className="doc-footer">
         <div>
           <img alt="" src="/cleanote-icon.png" />
-          <span>Cleanote, a product of Karigari Home LLC</span>
+          <span>Cleanote turns messy notes and documents into readable outputs.</span>
         </div>
         <nav aria-label="Footer links">
-          <a href="/privacy"><Lock aria-hidden="true" size={15} /> Privacy</a>
-          <a href="/refund">Refunds</a>
+          <a href="/privacy"><Lock aria-hidden="true" size={15} /> Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
           <a href="/support">Support</a>
-          <a href={APP_STORE_URL} rel="noreferrer" target="_blank">iPhone App</a>
+          <a href="/support">Contact</a>
+          <a href={APP_STORE_URL} rel="noreferrer" target="_blank">App Store</a>
           <a href="/app"><BookOpen aria-hidden="true" size={15} /> App</a>
         </nav>
       </footer>

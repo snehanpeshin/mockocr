@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { AuthProvider } from "./lib/auth";
 import "./styles.css";
 
 export const metadata: Metadata = {
@@ -56,7 +57,7 @@ export default function RootLayout({
             gtag('config', 'AW-18239515056');
           `}
         </Script>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

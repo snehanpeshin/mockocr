@@ -22,6 +22,7 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { getApiBase } from "../apiBase";
 
 const API_BASE = getApiBase();
+const APP_STORE_URL = "https://apps.apple.com/bz/app/cleanote/id6784403759";
 const SAVED_NOTES_KEY = "cleanote.savedNotes";
 const LEGACY_SAVED_NOTES_KEY = "pen2txt.savedNotes";
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -619,7 +620,7 @@ export default function Home() {
             <h1>Scan notes into editable text</h1>
             <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
             <div className="topbar-links">
-              <a className="policy-link" href="/billing">Premium</a>
+              <a className="policy-link" href={APP_STORE_URL} rel="noreferrer" target="_blank">iPhone App</a>
               <a className="policy-link" href="/privacy">Privacy Policy</a>
               <a className="policy-link" href="/refund">Refund Policy</a>
             </div>
@@ -633,11 +634,11 @@ export default function Home() {
 
       <section className="premium-banner" aria-label="Cleanote Premium">
         <div>
-          <strong>Premium is optional during launch</strong>
-          <span>Keep scanning for free, or support Cleanote with One-Time Premium for $0.99.</span>
+          <strong>Cleanote for iPhone is available now</strong>
+          <span>Download the paid iOS app from the App Store for a one-time $0.99 purchase.</span>
         </div>
         <div className="premium-actions">
-          <a href="/billing">View plans</a>
+          <a href={APP_STORE_URL} rel="noreferrer" target="_blank">Download app</a>
           <a href="/refund">Refund policy</a>
         </div>
       </section>
