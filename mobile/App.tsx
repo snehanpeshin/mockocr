@@ -49,6 +49,8 @@ const SUBJECTS = [
   "research"
 ];
 
+const OUTCOMES = ["Full pages", "Equations & labels", "Searchable notes"];
+
 export default function App() {
   const [pickedImages, setPickedImages] = useState<PickedImage[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -62,7 +64,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [message, setMessage] = useState("Choose a notebook photo to begin.");
+  const [message, setMessage] = useState("Choose a page to turn handwriting into searchable text.");
 
   const pickedImage = pickedImages[activeImageIndex] ?? null;
 
@@ -109,7 +111,7 @@ export default function App() {
     setMessage(
       nextImages.length > 1
         ? `${nextImages.length} pages ready. Tap Scan all.`
-        : "Photo ready. Tap Scan handwriting."
+        : "Photo ready. Tap Scan note."
     );
   }
 
@@ -120,7 +122,7 @@ export default function App() {
     }
 
     setIsScanning(true);
-    setMessage(pickedImages.length > 1 ? "Scanning pages..." : "Scanning handwriting...");
+    setMessage(pickedImages.length > 1 ? "Scanning pages..." : "Scanning note...");
 
     try {
       const results = [];
@@ -164,7 +166,7 @@ export default function App() {
       setMessage(
         results.length > 1
           ? `Scan complete for ${results.length} pages.`
-          : "Scan complete. Edit, save, or search your notes."
+          : "Scan complete. Edit, save, or search your note."
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "OCR failed.");
@@ -257,11 +259,11 @@ export default function App() {
     setFilename(null);
     setProvider(null);
     setText("");
-    setMessage("Choose a notebook photo to begin.");
+    setMessage("Choose a page to turn handwriting into searchable text.");
   }
 
   function openPrivacyPolicy() {
-    void Linking.openURL("https://main.d3vhgcrptn13ws.amplifyapp.com/privacy");
+    void Linking.openURL("https://www.cleanote.in/privacy");
   }
 
   return (
@@ -275,11 +277,19 @@ export default function App() {
           <View style={styles.header}>
             <Image source={require("./assets/icon.png")} style={styles.logo} />
             <Text style={styles.eyebrow}>Cleanote mobile</Text>
-            <Text style={styles.title}>Scan notes into searchable text</Text>
+            <Text style={styles.title}>Convert handwritten notes into searchable documents</Text>
             <Text style={styles.companyLine}>Cleanote, a product of Karigari Home LLC</Text>
             <Text style={styles.subtitle}>
-              Put notebook pages first, scan them into editable text, then save and search.
+              Capture notebook pages, worksheets, and handwritten study material. Review the
+              editable text, save it, and find it later.
             </Text>
+            <View style={styles.outcomeRow}>
+              {OUTCOMES.map((outcome) => (
+                <View key={outcome} style={styles.outcomeCard}>
+                  <Text style={styles.outcomeText}>{outcome}</Text>
+                </View>
+              ))}
+            </View>
             <Pressable onPress={openPrivacyPolicy}>
               <Text style={styles.policyLink}>Privacy Policy</Text>
             </Pressable>
@@ -375,7 +385,7 @@ export default function App() {
             >
               {isScanning ? <ActivityIndicator color="#fff" /> : null}
               <Text style={styles.primaryButtonText}>
-                {isScanning ? "Scanning" : pickedImages.length > 1 ? "Scan all" : "Scan handwriting"}
+                {isScanning ? "Scanning" : pickedImages.length > 1 ? "Scan all" : "Scan note"}
               </Text>
             </Pressable>
             {pickedImages.length ? (
@@ -576,6 +586,27 @@ const styles = StyleSheet.create({
     color: "#182024",
     fontWeight: "800"
   },
+  outcomeCard: {
+    backgroundColor: "#eef7f5",
+    borderColor: "#cde4df",
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    minHeight: 42,
+    paddingHorizontal: 10,
+    paddingVertical: 9
+  },
+  outcomeRow: {
+    flexDirection: "row",
+    gap: 8
+  },
+  outcomeText: {
+    color: "#17614f",
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 16,
+    textAlign: "center"
+  },
   panel: {
     backgroundColor: "#ffffff",
     borderColor: "#d8e0e2",
@@ -728,8 +759,8 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#182024",
-    fontSize: 34,
-    fontWeight: "900",
-    lineHeight: 38
+    fontSize: 31,
+    fontWeight: "800",
+    lineHeight: 36
   }
 });

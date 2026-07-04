@@ -2,12 +2,13 @@
   "expo": {
     "name": "Cleanote",
     "slug": "cleanote",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "com.cleanote.app",
+      "buildNumber": "2",
       "infoPlist": {
         "NSCameraUsageDescription": "Cleanote uses the camera to scan handwritten notes.",
         "NSPhotoLibraryUsageDescription": "Cleanote uses your photo library to import handwritten notes.",
@@ -23,6 +24,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.cleanote.app",
+      "versionCode": 3,
       "permissions": [
         "CAMERA"
       ],
