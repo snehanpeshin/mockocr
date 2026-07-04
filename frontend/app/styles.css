@@ -1957,6 +1957,29 @@ textarea:focus {
   color: var(--ink);
 }
 
+.app-store-badge {
+  background: #05070a;
+  border: 1px solid #05070a;
+  color: #ffffff;
+  min-width: 176px;
+}
+
+.app-store-badge svg {
+  flex: 0 0 auto;
+}
+
+.app-store-badge span {
+  display: grid;
+  gap: 1px;
+  line-height: 1;
+}
+
+.app-store-badge small {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
 .doc-file-types {
   display: flex;
   flex-wrap: wrap;

@@ -7,6 +7,7 @@ import {
   FileText,
   Lock,
   Search,
+  Smartphone,
   Sparkles,
   Upload
 } from "lucide-react";
@@ -14,6 +15,7 @@ import { FormEvent, useState } from "react";
 import { getApiBase } from "./apiBase";
 
 const API_BASE = getApiBase();
+const APP_STORE_URL = "https://apps.apple.com/bz/app/cleanote/id6784403759";
 
 const BENEFITS = [
   "Capture full pages and PDFs",
@@ -98,6 +100,13 @@ export default function LandingPage() {
             </a>
             <a className="doc-secondary" href="/billing">
               Premium $9.99/mo
+            </a>
+            <a className="app-store-badge" href={APP_STORE_URL} rel="noreferrer" target="_blank">
+              <Smartphone aria-hidden="true" size={22} />
+              <span>
+                <small>Download on the</small>
+                App Store
+              </span>
             </a>
           </div>
           <div className="simple-benefits" aria-label="Cleanote benefits">
@@ -207,6 +216,7 @@ export default function LandingPage() {
           <a href="/privacy"><Lock aria-hidden="true" size={15} /> Privacy</a>
           <a href="/refund">Refunds</a>
           <a href="/support">Support</a>
+          <a href={APP_STORE_URL} rel="noreferrer" target="_blank">iPhone App</a>
           <a href="/app"><BookOpen aria-hidden="true" size={15} /> App</a>
         </nav>
       </footer>
