@@ -95,6 +95,25 @@ type BetaSummary = {
   recent_signups: BetaSignup[];
 };
 
+type TabletPreorder = {
+  created_at: string;
+  email: string;
+  name: string;
+  role: string;
+  quantity: number;
+  use_case: string;
+  status: string;
+  product: string;
+};
+
+type TabletPreorderSummary = {
+  available?: boolean;
+  error?: string;
+  preorder_count: number;
+  total_quantity: number;
+  recent_preorders: TabletPreorder[];
+};
+
 type RevenueSummary = {
   total_revenue: string;
   revenue_by_dba: RevenueRow[];
@@ -105,6 +124,7 @@ type RevenueSummary = {
   scan_summary?: ScanSummary;
   feedback_summary?: FeedbackSummary;
   beta_summary?: BetaSummary;
+  tablet_preorder_summary?: TabletPreorderSummary;
 };
 
 export default function AdminPage() {
@@ -261,6 +281,47 @@ export default function AdminPage() {
     URL.revokeObjectURL(url);
   }
 
+  function downloadTabletPreorderCsv() {
+    const rows = summary?.tablet_preorder_summary?.recent_preorders ?? [];
+    if (!rows.length) {
+      setMessage("No tablet preorder interest yet.");
+      return;
+    }
+
+    const header = [
+      "created_at",
+      "email",
+      "name",
+      "role",
+      "quantity",
+      "status",
+      "product",
+      "use_case"
+    ];
+    const csvRows = [
+      header,
+      ...rows.map((row) => [
+        row.created_at,
+        row.email,
+        row.name,
+        row.role,
+        String(row.quantity),
+        row.status,
+        row.product,
+        row.use_case
+      ])
+    ];
+    const csv = csvRows
+      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "cleanote-tablet-preorders.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <main className="admin-shell">
       <section className="admin-header">
@@ -318,6 +379,14 @@ export default function AdminPage() {
             <p className="eyebrow">Manual emails needed</p>
             <strong>{summary.beta_summary?.manual_required_count ?? 0}</strong>
           </div>
+          <div className="admin-card metric-card">
+            <p className="eyebrow">Tablet preorder leads</p>
+            <strong>{summary.tablet_preorder_summary?.preorder_count ?? 0}</strong>
+          </div>
+          <div className="admin-card metric-card">
+            <p className="eyebrow">Tablet units requested</p>
+            <strong>{summary.tablet_preorder_summary?.total_quantity ?? 0}</strong>
+          </div>
           <div className="admin-card payment-link-card">
             <h2>Create Payment Link</h2>
             <select
@@ -367,7 +436,36 @@ export default function AdminPage() {
               Download beta CSV
             </button>
           </div>
+          <div className="admin-card payment-link-card">
+            <h2>Tablet Preorder Export</h2>
+            {summary.tablet_preorder_summary?.available === false ? (
+              <p className="message">
+                Tablet preorder list unavailable: {summary.tablet_preorder_summary.error}. Check
+                backend DynamoDB permissions for cleanote-beta.
+              </p>
+            ) : (
+              <p className="message">
+                Download early Cleanote+ tablet bundle preorder interest.
+              </p>
+            )}
+            <button className="primary" onClick={downloadTabletPreorderCsv} type="button">
+              Download preorder CSV
+            </button>
+          </div>
 
+          <Table
+            columns={["Name", "Email", "Role", "Qty", "Use case", "Status", "Date"]}
+            rows={(summary.tablet_preorder_summary?.recent_preorders ?? []).map((row) => [
+              row.name || "Unknown",
+              row.email,
+              row.role,
+              String(row.quantity),
+              row.use_case,
+              row.status,
+              row.created_at.slice(0, 10)
+            ])}
+            title="Tablet preorder interest"
+          />
           <Table
             columns={["Name", "Email", "Role", "Access", "Email status", "Follow-up", "App link", "Premium"]}
             rows={(summary.beta_summary?.recent_signups ?? []).map((row) => [

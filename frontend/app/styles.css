@@ -2286,7 +2286,7 @@ textarea:focus {
 .doc-tablet-band {
   background: #122033;
   border-color: #1d334f;
-  grid-template-columns: minmax(0, 0.95fr) minmax(220px, 0.62fr) auto;
+  grid-template-columns: minmax(0, 0.9fr) minmax(220px, 0.58fr) minmax(280px, 0.74fr);
 }
 
 .simple-tablet {
@@ -2369,6 +2369,68 @@ textarea:focus {
 .doc-tablet-actions a:nth-child(2) {
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
   color: #ffffff;
+}
+
+.tablet-preorder-form {
+  align-self: stretch;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.tablet-preorder-form h3 {
+  color: #ffffff;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.tablet-preorder-form input,
+.tablet-preorder-form select,
+.tablet-preorder-form textarea {
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  min-height: 42px;
+  padding: 10px 11px;
+  width: 100%;
+}
+
+.tablet-preorder-form textarea {
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.tablet-preorder-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 84px;
+}
+
+.tablet-preorder-button {
+  width: 100%;
+}
+
+.tablet-premium-link {
+  align-items: center;
+  color: #b9d8ff;
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 850;
+  gap: 6px;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.tablet-preorder-message {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .doc-footer {

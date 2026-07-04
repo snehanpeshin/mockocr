@@ -18,8 +18,10 @@ from image_preprocess import preprocess_image_variants
 from beta_service import (
     beta_summary,
     feedback_summary,
+    request_tablet_preorder,
     request_beta_access,
     save_customer_discovery,
+    tablet_preorder_summary,
     verify_beta_token,
 )
 from note_service import save_note, search_notes
@@ -73,6 +75,14 @@ class BetaRequest(BaseModel):
     name: str
     email: str
     role: str
+
+
+class TabletPreorderRequest(BaseModel):
+    name: str
+    email: str
+    role: str
+    quantity: int = 1
+    use_case: str = ""
 
 
 class DiscoveryRequest(BaseModel):
@@ -154,6 +164,18 @@ def verify_beta(token: str) -> dict[str, object]:
 def save_beta_discovery(payload: DiscoveryRequest) -> dict[str, str]:
     try:
         return save_customer_discovery(payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/tablet/preorder")
+def request_tablet_bundle_preorder(payload: TabletPreorderRequest) -> dict[str, str]:
+    try:
+        return request_tablet_preorder(payload.model_dump())
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -244,6 +266,7 @@ def admin_revenue(x_admin_token: str | None = Header(default=None)) -> dict[str,
             "beta_summary": _safe_beta_summary(),
             "scan_summary": scan_summary(),
             "feedback_summary": feedback_summary(),
+            "tablet_preorder_summary": _safe_tablet_preorder_summary(),
         }
     except PermissionError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
@@ -265,6 +288,19 @@ def _safe_beta_summary() -> dict[str, object]:
             "manual_required_count": 0,
             "emailed_count": 0,
             "recent_signups": [],
+        }
+
+
+def _safe_tablet_preorder_summary() -> dict[str, object]:
+    try:
+        return tablet_preorder_summary()
+    except Exception as exc:
+        return {
+            "available": False,
+            "error": str(exc),
+            "preorder_count": 0,
+            "total_quantity": 0,
+            "recent_preorders": [],
         }
 
 

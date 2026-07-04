@@ -1,3 +1,5 @@
+"use client";
+
 import {
   ArrowRight,
   BookOpen,
@@ -8,6 +10,10 @@ import {
   Sparkles,
   Upload
 } from "lucide-react";
+import { FormEvent, useState } from "react";
+import { getApiBase } from "./apiBase";
+
+const API_BASE = getApiBase();
 
 const BENEFITS = [
   "Capture full pages and PDFs",
@@ -22,6 +28,44 @@ const OUTCOMES = [
 ];
 
 export default function LandingPage() {
+  const [preorderName, setPreorderName] = useState("");
+  const [preorderEmail, setPreorderEmail] = useState("");
+  const [preorderRole, setPreorderRole] = useState("Parent");
+  const [preorderQuantity, setPreorderQuantity] = useState("1");
+  const [preorderUseCase, setPreorderUseCase] = useState("");
+  const [preorderMessage, setPreorderMessage] = useState<string | null>(null);
+  const [isSubmittingPreorder, setIsSubmittingPreorder] = useState(false);
+
+  async function submitTabletPreorder(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmittingPreorder(true);
+    setPreorderMessage(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/tablet/preorder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: preorderName,
+          email: preorderEmail,
+          role: preorderRole,
+          quantity: Number(preorderQuantity) || 1,
+          use_case: preorderUseCase
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail ?? "Could not save preorder interest.");
+      }
+      setPreorderMessage(payload.message ?? "Thanks. Your preorder interest was saved.");
+      setPreorderUseCase("");
+    } catch (error) {
+      setPreorderMessage(error instanceof Error ? error.message : "Could not save preorder interest.");
+    } finally {
+      setIsSubmittingPreorder(false);
+    }
+  }
+
   return (
     <main className="site-shell document-site">
       <header className="doc-nav">
@@ -93,7 +137,7 @@ export default function LandingPage() {
 
       <section className="doc-tablet-band simple-tablet" aria-label="Cleanote tablet bundle preorder">
         <div className="doc-tablet-copy">
-          <p className="doc-kicker">Coming soon</p>
+          <p className="doc-kicker">Coming soon · early preorder interest open</p>
           <h2>Cleanote+ writing tablet bundle.</h2>
           <p>
             A simple 8.5-inch writing tablet concept for kids, tutors, and families who want
@@ -101,18 +145,57 @@ export default function LandingPage() {
           </p>
           <div className="doc-price-callout">
             <strong>$9.99/month</strong>
-            <span>Premium access now. Tablet bundle preorder interest included.</span>
+            <span>Premium access now. Early tablet bundle interest captured for launch updates.</span>
           </div>
         </div>
         <figure className="doc-tablet-figure">
           <img alt="Cleanote tablet bundle concept" src="/cleanote-tablet-concept.jpg" />
         </figure>
-        <div className="doc-tablet-actions">
-          <a href="/billing">
-            Get Premium <ArrowRight aria-hidden="true" size={17} />
+        <form className="tablet-preorder-form" onSubmit={submitTabletPreorder}>
+          <h3>Join preorder interest</h3>
+          <input
+            onChange={(event) => setPreorderName(event.target.value)}
+            placeholder="Name"
+            required
+            value={preorderName}
+          />
+          <input
+            onChange={(event) => setPreorderEmail(event.target.value)}
+            placeholder="Email"
+            required
+            type="email"
+            value={preorderEmail}
+          />
+          <div className="tablet-preorder-row">
+            <select onChange={(event) => setPreorderRole(event.target.value)} value={preorderRole}>
+              <option>Parent</option>
+              <option>Student</option>
+              <option>Tutor</option>
+              <option>Teacher</option>
+              <option>Professional</option>
+            </select>
+            <input
+              min="1"
+              max="50"
+              onChange={(event) => setPreorderQuantity(event.target.value)}
+              type="number"
+              value={preorderQuantity}
+            />
+          </div>
+          <textarea
+            onChange={(event) => setPreorderUseCase(event.target.value)}
+            placeholder="Who would use it? Example: my child for homework, tutoring students, lab notes..."
+            rows={3}
+            value={preorderUseCase}
+          />
+          <button className="primary tablet-preorder-button" disabled={isSubmittingPreorder} type="submit">
+            {isSubmittingPreorder ? "Saving" : "Save my interest"}
+          </button>
+          <a className="tablet-premium-link" href="/billing">
+            Get Premium now <ArrowRight aria-hidden="true" size={16} />
           </a>
-          <a href="/beta">Join preorder list</a>
-        </div>
+          {preorderMessage ? <p className="tablet-preorder-message">{preorderMessage}</p> : null}
+        </form>
       </section>
 
       <footer className="doc-footer">

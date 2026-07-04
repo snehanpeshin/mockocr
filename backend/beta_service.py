@@ -15,6 +15,7 @@ except ImportError:  # pragma: no cover - local non-AWS installs can still run O
 
 
 ALLOWED_ROLES = {"Student", "Researcher", "Professional"}
+ALLOWED_PREORDER_ROLES = {"Parent", "Student", "Tutor", "Teacher", "Professional"}
 
 
 def request_beta_access(name: str, email: str, role: str) -> dict[str, Any]:
@@ -213,6 +214,81 @@ def save_customer_discovery(feedback: dict[str, Any]) -> dict[str, str]:
     return {"status": "saved", "email": normalized_email}
 
 
+def request_tablet_preorder(lead: dict[str, Any]) -> dict[str, str]:
+    _ensure_configured()
+
+    normalized_email = _normalize_email(str(lead.get("email", "")))
+    normalized_name = _clean_text(lead.get("name", ""), 120)
+    normalized_role = _clean_text(lead.get("role", ""), 40)
+    if normalized_role not in ALLOWED_PREORDER_ROLES:
+        raise ValueError("Choose Parent, Student, Tutor, Teacher, or Professional.")
+
+    now = _now().isoformat()
+    preorder = {
+        "preorder_id": str(uuid4()),
+        "created_at": now,
+        "name": normalized_name,
+        "email": normalized_email,
+        "role": normalized_role,
+        "quantity": _preorder_quantity(lead.get("quantity")),
+        "use_case": _clean_text(lead.get("use_case", ""), 700),
+        "status": "interested",
+        "product": "Cleanote+ 8.5-inch writing tablet bundle",
+        "app_link": _app_link(),
+        "premium_link": _premium_link(),
+    }
+
+    _table().update_item(
+        Key={"email": normalized_email},
+        UpdateExpression=(
+            "SET #name = if_not_exists(#name, :name), "
+            "#role = if_not_exists(#role, :role), "
+            "#status = if_not_exists(#status, :status), "
+            "beta_access = if_not_exists(beta_access, :beta_access), "
+            "tablet_bundle_status = :tablet_bundle_status, "
+            "latest_tablet_preorder = :preorder, "
+            "last_tablet_preorder_at = :now, "
+            "app_link = :app_link, "
+            "premium_link = :premium_link, "
+            "followup_status = if_not_exists(followup_status, :followup_status), "
+            "auto_reply_status = if_not_exists(auto_reply_status, :auto_reply_status), "
+            "manual_email_subject = :manual_email_subject, "
+            "manual_email_body = :manual_email_body, "
+            "tablet_preorders = list_append(if_not_exists(tablet_preorders, :empty), :preorders)"
+        ),
+        ExpressionAttributeNames={
+            "#name": "name",
+            "#role": "role",
+            "#status": "status",
+        },
+        ExpressionAttributeValues={
+            ":name": normalized_name,
+            ":role": normalized_role,
+            ":status": "verified",
+            ":beta_access": True,
+            ":tablet_bundle_status": "preorder_interest",
+            ":preorder": preorder,
+            ":preorders": [preorder],
+            ":empty": [],
+            ":now": now,
+            ":app_link": _app_link(),
+            ":premium_link": _premium_link(),
+            ":followup_status": "needs_manual_followup",
+            ":auto_reply_status": "manual_required_ses_disabled",
+            ":manual_email_subject": _tablet_preorder_subject(),
+            ":manual_email_body": _tablet_preorder_body(normalized_name),
+        },
+    )
+    return {
+        "status": "saved",
+        "email": normalized_email,
+        "message": (
+            "Thanks. Your Cleanote+ tablet bundle preorder interest was saved. "
+            "We will follow up as the preorder opens."
+        ),
+    }
+
+
 def feedback_summary(limit: int = 50) -> dict[str, Any]:
     _ensure_configured()
 
@@ -255,6 +331,40 @@ def feedback_summary(limit: int = 50) -> dict[str, Any]:
         "feedback_count": len(responses),
         "average_rating": average_rating,
         "recent_feedback": responses[: max(1, min(limit, 200))],
+    }
+
+
+def tablet_preorder_summary(limit: int = 100) -> dict[str, Any]:
+    _ensure_configured()
+
+    preorders: list[dict[str, Any]] = []
+    for item in _scan_all(_table()):
+        user_preorders = item.get("tablet_preorders") or []
+        if not user_preorders and item.get("latest_tablet_preorder"):
+            user_preorders = [item["latest_tablet_preorder"]]
+
+        for preorder in user_preorders:
+            if not isinstance(preorder, dict):
+                continue
+            preorders.append(
+                {
+                    "created_at": preorder.get("created_at", ""),
+                    "email": preorder.get("email") or item.get("email", ""),
+                    "name": preorder.get("name") or item.get("name", ""),
+                    "role": preorder.get("role") or item.get("role", ""),
+                    "quantity": int(preorder.get("quantity") or 1),
+                    "use_case": preorder.get("use_case", ""),
+                    "status": preorder.get("status", "interested"),
+                    "product": preorder.get("product", "Cleanote+ 8.5-inch writing tablet bundle"),
+                }
+            )
+
+    preorders.sort(key=lambda preorder: preorder["created_at"], reverse=True)
+    total_quantity = sum(preorder["quantity"] for preorder in preorders)
+    return {
+        "preorder_count": len(preorders),
+        "total_quantity": total_quantity,
+        "recent_preorders": preorders[: max(1, min(limit, 300))],
     }
 
 
@@ -398,6 +508,31 @@ def _manual_followup_subject() -> str:
     return "Welcome to Cleanote beta"
 
 
+def _tablet_preorder_subject() -> str:
+    return "Cleanote+ tablet bundle preorder interest"
+
+
+def _tablet_preorder_body(name: str = "") -> str:
+    greeting = f"Hi {name}," if str(name).strip() else "Hi,"
+    return f"""{greeting}
+
+Thanks for your interest in the Cleanote+ 8.5-inch writing tablet bundle.
+
+We are collecting early preorder interest now. The bundle is planned for kids, tutors, families, and note-heavy learners who want to write on a simple tablet and save work through Cleanote.
+
+You can use Cleanote now here:
+{_app_link()}
+
+Premium access is available here:
+{_premium_link()}
+
+We will follow up when preorder details are ready.
+
+Cleanote
+Karigari Home LLC
+"""
+
+
 def _manual_followup_body(name: str = "") -> str:
     greeting = f"Hi {name}," if str(name).strip() else "Hi,"
     return f"""{greeting}
@@ -424,6 +559,13 @@ def _signup_message() -> str:
         "Thanks. Your beta details were saved. You can open Cleanote now, and we will get "
         "back to you within 1-2 days with app and tablet bundle details."
     )
+
+
+def _preorder_quantity(value: Any) -> int:
+    try:
+        return max(1, min(50, int(value or 1)))
+    except (TypeError, ValueError):
+        return 1
 
 
 def _normalize_email(email: str) -> str:
