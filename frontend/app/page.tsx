@@ -161,7 +161,13 @@ export default function LandingPage() {
       </header>
       {authMessage ? <p className="doc-auth-message">{authMessage}</p> : null}
 
-      <section className="doc-hero simple-hero">
+      <section className="doc-hero simple-hero video-hero">
+        <div className="hero-video-layer" aria-hidden="true">
+          <video autoPlay loop muted playsInline aria-hidden="true" poster="/cleanote-tablet-concept.jpg">
+            <source src="/videos/productivity-video.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <div className="hero-video-overlay" aria-hidden="true" />
         <div className="doc-hero-copy">
           <p className="doc-kicker">Cleanote for iPhone</p>
           <h1>Clean notes from messy documents.</h1>
