@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Camera,
   Clipboard,
   Check,
   Crop,
@@ -18,7 +19,8 @@ import {
   Trash2,
   Upload
 } from "lucide-react";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, MutableRefObject } from "react";
 import { getApiBase } from "../apiBase";
 
 const API_BASE = getApiBase();
@@ -72,6 +74,12 @@ type ImageQualityRecommendation = {
   recommendedContrast: number;
 };
 
+type CameraQuality = {
+  detail: string;
+  ready: boolean;
+  status: "checking" | "ready" | "warning";
+};
+
 type DocxPreviewResponse = {
   filename: string;
   html: string;
@@ -90,6 +98,12 @@ const SUBJECTS = [
 ];
 
 export default function Home() {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const steadyStartRef = useRef<number | null>(null);
+  const previousFrameRef = useRef<Uint8ClampedArray | null>(null);
+  const hasAutoCapturedRef = useRef(false);
   const [files, setFiles] = useState<File[]>([]);
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
@@ -116,6 +130,14 @@ export default function Home() {
   const [docxPreviewHtml, setDocxPreviewHtml] = useState("");
   const [isLoadingDocxPreview, setIsLoadingDocxPreview] = useState(false);
   const [docxPreviewError, setDocxPreviewError] = useState<string | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isAutoCaptureEnabled, setIsAutoCaptureEnabled] = useState(true);
+  const [cameraQuality, setCameraQuality] = useState<CameraQuality>({
+    detail: "Start camera to align the page.",
+    ready: false,
+    status: "checking"
+  });
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const [showDiscoveryForm, setShowDiscoveryForm] = useState(false);
   const [discoveryEmail, setDiscoveryEmail] = useState("");
   const [discoveryRating, setDiscoveryRating] = useState(0);
@@ -298,6 +320,43 @@ export default function Home() {
   }, [file]);
 
   useEffect(() => {
+    if (!isCameraActive) {
+      return undefined;
+    }
+
+    function checkFrame() {
+      const video = videoRef.current;
+      if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        animationRef.current = window.requestAnimationFrame(checkFrame);
+        return;
+      }
+
+      const quality = evaluateCameraFrame(video, previousFrameRef, steadyStartRef);
+      setCameraQuality(quality);
+      if (isAutoCaptureEnabled && quality.ready && !hasAutoCapturedRef.current) {
+        hasAutoCapturedRef.current = true;
+        void captureCameraFrame("auto");
+        return;
+      }
+
+      animationRef.current = window.requestAnimationFrame(checkFrame);
+    }
+
+    animationRef.current = window.requestAnimationFrame(checkFrame);
+
+    return () => {
+      if (animationRef.current) {
+        window.cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+    };
+  }, [isAutoCaptureEnabled, isCameraActive]);
+
+  useEffect(() => {
+    return () => stopCamera();
+  }, []);
+
+  useEffect(() => {
     let isCurrent = true;
 
     async function recommendImageSettings() {
@@ -364,6 +423,114 @@ export default function Home() {
       )
     );
     event.target.value = "";
+  }
+
+  async function startCamera() {
+    setCameraError(null);
+    setCameraQuality({
+      detail: "Opening camera...",
+      ready: false,
+      status: "checking"
+    });
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError("Camera capture is not available in this browser.");
+      return;
+    }
+
+    try {
+      setIsCameraActive(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          height: { ideal: 1440 },
+          width: { ideal: 1920 }
+        }
+      });
+
+      streamRef.current = stream;
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      previousFrameRef.current = null;
+      steadyStartRef.current = null;
+      hasAutoCapturedRef.current = false;
+    } catch (error) {
+      setCameraError(
+        error instanceof DOMException && error.name === "NotAllowedError"
+          ? "Camera permission was blocked. Allow camera access to use guided capture."
+          : "Could not open the camera. Try uploading a photo instead."
+      );
+      stopCamera();
+    }
+  }
+
+  function stopCamera() {
+    if (animationRef.current) {
+      window.cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    previousFrameRef.current = null;
+    steadyStartRef.current = null;
+    hasAutoCapturedRef.current = false;
+    setIsCameraActive(false);
+  }
+
+  async function captureCameraFrame(mode: "auto" | "manual" = "manual") {
+    const video = videoRef.current;
+    if (!video || video.videoWidth < 1 || video.videoHeight < 1) {
+      setCameraError("Camera preview is not ready yet.");
+      hasAutoCapturedRef.current = false;
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      setCameraError("Could not capture this camera frame.");
+      hasAutoCapturedRef.current = false;
+      return;
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.94)
+    );
+
+    if (!blob) {
+      setCameraError("Could not save this camera frame.");
+      hasAutoCapturedRef.current = false;
+      return;
+    }
+
+    const capturedFile = new File([blob], `cleanote-camera-${Date.now()}.jpg`, {
+      type: "image/jpeg"
+    });
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setFiles([capturedFile]);
+    setPreviewUrls([URL.createObjectURL(capturedFile)]);
+    setActiveFileIndex(0);
+    setText("");
+    setProvider(null);
+    setFilename(null);
+    setCurrentNoteId(null);
+    setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
+    setRotation(0);
+    setContrast(132);
+    setScanRecommendation(
+      mode === "auto"
+        ? "Guided capture saved a steady frame. Review the crop/contrast, then scan."
+        : "Camera frame captured. Review the crop/contrast, then scan."
+    );
+    setMessage(mode === "auto" ? "Auto-captured a steady page." : "Camera photo captured.");
+    stopCamera();
   }
 
   async function scanFile() {
@@ -645,6 +812,65 @@ export default function Home() {
 
       <section className="workspace">
         <div className="upload-panel">
+          <section className="camera-capture-panel" aria-label="Guided camera capture">
+            <div className="camera-capture-header">
+              <div>
+                <p className="eyebrow">Guided capture</p>
+                <h2>Auto-capture a steady page</h2>
+              </div>
+              <div className="camera-actions">
+                <button
+                  className={isCameraActive ? "" : "primary"}
+                  onClick={isCameraActive ? stopCamera : startCamera}
+                  type="button"
+                >
+                  <Camera aria-hidden="true" size={18} />
+                  <span>{isCameraActive ? "Close camera" : "Start camera"}</span>
+                </button>
+              </div>
+            </div>
+
+            {isCameraActive ? (
+              <div className="camera-preview-shell">
+                <video
+                  aria-label="Live camera preview"
+                  muted
+                  playsInline
+                  ref={videoRef}
+                />
+                <div className="camera-page-frame" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <div className={`camera-quality ${cameraQuality.status}`}>
+                  {cameraQuality.detail}
+                </div>
+              </div>
+            ) : (
+              <p className="camera-capture-copy">
+                Align the paper or 8.5-inch tablet inside the frame. Cleanote watches lighting,
+                sharpness, and movement, then captures when the page is steady.
+              </p>
+            )}
+
+            <div className="camera-capture-footer">
+              <label className="camera-toggle">
+                <input
+                  checked={isAutoCaptureEnabled}
+                  onChange={(event) => setIsAutoCaptureEnabled(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>Auto-capture when steady</span>
+              </label>
+              <button disabled={!isCameraActive} onClick={() => captureCameraFrame("manual")} type="button">
+                Capture now
+              </button>
+            </div>
+            {cameraError ? <p className="camera-error">{cameraError}</p> : null}
+          </section>
+
           <label
             className={`drop-zone ${file && isPdfFile(file) ? "pdf-drop-zone" : ""} ${
               file && isDocxFile(file) ? "docx-drop-zone" : ""
@@ -1301,6 +1527,127 @@ async function analyzeImageQuality(file: File): Promise<ImageQualityRecommendati
   return {
     recommendedContrast: 132,
     message: "Auto check: image quality looks usable. Cleanote set a moderate contrast boost."
+  };
+}
+
+function evaluateCameraFrame(
+  video: HTMLVideoElement,
+  previousFrameRef: MutableRefObject<Uint8ClampedArray | null>,
+  steadyStartRef: MutableRefObject<number | null>
+): CameraQuality {
+  const sampleWidth = 96;
+  const sampleHeight = 72;
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+
+  if (!context) {
+    return {
+      detail: "Camera preview is not ready.",
+      ready: false,
+      status: "checking"
+    };
+  }
+
+  canvas.width = sampleWidth;
+  canvas.height = sampleHeight;
+  context.drawImage(video, 0, 0, sampleWidth, sampleHeight);
+  const pixels = context.getImageData(0, 0, sampleWidth, sampleHeight).data;
+  const luminance = new Uint8ClampedArray(sampleWidth * sampleHeight);
+
+  let total = 0;
+  for (let index = 0, pixelIndex = 0; index < pixels.length; index += 4, pixelIndex += 1) {
+    const value = Math.round(
+      0.2126 * pixels[index] + 0.7152 * pixels[index + 1] + 0.0722 * pixels[index + 2]
+    );
+    luminance[pixelIndex] = value;
+    total += value;
+  }
+
+  const average = total / luminance.length;
+  const variance =
+    luminance.reduce((sum, value) => sum + (value - average) ** 2, 0) / luminance.length;
+  const deviation = Math.sqrt(variance);
+  let edgeScore = 0;
+  let edgeCount = 0;
+
+  for (let y = 1; y < sampleHeight; y += 1) {
+    for (let x = 1; x < sampleWidth; x += 1) {
+      const index = y * sampleWidth + x;
+      edgeScore += Math.abs(luminance[index] - luminance[index - 1]);
+      edgeScore += Math.abs(luminance[index] - luminance[index - sampleWidth]);
+      edgeCount += 2;
+    }
+  }
+  edgeScore /= edgeCount;
+
+  const previousFrame = previousFrameRef.current;
+  let motionScore = 100;
+  if (previousFrame) {
+    let motionTotal = 0;
+    for (let index = 0; index < luminance.length; index += 8) {
+      motionTotal += Math.abs(luminance[index] - previousFrame[index]);
+    }
+    motionScore = motionTotal / (luminance.length / 8);
+  }
+  previousFrameRef.current = luminance;
+
+  const now = performance.now();
+  const isBrightEnough = average >= 72;
+  const isNotWashedOut = average <= 232;
+  const hasContrast = deviation >= 24;
+  const looksSharp = edgeScore >= 8.5;
+  const isStable = motionScore <= 8;
+
+  if (!isBrightEnough) {
+    steadyStartRef.current = null;
+    return {
+      detail: "Too dark. Move near brighter light.",
+      ready: false,
+      status: "warning"
+    };
+  }
+
+  if (!isNotWashedOut) {
+    steadyStartRef.current = null;
+    return {
+      detail: "Too much glare. Tilt the page slightly.",
+      ready: false,
+      status: "warning"
+    };
+  }
+
+  if (!hasContrast || !looksSharp) {
+    steadyStartRef.current = null;
+    return {
+      detail: "Move closer and keep the writing in focus.",
+      ready: false,
+      status: "checking"
+    };
+  }
+
+  if (!isStable) {
+    steadyStartRef.current = null;
+    return {
+      detail: "Hold steady inside the frame.",
+      ready: false,
+      status: "checking"
+    };
+  }
+
+  steadyStartRef.current ??= now;
+  const steadyMs = now - steadyStartRef.current;
+  if (steadyMs < 1100) {
+    return {
+      detail: `Good. Hold steady ${Math.ceil((1100 - steadyMs) / 1000)}s.`,
+      ready: false,
+      status: "checking"
+    };
+  }
+
+  return {
+    detail: "Ready. Capturing a clear frame.",
+    ready: true,
+    status: "ready"
   };
 }
 
