@@ -22,29 +22,29 @@ const APP_STORE_URL = "https://apps.apple.com/bz/app/cleanote/id6784403759";
 const VISUAL_STEPS = [
   {
     label: "Import",
-    text: "Capture notebook pages, PDFs, screenshots, worksheets, and rough study material."
+    text: "Add notes, PDFs, or screenshots."
   },
   {
     label: "Clean",
-    text: "Turn cluttered handwriting and annotations into organized, readable output."
+    text: "Make rough pages readable."
   },
   {
     label: "Export",
-    text: "Review the result, copy text, save notes, or export when you need a usable document."
+    text: "Copy, save, or export."
   }
 ];
 
 const HOW_IT_WORKS = [
-  "Upload or capture your notes",
-  "Let Cleanote organize the content",
-  "Review, export, or save the cleaned version"
+  "Capture notes",
+  "Clean the content",
+  "Save or export"
 ];
 
 const USE_CASES = [
-  "Students cleaning lecture notes",
-  "Researchers organizing PDFs",
-  "Professionals cleaning meeting notes",
-  "Creators turning rough drafts into readable content"
+  "Lecture notes",
+  "Research PDFs",
+  "Meeting notes",
+  "Rough drafts"
 ];
 
 const FAQS = [
@@ -54,26 +54,23 @@ const FAQS = [
   },
   {
     question: "Do I need an account?",
-    answer:
-      "You can use the iOS app after download. A Cleanote account is useful for supported sync, web access, and future account features."
+    answer: "No. An account is only needed for supported web features."
   },
   {
     question: "Can I use Cleanote on the web?",
-    answer:
-      "The website supports account access and may support web features depending on the current product version."
+    answer: "Yes, supported web access is available after sign in."
   },
   {
     question: "Why is the app $0.99?",
-    answer: "The small one-time price helps support development, maintenance, and new features."
+    answer: "It keeps Cleanote simple: one small download price."
   },
   {
     question: "Is my data private?",
-    answer:
-      "Cleanote explains what data is stored and how it is used in the Privacy Policy."
+    answer: "See the Privacy Policy for details."
   },
   {
     question: "Where can I get support?",
-    answer: "Visit the Support page for help with the app, website, OCR results, or your account."
+    answer: "Use the Support page for help."
   }
 ];
 
@@ -172,8 +169,7 @@ export default function LandingPage() {
           <p className="doc-kicker">Cleanote for iPhone</p>
           <h1>Clean notes from messy documents.</h1>
           <p>
-            Cleanote helps you turn cluttered notes, PDFs, screenshots, and study material into
-            organized, readable outputs.
+            Turn notes, PDFs, screenshots, and study material into readable output.
           </p>
           <div className="doc-actions">
             <a className="doc-primary app-store-primary" href={APP_STORE_URL} rel="noreferrer" target="_blank">
@@ -184,7 +180,7 @@ export default function LandingPage() {
               {user ? "Try Cleanote Web" : "Sign in"}
             </a>
           </div>
-          <p className="app-price-note">One-time $0.99 iPhone download. Account access is optional.</p>
+          <p className="app-price-note">$0.99 one-time iPhone download.</p>
           <div className="simple-benefits" aria-label="Cleanote highlights">
             {["Messy notes", "PDFs and screenshots", "Study material", "Readable exports"].map((benefit) => (
               <span key={benefit}>
@@ -200,13 +196,13 @@ export default function LandingPage() {
             <div className="phone-topbar" />
             <div className="phone-card">
               <FileText aria-hidden="true" size={28} />
-              <strong>Cluttered worksheet</strong>
-              <span>PDF · screenshot · handwritten page</span>
+              <strong>Messy input</strong>
+              <span>PDF · photo · handwritten page</span>
             </div>
             <div className="phone-card active">
               <Sparkles aria-hidden="true" size={28} />
               <strong>Cleaned output</strong>
-              <span>Readable sections, extracted text, review-ready notes</span>
+              <span>Readable text and notes</span>
             </div>
           </div>
           <div className="visual-step-stack">
@@ -221,15 +217,15 @@ export default function LandingPage() {
       </section>
 
       <section className="doc-trust-bar simple-trust" aria-label="Cleanote highlights">
-        <span><Upload aria-hidden="true" size={18} /> Capture document mess</span>
-        <span><Search aria-hidden="true" size={18} /> Make notes searchable</span>
-        <span><Lock aria-hidden="true" size={18} /> Keep review in your hands</span>
+        <span><Upload aria-hidden="true" size={18} /> Capture</span>
+        <span><Search aria-hidden="true" size={18} /> Search</span>
+        <span><Lock aria-hidden="true" size={18} /> Review</span>
       </section>
 
       <section className="doc-process-section" id="how-it-works">
         <div className="doc-section-heading">
           <p className="doc-kicker">How it works</p>
-          <h2>From rough capture to usable notes.</h2>
+          <h2>Three simple steps.</h2>
         </div>
         <div className="launch-step-grid">
           {HOW_IT_WORKS.map((step, index) => (
@@ -244,7 +240,7 @@ export default function LandingPage() {
       <section className="doc-use-case-band launch-use-cases">
         <div>
           <p className="doc-kicker">Use cases</p>
-          <h2>Built for people with real paper and rough files.</h2>
+          <h2>For everyday study and work.</h2>
         </div>
         <div className="doc-use-case-list">
           {USE_CASES.map((useCase) => (
@@ -256,10 +252,8 @@ export default function LandingPage() {
       <section className="pricing-panel" id="pricing">
         <div>
           <p className="doc-kicker">Pricing</p>
-          <h2>Cleanote for iPhone is available as a one-time $0.99 App Store download.</h2>
-          <p>
-            An account is optional and helps with supported web access, syncing, and future features.
-          </p>
+          <h2>One-time $0.99 iPhone download.</h2>
+          <p>Optional account for supported web access.</p>
         </div>
         <a className="doc-primary" href={APP_STORE_URL} rel="noreferrer" target="_blank">
           <Smartphone aria-hidden="true" size={18} />
@@ -269,15 +263,14 @@ export default function LandingPage() {
 
       <section className="doc-tablet-band simple-tablet" aria-label="Cleanote tablet bundle preorder">
         <div className="doc-tablet-copy">
-          <p className="doc-kicker">Coming soon · early preorder interest open</p>
+          <p className="doc-kicker">Coming soon</p>
           <h2>Cleanote+ writing tablet bundle.</h2>
           <p>
-            A simple 8.5-inch writing tablet concept for kids, tutors, and families who want
-            less paper clutter and a cleaner way to save handwritten learning.
+            A simple writing tablet concept for cleaner handwritten learning.
           </p>
           <div className="doc-price-callout">
             <strong>Coming soon</strong>
-            <span>Early tablet bundle interest is captured for launch updates.</span>
+            <span>Join the early interest list.</span>
           </div>
         </div>
         <figure className="doc-tablet-figure">
@@ -316,7 +309,7 @@ export default function LandingPage() {
           </div>
           <textarea
             onChange={(event) => setPreorderUseCase(event.target.value)}
-            placeholder="Who would use it? Example: my child for homework, tutoring students, lab notes..."
+            placeholder="How would you use it?"
             rows={3}
             value={preorderUseCase}
           />
@@ -333,7 +326,7 @@ export default function LandingPage() {
       <section className="faq-section" aria-label="Cleanote FAQ">
         <div className="doc-section-heading">
           <p className="doc-kicker">FAQ</p>
-          <h2>Questions before you download.</h2>
+          <h2>Quick answers.</h2>
         </div>
         <div className="faq-grid">
           {FAQS.map((faq) => (
@@ -342,13 +335,11 @@ export default function LandingPage() {
               <p>
                 {faq.question === "Is my data private?" ? (
                   <>
-                    Cleanote explains what data is stored and how it is used in the{" "}
-                    <a href="/privacy">Privacy Policy</a>.
+                    See the <a href="/privacy">Privacy Policy</a>.
                   </>
                 ) : faq.question === "Where can I get support?" ? (
                   <>
-                    Visit the <a href="/support">Support page</a> for help with the app, website,
-                    OCR results, or your account.
+                    Visit <a href="/support">Support</a>.
                   </>
                 ) : (
                   faq.answer
@@ -362,7 +353,7 @@ export default function LandingPage() {
       <footer className="doc-footer">
         <div>
           <img alt="" src="/cleanote-icon.png" />
-          <span>Cleanote turns messy notes and documents into readable outputs.</span>
+          <span>Clean notes from messy documents.</span>
         </div>
         <nav aria-label="Footer links">
           <a href="/privacy"><Lock aria-hidden="true" size={15} /> Privacy Policy</a>
