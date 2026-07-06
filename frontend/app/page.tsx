@@ -2,7 +2,6 @@
 
 import {
   ArrowRight,
-  BookOpen,
   Check,
   FileText,
   Lock,
@@ -76,6 +75,7 @@ const FAQS = [
 
 export default function LandingPage() {
   const { user, isAuthLoading, logout } = useAuth();
+  const currentYear = new Date().getFullYear();
   const [preorderName, setPreorderName] = useState("");
   const [preorderEmail, setPreorderEmail] = useState("");
   const [preorderRole, setPreorderRole] = useState("Parent");
@@ -351,18 +351,21 @@ export default function LandingPage() {
       </section>
 
       <footer className="doc-footer">
-        <div>
+        <a className="doc-footer-brand" href="/">
           <img alt="" src="/cleanote-icon.png" />
           <span>Clean notes from messy documents.</span>
-        </div>
+        </a>
         <nav aria-label="Footer links">
           <a href="/privacy"><Lock aria-hidden="true" size={15} /> Privacy Policy</a>
           <a href="/terms">Terms of Service</a>
           <a href="/support">Support</a>
           <a href="/support">Contact</a>
           <a href={APP_STORE_URL} rel="noreferrer" target="_blank">App Store</a>
-          <a href="/app"><BookOpen aria-hidden="true" size={15} /> App</a>
+          <a href="/mobile"><Smartphone aria-hidden="true" size={15} /> App</a>
         </nav>
+        <p className="doc-footer-copyright">
+          © {currentYear} KARIGARI HOME LLC DBA CLEANOTE. All Rights Reserved.
+        </p>
       </footer>
     </main>
   );

@@ -30,6 +30,9 @@ const LEGACY_SAVED_NOTES_KEY = "pen2txt.savedNotes";
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 const MAX_PROCESSED_IMAGE_SIDE = 2200;
 const PROCESSED_IMAGE_QUALITY = 0.88;
+const MAX_CONTEXT_LENGTH = 800;
+const MAX_EMAIL_LENGTH = 254;
+const EMAIL_PATTERN = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]{2,}$/;
 
 type OcrResponse = {
   text: string;
@@ -151,6 +154,10 @@ export default function Home() {
 
   const file = files[activeFileIndex] ?? null;
   const previewUrl = previewUrls[activeFileIndex] ?? null;
+  const discoveryEmailError = discoveryEmail.trim()
+    ? validateEmail(discoveryEmail)
+    : "Email is required.";
+  const canSubmitDiscovery = !discoveryEmailError && !isSubmittingDiscovery;
 
   const wordCount = useMemo(() => {
     return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -167,7 +174,7 @@ export default function Home() {
   const filteredNotes = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) {
-      return archiveNotes.slice(0, 8);
+      return archiveNotes.slice(0, 30);
     }
 
     return archiveNotes
@@ -176,7 +183,7 @@ export default function Home() {
           `${note.filename} ${note.subject} ${note.contextText ?? ""} ${note.text}`.toLowerCase();
         return haystack.includes(query);
       })
-      .slice(0, 8);
+      .slice(0, 30);
   }, [archiveNotes, searchQuery]);
 
   useEffect(() => {
@@ -644,14 +651,23 @@ export default function Home() {
   }
 
   function reset() {
+    stopCamera();
     setText("");
     setProvider(null);
     setFilename(null);
     setCurrentNoteId(null);
     setMessage(null);
+    setSubject("general");
+    setContextText("");
     setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
     setRotation(0);
     setContrast(112);
+    setScanRecommendation(null);
+    setDocxPreviewHtml("");
+    setDocxPreviewError(null);
+    setIsLoadingDocxPreview(false);
+    setShowDiscoveryForm(false);
+    setDiscoveryMessage(null);
     previewUrls.forEach((url) => URL.revokeObjectURL(url));
     setPreviewUrls([]);
     setFiles([]);
@@ -730,9 +746,36 @@ export default function Home() {
     setMessage(`Opened ${note.filename}`);
   }
 
+  function deleteSavedNote(note: SavedNote) {
+    const confirmed = window.confirm(`Delete "${note.filename}" from saved notes?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setSavedNotes((currentNotes) => {
+      const nextNotes = currentNotes.filter((currentNote) => currentNote.id !== note.id);
+      window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(nextNotes));
+      return nextNotes;
+    });
+    setCloudNotes((currentNotes) => currentNotes.filter((currentNote) => currentNote.id !== note.id));
+
+    if (currentNoteId === note.id) {
+      setText("");
+      setProvider(null);
+      setFilename(null);
+      setCurrentNoteId(null);
+    }
+
+    if (userEmail) {
+      void deleteCloudNote(note.id, userEmail).catch(() => undefined);
+    }
+    setMessage("Saved note deleted.");
+  }
+
   async function submitDiscovery() {
-    if (!discoveryEmail.trim()) {
-      setDiscoveryMessage("Enter an email so we can connect this feedback to a beta user.");
+    const emailError = validateEmail(discoveryEmail);
+    if (emailError) {
+      setDiscoveryMessage(null);
       return;
     }
 
@@ -781,16 +824,12 @@ export default function Home() {
     <main className="app-shell">
       <section className="topbar" aria-label="Workspace header">
         <div className="app-title-lockup">
+          <a className="app-back-home" href="/">Back to Home</a>
           <img className="app-header-logo" alt="" src="/cleanote-icon.png" />
           <div className="app-title-copy">
             <p className="eyebrow">Cleanote</p>
             <h1>Scan notes into editable text</h1>
             <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
-            <div className="topbar-links">
-              <a className="policy-link" href={APP_STORE_URL} rel="noreferrer" target="_blank">iPhone App</a>
-              <a className="policy-link" href="/privacy">Privacy Policy</a>
-              <a className="policy-link" href="/refund">Refund Policy</a>
-            </div>
           </div>
         </div>
         <div className="status-strip">
@@ -1059,10 +1098,12 @@ export default function Home() {
           <label className="context-box">
             <span>Context</span>
             <textarea
+              maxLength={MAX_CONTEXT_LENGTH}
               onChange={(event) => setContextText(event.target.value)}
               placeholder="Optional: what is this note about? Example: biology lecture on ATP and glycolysis."
               value={contextText}
             />
+            <small>{contextText.length}/{MAX_CONTEXT_LENGTH}</small>
           </label>
 
           <div className="saved-notes-panel">
@@ -1089,10 +1130,21 @@ export default function Home() {
             <div className="saved-list">
               {filteredNotes.length ? (
                 filteredNotes.map((note) => (
-                  <button key={note.id} onClick={() => openSavedNote(note)} type="button">
-                    <strong>{note.filename}</strong>
-                    <span>{note.subject} · {new Date(note.createdAt).toLocaleDateString()}</span>
-                  </button>
+                  <article className="saved-note-row" key={note.id}>
+                    <button onClick={() => openSavedNote(note)} type="button">
+                      <strong>{note.filename}</strong>
+                      <span>{note.subject} · {new Date(note.createdAt).toLocaleDateString()}</span>
+                    </button>
+                    <button
+                      aria-label={`Delete ${note.filename}`}
+                      className="saved-delete-button"
+                      onClick={() => deleteSavedNote(note)}
+                      title="Delete saved note"
+                      type="button"
+                    >
+                      <Trash2 aria-hidden="true" size={16} />
+                    </button>
+                  </article>
                 ))
               ) : (
                 <p>
@@ -1152,7 +1204,7 @@ export default function Home() {
           />
 
           {message ? <p className="message">{message}</p> : null}
-          {filename ? <p className="message">Current note: {filename}</p> : null}
+          {filename ? <p className="note-reference">Current note: {filename}</p> : null}
           {showDiscoveryForm ? (
             <section className="discovery-panel" aria-label="Post-scan feedback">
               <div>
@@ -1162,11 +1214,14 @@ export default function Home() {
               <label>
                 <span>Email</span>
                 <input
+                  aria-invalid={Boolean(discoveryEmailError)}
+                  maxLength={MAX_EMAIL_LENGTH}
                   onChange={(event) => setDiscoveryEmail(event.target.value)}
                   placeholder="you@example.com"
                   type="email"
                   value={discoveryEmail}
                 />
+                {discoveryEmailError ? <small className="field-error">{discoveryEmailError}</small> : null}
               </label>
               <div className="rating-field">
                 <span>Rating</span>
@@ -1217,7 +1272,7 @@ export default function Home() {
                 />
               </label>
               <div className="discovery-actions">
-                <button disabled={isSubmittingDiscovery} onClick={submitDiscovery} type="button">
+                <button disabled={!canSubmitDiscovery} onClick={submitDiscovery} type="button">
                   {isSubmittingDiscovery ? (
                     <Loader2 aria-hidden="true" className="spin" size={18} />
                   ) : (
@@ -1234,6 +1289,15 @@ export default function Home() {
           {discoveryMessage ? <p className="message">{discoveryMessage}</p> : null}
         </div>
       </section>
+      <footer className="app-footer">
+        <span>© {new Date().getFullYear()} KARIGARI HOME LLC DBA CLEANOTE. All Rights Reserved.</span>
+        <nav aria-label="Scanner footer links">
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/refund">Refund Policy</a>
+          <a href="/support">Support</a>
+          <a href="/mobile">Mobile App</a>
+        </nav>
+      </footer>
     </main>
   );
 }
@@ -1250,6 +1314,27 @@ async function syncNoteToCloud(note: SavedNote, email: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...note, email })
   });
+}
+
+async function deleteCloudNote(noteId: string, email: string) {
+  const params = new URLSearchParams({ email });
+  await fetch(`${API_BASE}/api/notes/${encodeURIComponent(noteId)}?${params.toString()}`, {
+    method: "DELETE"
+  });
+}
+
+function validateEmail(email: string) {
+  const trimmedEmail = email.trim();
+  if (!trimmedEmail) {
+    return "Email is required.";
+  }
+  if (trimmedEmail.length > MAX_EMAIL_LENGTH) {
+    return `Email must be ${MAX_EMAIL_LENGTH} characters or fewer.`;
+  }
+  if (!EMAIL_PATTERN.test(trimmedEmail)) {
+    return "Enter a valid email address.";
+  }
+  return "";
 }
 
 async function readErrorMessage(response: Response, fallback: string) {

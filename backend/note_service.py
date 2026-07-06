@@ -64,6 +64,17 @@ def search_notes(email: str, query: str = "", limit: int = 30) -> dict[str, Any]
     return {"notes": notes[:safe_limit]}
 
 
+def delete_note(email: str, note_id: str) -> dict[str, str]:
+    _ensure_configured()
+    normalized_email = _normalize_email(email)
+    normalized_note_id = note_id.strip()
+    if not normalized_note_id:
+        raise ValueError("Note id is required.")
+
+    _table().delete_item(Key={"email": normalized_email, "note_id": normalized_note_id})
+    return {"status": "deleted", "id": normalized_note_id}
+
+
 def _search_blob(item: dict[str, str]) -> str:
     return " ".join(
         [

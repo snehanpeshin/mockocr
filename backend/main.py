@@ -24,7 +24,7 @@ from beta_service import (
     tablet_preorder_summary,
     verify_beta_token,
 )
-from note_service import save_note, search_notes
+from note_service import delete_note, save_note, search_notes
 from ocr_service import clean_ocr_text, extract_text
 from payment_service import (
     construct_webhook_event,
@@ -200,6 +200,18 @@ def save_user_note(payload: NoteRequest) -> dict[str, str]:
 def search_user_notes(email: str, q: str = "", limit: int = 30) -> dict[str, object]:
     try:
         return search_notes(email, q, limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.delete("/api/notes/{note_id}")
+def delete_user_note(note_id: str, email: str) -> dict[str, str]:
+    try:
+        return delete_note(email, note_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
