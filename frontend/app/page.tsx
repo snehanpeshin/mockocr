@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Check,
   FileText,
+  Languages,
   Lock,
   LogOut,
   Search,
@@ -17,6 +18,7 @@ import { authErrorMessage, useAuth } from "./lib/auth";
 
 const API_BASE = getApiBase();
 const APP_STORE_URL = "https://apps.apple.com/bz/app/cleanote/id6784403759";
+const KASHMIRI_TRANSLATOR_URL = "https://apps.apple.com/us/app/kashmiri-translator/id6786125105";
 
 const VISUAL_STEPS = [
   {
@@ -135,6 +137,7 @@ export default function LandingPage() {
         </a>
         <nav aria-label="Cleanote navigation">
           <a href="#how-it-works">How it works</a>
+          <a href="/kashmiri-translator">Kashmiri Translator</a>
           <a href="#pricing">Pricing</a>
           <a href="/app">Web access</a>
           <a href="/support">Support</a>
@@ -261,6 +264,34 @@ export default function LandingPage() {
         </a>
       </section>
 
+      <section className="product-family-band" aria-label="More apps from Cleanote">
+        <div className="product-family-copy">
+          <p className="doc-kicker">Also from Cleanote</p>
+          <h2>Kashmiri Translator</h2>
+          <p>
+            A focused English to Kashmiri translator for quick written translations on iPhone.
+          </p>
+          <div className="product-family-actions">
+            <a className="doc-primary" href={KASHMIRI_TRANSLATOR_URL} rel="noreferrer" target="_blank">
+              <Smartphone aria-hidden="true" size={18} />
+              View on the App Store
+            </a>
+            <a className="doc-secondary" href="/kashmiri-translator">
+              Learn more
+              <ArrowRight aria-hidden="true" size={16} />
+            </a>
+          </div>
+        </div>
+        <div className="translator-product-card" aria-hidden="true">
+          <div className="translator-card-media" />
+          <div className="translator-card-content">
+            <Languages size={28} />
+            <strong>Kashmiri Translator</strong>
+            <span>English to Kashmiri on iPhone</span>
+          </div>
+        </div>
+      </section>
+
       <section className="doc-tablet-band simple-tablet" aria-label="Cleanote tablet bundle preorder">
         <div className="doc-tablet-copy">
           <p className="doc-kicker">Coming soon</p>
@@ -361,6 +392,7 @@ export default function LandingPage() {
           <a href="/support">Support</a>
           <a href="/support">Contact</a>
           <a href={APP_STORE_URL} rel="noreferrer" target="_blank">App Store</a>
+          <a href="/kashmiri-translator">Kashmiri Translator</a>
           <a href="/mobile"><Smartphone aria-hidden="true" size={15} /> App</a>
         </nav>
         <p className="doc-footer-copyright">
