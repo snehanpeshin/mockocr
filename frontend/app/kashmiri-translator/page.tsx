@@ -54,6 +54,11 @@ export default function KashmiriTranslatorPage() {
           <p>
             Translate English into Kashmiri with a focused iPhone app made for simple, everyday language help.
           </p>
+          <aside className="translator-news-card" aria-label="Kashmiri Translator news">
+            <span>App Store milestone</span>
+            <strong>Kashmiri Translator recently reached #34 in Apple paid apps.</strong>
+            <p>Thank you to early users supporting language tools from Cleanote.</p>
+          </aside>
           <div className="doc-actions">
             <a className="doc-primary app-store-primary" href={KASHMIRI_TRANSLATOR_URL} rel="noreferrer" target="_blank">
               <Smartphone aria-hidden="true" size={18} />

@@ -271,6 +271,11 @@ export default function LandingPage() {
           <p>
             A focused English to Kashmiri translator for quick written translations on iPhone.
           </p>
+          <aside className="translator-news-card" aria-label="Kashmiri Translator news">
+            <span>App Store milestone</span>
+            <strong>Kashmiri Translator recently reached #34 in Apple paid apps.</strong>
+            <p>Thank you to early users supporting language tools from Cleanote.</p>
+          </aside>
           <div className="product-family-actions">
             <a className="doc-primary" href={KASHMIRI_TRANSLATOR_URL} rel="noreferrer" target="_blank">
               <Smartphone aria-hidden="true" size={18} />

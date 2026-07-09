@@ -2944,6 +2944,41 @@ textarea:focus {
   max-width: 680px;
 }
 
+.translator-news-card {
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(135deg, rgba(255, 184, 77, 0.72), rgba(0, 166, 166, 0.38), rgba(109, 93, 252, 0.4)) border-box;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(43, 64, 74, 0.1);
+  display: grid;
+  gap: 5px;
+  margin-top: 4px;
+  max-width: 620px;
+  padding: 14px 16px;
+}
+
+.translator-news-card span {
+  color: #0f766e;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.translator-news-card strong {
+  color: var(--ink);
+  font-size: clamp(1.05rem, 1.5vw, 1.28rem);
+  line-height: 1.25;
+}
+
+.translator-news-card p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
 .product-family-actions {
   display: flex;
   flex-wrap: wrap;
