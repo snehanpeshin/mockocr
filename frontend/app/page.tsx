@@ -22,23 +22,32 @@ const KASHMIRI_TRANSLATOR_URL = "https://apps.apple.com/us/app/kashmiri-translat
 
 const VISUAL_STEPS = [
   {
-    label: "Import",
-    text: "Add notes, PDFs, or screenshots."
+    label: "Vision input",
+    text: "Capture photos, PDFs, or screenshots."
   },
   {
-    label: "Clean",
-    text: "Make rough pages readable."
+    label: "OCR + AI review",
+    text: "Clean the scan and check the text."
   },
   {
-    label: "Export",
-    text: "Copy, save, or export."
+    label: "Structured output",
+    text: "Edit, save, search, or export."
   }
 ];
 
 const HOW_IT_WORKS = [
-  "Capture notes",
-  "Clean the content",
-  "Save or export"
+  {
+    label: "Capture",
+    text: "Upload a photo, screenshot, PDF, or document."
+  },
+  {
+    label: "Understand",
+    text: "Cleanote reads handwriting, printed text, and annotated material."
+  },
+  {
+    label: "Use",
+    text: "Edit, search, copy, save, or export the result."
+  }
 ];
 
 const USE_CASES = [
@@ -46,6 +55,25 @@ const USE_CASES = [
   "Research PDFs",
   "Meeting notes",
   "Rough drafts"
+];
+
+const CAPABILITIES = [
+  {
+    title: "Handwriting OCR",
+    text: "Turn rough written pages into editable text."
+  },
+  {
+    title: "Printed + annotated files",
+    text: "Handle clean printed documents and handwritten marks together."
+  },
+  {
+    title: "Searchable archive",
+    text: "Save notes so old pages become easier to find."
+  },
+  {
+    title: "Export-ready output",
+    text: "Copy, edit, and prepare notes for study or work."
+  }
 ];
 
 const FAQS = [
@@ -137,9 +165,9 @@ export default function LandingPage() {
         </a>
         <nav aria-label="Cleanote navigation">
           <a href="#how-it-works">How it works</a>
+          <a href="#capabilities">Capabilities</a>
           <a href="/kashmiri-translator">Kashmiri Translator</a>
           <a href="#pricing">Pricing</a>
-          <a href="/app">Web access</a>
           <a href="/support">Support</a>
         </nav>
         <div className="doc-auth-actions">
@@ -169,10 +197,11 @@ export default function LandingPage() {
         </div>
         <div className="hero-video-overlay" aria-hidden="true" />
         <div className="doc-hero-copy">
-          <p className="doc-kicker">Cleanote for iPhone</p>
-          <h1>Clean notes from messy documents.</h1>
+          <p className="doc-kicker">AI vision for handwritten work</p>
+          <h1>Convert messy notes into searchable documents.</h1>
           <p>
-            Turn notes, PDFs, screenshots, and study material into readable output.
+            Cleanote uses OCR, scan cleanup, and AI review to turn handwriting,
+            PDFs, screenshots, and study material into editable output.
           </p>
           <div className="doc-actions">
             <a className="doc-primary app-store-primary" href={APP_STORE_URL} rel="noreferrer" target="_blank">
@@ -183,9 +212,9 @@ export default function LandingPage() {
               {user ? "Try Cleanote Web" : "Sign in"}
             </a>
           </div>
-          <p className="app-price-note">$0.99 one-time iPhone download.</p>
+          <p className="app-price-note">$0.99 one-time iPhone download. Web workspace available after sign in.</p>
           <div className="simple-benefits" aria-label="Cleanote highlights">
-            {["Messy notes", "PDFs and screenshots", "Study material", "Readable exports"].map((benefit) => (
+            {["Handwriting OCR", "Printed files", "Annotated PDFs", "Searchable exports"].map((benefit) => (
               <span key={benefit}>
                 <Check aria-hidden="true" size={16} />
                 {benefit}
@@ -195,17 +224,36 @@ export default function LandingPage() {
         </div>
 
         <div className="product-visual" aria-label="Cleanote product preview">
-          <div className="phone-mockup">
-            <div className="phone-topbar" />
-            <div className="phone-card">
-              <FileText aria-hidden="true" size={28} />
-              <strong>Messy input</strong>
-              <span>PDF · photo · handwritten page</span>
+          <div className="vision-console">
+            <div className="vision-console-header">
+              <span />
+              <strong>Cleanote Vision</strong>
+              <small>ready</small>
             </div>
-            <div className="phone-card active">
-              <Sparkles aria-hidden="true" size={28} />
-              <strong>Cleaned output</strong>
-              <span>Readable text and notes</span>
+            <div className="vision-document">
+              <div className="vision-doc-line wide" />
+              <div className="vision-doc-line" />
+              <div className="vision-equation">(a+b)² = a² + b² + 2ab</div>
+              <div className="vision-markbox" />
+              <div className="vision-doc-line short" />
+              <div className="vision-doc-line medium" />
+            </div>
+            <div className="vision-output-grid">
+              <article>
+                <FileText aria-hidden="true" size={20} />
+                <strong>Text</strong>
+                <span>editable</span>
+              </article>
+              <article>
+                <Search aria-hidden="true" size={20} />
+                <strong>Archive</strong>
+                <span>searchable</span>
+              </article>
+              <article>
+                <Sparkles aria-hidden="true" size={20} />
+                <strong>Review</strong>
+                <span>AI-assisted</span>
+              </article>
             </div>
           </div>
           <div className="visual-step-stack">
@@ -220,21 +268,42 @@ export default function LandingPage() {
       </section>
 
       <section className="doc-trust-bar simple-trust" aria-label="Cleanote highlights">
-        <span><Upload aria-hidden="true" size={18} /> Capture</span>
-        <span><Search aria-hidden="true" size={18} /> Search</span>
-        <span><Lock aria-hidden="true" size={18} /> Review</span>
+        <span><Upload aria-hidden="true" size={18} /> Vision capture</span>
+        <span><Search aria-hidden="true" size={18} /> Searchable notes</span>
+        <span><Lock aria-hidden="true" size={18} /> User-reviewed output</span>
       </section>
 
       <section className="doc-process-section" id="how-it-works">
         <div className="doc-section-heading">
-          <p className="doc-kicker">How it works</p>
-          <h2>Three simple steps.</h2>
+          <p className="doc-kicker">Pipeline</p>
+          <h2>From scan to usable document.</h2>
         </div>
         <div className="launch-step-grid">
           {HOW_IT_WORKS.map((step, index) => (
-            <article key={step}>
+            <article key={step.label}>
               <span>{index + 1}</span>
-              <h3>{step}</h3>
+              <h3>{step.label}</h3>
+              <p>{step.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="vision-capabilities-section" id="capabilities">
+        <div className="doc-section-heading">
+          <p className="doc-kicker">Capabilities</p>
+          <h2>Built for notes that do not look like perfect documents.</h2>
+          <p>
+            Cleanote is tuned for the messy middle: handwriting, printed pages,
+            equations, screenshots, PDFs, and annotated worksheets.
+          </p>
+        </div>
+        <div className="vision-capability-grid">
+          {CAPABILITIES.map((capability) => (
+            <article key={capability.title}>
+              <Sparkles aria-hidden="true" size={20} />
+              <h3>{capability.title}</h3>
+              <p>{capability.text}</p>
             </article>
           ))}
         </div>
@@ -243,7 +312,7 @@ export default function LandingPage() {
       <section className="doc-use-case-band launch-use-cases">
         <div>
           <p className="doc-kicker">Use cases</p>
-          <h2>For everyday study and work.</h2>
+          <h2>For real notes in study and work.</h2>
         </div>
         <div className="doc-use-case-list">
           {USE_CASES.map((useCase) => (
