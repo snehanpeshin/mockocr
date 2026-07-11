@@ -2215,6 +2215,32 @@ textarea:focus {
   justify-content: flex-end;
 }
 
+.store-icon-links {
+  display: flex;
+  gap: 8px;
+}
+
+.store-icon-links a {
+  align-items: center;
+  background: #05070a;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #ffffff;
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  text-decoration: none;
+  width: 42px;
+}
+
+.store-icon-links .google-play-icon-link {
+  background: #0f766e;
+}
+
+.store-icon-links a:hover {
+  filter: brightness(1.12);
+}
+
 .doc-signin-link,
 .doc-logout,
 .doc-user-pill {
@@ -2338,6 +2364,12 @@ textarea:focus {
 .app-store-primary,
 .app-store-mini {
   background: linear-gradient(135deg, #05070a 0%, #241146 56%, #006d77 100%);
+  color: #ffffff;
+}
+
+.google-play-primary {
+  background: linear-gradient(135deg, #075985 0%, #0f766e 58%, #166534 100%);
+  box-shadow: 0 14px 30px rgba(15, 118, 110, 0.22);
   color: #ffffff;
 }
 
@@ -3527,6 +3559,13 @@ textarea:focus {
   text-decoration: none;
 }
 
+.pricing-store-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .doc-tablet-band {
   background: #122033;
   border-color: #1d334f;
@@ -4306,6 +4345,10 @@ textarea:focus {
 
   .pricing-panel a {
     justify-content: center;
+  }
+
+  .pricing-store-actions {
+    justify-content: flex-start;
   }
 
   .doc-result-preview {

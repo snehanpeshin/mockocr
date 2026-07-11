@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  Apple,
   ArrowRight,
   Check,
   FileText,
   Languages,
   Lock,
   LogOut,
+  Play,
   Smartphone,
   Sparkles,
   Upload
@@ -17,6 +19,7 @@ import { authErrorMessage, useAuth } from "./lib/auth";
 
 const API_BASE = getApiBase();
 const APP_STORE_URL = "https://apps.apple.com/app/cleanote/id6784403759";
+const GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=com.cleanote.app&utm_source=cleanote_website";
 const KASHMIRI_TRANSLATOR_URL = "https://apps.apple.com/us/app/kashmiri-translator/id6786125105";
 
 const VISUAL_STEPS = [
@@ -90,7 +93,7 @@ const CAPABILITIES = [
 const FAQS = [
   {
     question: "Is Cleanote free?",
-    answer: "Cleanote for iPhone is available as a one-time $0.99 App Store download."
+    answer: "Cleanote is free to download on Android. The iPhone app is a one-time $0.99 App Store download."
   },
   {
     question: "Do I need an account?",
@@ -180,15 +183,23 @@ export default function LandingPage() {
             "@type": "SoftwareApplication",
             name: "Cleanote",
             applicationCategory: "ProductivityApplication",
-            operatingSystem: "iOS and web",
+            operatingSystem: "iOS, Android, and web",
             description:
               "Cleanote converts readable handwritten and printed notes into editable text that users can review, save, and export.",
-            offers: {
-              "@type": "Offer",
-              price: "0.99",
-              priceCurrency: "USD",
-              url: APP_STORE_URL
-            },
+            offers: [
+              {
+                "@type": "Offer",
+                price: "0.99",
+                priceCurrency: "USD",
+                url: APP_STORE_URL
+              },
+              {
+                "@type": "Offer",
+                price: "0",
+                priceCurrency: "USD",
+                url: GOOGLE_PLAY_URL
+              }
+            ],
             url: "https://www.cleanote.in/"
           }).replace(/</g, "\\u003c")
         }}
@@ -218,9 +229,14 @@ export default function LandingPage() {
           ) : (
             <a className="doc-signin-link" href="/login">Sign in</a>
           )}
-          <a className="doc-nav-cta app-store-mini" href={APP_STORE_URL} rel="noreferrer" target="_blank">
-            Download on the App Store
-          </a>
+          <div className="store-icon-links" aria-label="Download Cleanote">
+            <a aria-label="Download Cleanote on the App Store" href={APP_STORE_URL} rel="noreferrer" target="_blank" title="App Store">
+              <Apple aria-hidden="true" size={20} />
+            </a>
+            <a aria-label="Get Cleanote on Google Play" className="google-play-icon-link" href={GOOGLE_PLAY_URL} rel="noreferrer" target="_blank" title="Google Play">
+              <Play aria-hidden="true" size={20} />
+            </a>
+          </div>
         </div>
       </header>
       {authMessage ? <p className="doc-auth-message">{authMessage}</p> : null}
@@ -237,15 +253,19 @@ export default function LandingPage() {
           </p>
           <div className="doc-actions">
             <a className="doc-primary app-store-primary" href={APP_STORE_URL} rel="noreferrer" target="_blank">
-              <Smartphone aria-hidden="true" size={18} />
+              <Apple aria-hidden="true" size={18} />
               Download on the App Store
+            </a>
+            <a className="doc-primary google-play-primary" href={GOOGLE_PLAY_URL} rel="noreferrer" target="_blank">
+              <Play aria-hidden="true" size={18} />
+              Get it on Google Play
             </a>
             <a className="doc-secondary" href="#how-it-works">
               See how it works
               <ArrowRight aria-hidden="true" size={17} />
             </a>
           </div>
-          <p className="app-price-note">$0.99 one-time iPhone download. The optional tablet is not required.</p>
+          <p className="app-price-note">Free on Android. $0.99 one-time iPhone download. The optional tablet is not required.</p>
           <div className="simple-benefits" aria-label="Cleanote highlights">
             {["Works with ordinary paper", "Photos and PDFs", "Editable text", "TXT, DOCX, and PDF export"].map((benefit) => (
               <span key={benefit}>
@@ -382,13 +402,19 @@ export default function LandingPage() {
       <section className="pricing-panel" id="pricing">
         <div>
           <p className="doc-kicker">Pricing</p>
-          <h2>One-time $0.99 iPhone download.</h2>
-          <p>Optional account for supported web access.</p>
+          <h2>Choose your mobile app store.</h2>
+          <p>Free on Android or a one-time $0.99 iPhone download. Optional account for supported web access.</p>
         </div>
-        <a className="doc-primary" href={APP_STORE_URL} rel="noreferrer" target="_blank">
-          <Smartphone aria-hidden="true" size={18} />
-          Download on the App Store
-        </a>
+        <div className="pricing-store-actions">
+          <a className="doc-primary app-store-primary" href={APP_STORE_URL} rel="noreferrer" target="_blank">
+            <Apple aria-hidden="true" size={18} />
+            App Store
+          </a>
+          <a className="doc-primary google-play-primary" href={GOOGLE_PLAY_URL} rel="noreferrer" target="_blank">
+            <Play aria-hidden="true" size={18} />
+            Google Play
+          </a>
+        </div>
       </section>
 
       <section className="product-family-band" aria-label="More apps from Cleanote">
@@ -547,6 +573,7 @@ export default function LandingPage() {
           <a href="/support">Contact</a>
           <a href="/refund">Refund Policy</a>
           <a href={APP_STORE_URL} rel="noreferrer" target="_blank">App Store</a>
+          <a href={GOOGLE_PLAY_URL} rel="noreferrer" target="_blank">Google Play</a>
           <a href="/kashmiri-translator">Kashmiri Translator</a>
           <a href="/mobile"><Smartphone aria-hidden="true" size={15} /> App</a>
         </nav>
