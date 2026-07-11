@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description: "How Cleanote processes account details, uploaded notes, OCR text, and saved notes.",
+  alternates: { canonical: "/privacy/" }
+};
+
 export default function PrivacyPage() {
   return (
     <main className="policy-shell">
@@ -5,7 +13,7 @@ export default function PrivacyPage() {
         <p className="eyebrow">Cleanote</p>
         <h1>Privacy Policy</h1>
         <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
-        <p className="policy-date">Last updated: June 14, 2026</p>
+        <p className="policy-date">Last updated: July 10, 2026</p>
 
         <section>
           <h2>What Cleanote Does</h2>
@@ -30,7 +38,7 @@ export default function PrivacyPage() {
           <h2>How We Use Information</h2>
           <p>
             We use your information to provide OCR, generate editable text, send beta access
-            links, save notes when you choose to use cloud search, troubleshoot the service,
+            access, save notes when you choose to use supported cloud search, troubleshoot the service,
             and improve Cleanote.
           </p>
         </section>
@@ -74,17 +82,19 @@ export default function PrivacyPage() {
         <section>
           <h2>Children</h2>
           <p>
-            Cleanote is intended for students, researchers, and professionals. It is not directed
-            to young children. Users under the age required by local law should use Cleanote only
-            with permission from a parent, guardian, school, or organization.
+            Cleanote is intended for general audiences, including students and families. It is not
+            designed for a child to create an account or submit personal information without an
+            adult. A parent, guardian, teacher, or organization should manage use by children under
+            the age required by local law. Cleanote does not ask children to provide school names,
+            birth dates, addresses, or other unnecessary personal details.
           </p>
         </section>
 
         <section>
           <h2>Contact</h2>
           <p>
-            For privacy questions or deletion requests, contact Karigari Home LLC at the support
-            email listed in Google Play Console.
+            For privacy questions or deletion requests, contact Karigari Home LLC at
+            info@cleanote.in or follow the <a href="/delete-account">account deletion instructions</a>.
           </p>
         </section>
 

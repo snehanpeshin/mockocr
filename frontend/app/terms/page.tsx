@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description: "Terms for using the Cleanote app and web note-scanning tools.",
+  alternates: { canonical: "/terms/" }
+};
+
 export default function TermsPage() {
   return (
     <main className="policy-shell">
@@ -19,9 +27,10 @@ export default function TermsPage() {
         <section>
           <h2>Accounts</h2>
           <p>
-            A Cleanote account may be used for supported web access, syncing, and future account
-            features. Keep your account information secure and contact support if you believe your
-            account has been accessed without permission.
+            A Cleanote account may be used for supported web access and account features. Some
+            notes may remain only in the browser unless a cloud-saving feature is explicitly shown.
+            Keep your account information secure and contact support if you believe your account
+            has been accessed without permission.
           </p>
         </section>
 

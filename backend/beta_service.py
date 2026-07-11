@@ -22,8 +22,10 @@ def request_beta_access(name: str, email: str, role: str) -> dict[str, Any]:
     _ensure_configured()
 
     normalized_email = _normalize_email(email)
-    normalized_name = name.strip()
+    normalized_name = _clean_text(name, 120)
     normalized_role = role.strip()
+    if not normalized_name:
+        raise ValueError("Name is required.")
     if normalized_role not in ALLOWED_ROLES:
         raise ValueError("Choose Student, Researcher, or Professional.")
 
@@ -220,6 +222,8 @@ def request_tablet_preorder(lead: dict[str, Any]) -> dict[str, str]:
     normalized_email = _normalize_email(str(lead.get("email", "")))
     normalized_name = _clean_text(lead.get("name", ""), 120)
     normalized_role = _clean_text(lead.get("role", ""), 40)
+    if not normalized_name:
+        raise ValueError("Name is required.")
     if normalized_role not in ALLOWED_PREORDER_ROLES:
         raise ValueError("Choose Parent, Student, Tutor, Teacher, or Professional.")
 
@@ -283,8 +287,8 @@ def request_tablet_preorder(lead: dict[str, Any]) -> dict[str, str]:
         "status": "saved",
         "email": normalized_email,
         "message": (
-            "Thanks. Your Cleanote+ tablet bundle preorder interest was saved. "
-            "We will follow up as the preorder opens."
+            "Thanks. Your interest in the Cleanote+ tablet concept was saved. "
+            "This is a nonbinding waitlist, not a purchase or reservation."
         ),
     }
 
@@ -509,16 +513,16 @@ def _manual_followup_subject() -> str:
 
 
 def _tablet_preorder_subject() -> str:
-    return "Cleanote+ tablet bundle preorder interest"
+    return "Cleanote+ tablet waitlist interest"
 
 
 def _tablet_preorder_body(name: str = "") -> str:
     greeting = f"Hi {name}," if str(name).strip() else "Hi,"
     return f"""{greeting}
 
-Thanks for your interest in the Cleanote+ 8.5-inch writing tablet bundle.
+Thanks for your interest in the Cleanote+ 8.5-inch writing tablet concept.
 
-We are collecting early preorder interest now. The bundle is planned for kids, tutors, families, and note-heavy learners who want to write on a simple tablet and save work through Cleanote.
+We are collecting nonbinding waitlist interest. This is not a purchase, deposit, reservation, or promise of availability. Final features, pricing, shipping, and timing are not yet confirmed.
 
 You can use Cleanote now here:
 {_app_link()}
@@ -526,7 +530,7 @@ You can use Cleanote now here:
 Premium access is available here:
 {_premium_link()}
 
-We will follow up when preorder details are ready.
+We will follow up when product details are ready.
 
 Cleanote
 Karigari Home LLC

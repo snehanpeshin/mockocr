@@ -1,7 +1,6 @@
 import { ArrowRight, Smartphone } from "lucide-react";
 
-const APP_STORE_URL = "https://apps.apple.com/bz/app/cleanote/id6784403759";
-const GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=com.cleanote.app";
+const APP_STORE_URL = "https://apps.apple.com/app/cleanote/id6784403759";
 
 function qrUrl(url: string) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=12&data=${encodeURIComponent(url)}`;
@@ -46,11 +45,11 @@ export default function MobileAppPage() {
             <Smartphone aria-hidden="true" size={28} />
           </div>
           <h2>Android</h2>
-          <p>Use Google Play when Cleanote is available in your region.</p>
-          <img alt="QR code for Cleanote on Google Play" src={qrUrl(GOOGLE_PLAY_URL)} />
-          <a className="doc-secondary" href={GOOGLE_PLAY_URL} rel="noreferrer" target="_blank">
-            Open Google Play <ArrowRight aria-hidden="true" size={17} />
-          </a>
+          <p>Google Play release is in progress. The Android listing is not public yet.</p>
+          <div className="mobile-coming-soon" role="status">Coming soon</div>
+          <span className="doc-secondary mobile-store-disabled" aria-disabled="true">
+            Google Play coming soon
+          </span>
         </article>
       </section>
 
@@ -59,6 +58,7 @@ export default function MobileAppPage() {
         <nav aria-label="Mobile app footer links">
           <a href="/privacy">Privacy Policy</a>
           <a href="/terms">Terms of Service</a>
+          <a href="/delete-account">Delete account or data</a>
           <a href="/support">Support</a>
         </nav>
       </footer>

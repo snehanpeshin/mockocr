@@ -2299,7 +2299,7 @@ textarea:focus {
   background: linear-gradient(105deg, #ffffff 0%, #d7f7ff 52%, #e7ddff 100%);
   background-clip: text;
   color: transparent;
-  font-size: clamp(2.4rem, 5.2vw, 5.15rem);
+  font-size: clamp(2.35rem, 4.4vw, 4.35rem);
   font-weight: 820;
   letter-spacing: 0;
   line-height: 0.98;
@@ -2683,7 +2683,7 @@ textarea:focus {
   isolation: isolate;
   margin-top: 18px;
   max-width: none;
-  min-height: clamp(620px, 78vh, 820px);
+  min-height: clamp(570px, 72vh, 740px);
   overflow: hidden;
   padding: clamp(38px, 7vw, 82px) clamp(18px, 5vw, 72px);
   position: relative;
@@ -2698,7 +2698,7 @@ textarea:focus {
 
 .hero-video-layer {
   background:
-    linear-gradient(135deg, #05070f, #10213b),
+    linear-gradient(135deg, #05070f 0%, #10213b 58%, #0b3a3a 100%),
     #05070f;
   z-index: -2;
 }
@@ -2883,6 +2883,8 @@ textarea:focus {
 .doc-process-section,
 .doc-feature-section,
 .vision-capabilities-section,
+.audience-section,
+.availability-section,
 .doc-use-case-band,
 .doc-tablet-band,
 .doc-footer {
@@ -2915,7 +2917,8 @@ textarea:focus {
 
 .doc-process-section,
 .doc-feature-section,
-.vision-capabilities-section {
+.vision-capabilities-section,
+.audience-section {
   display: grid;
   gap: 18px;
   padding-top: 42px;
@@ -3036,6 +3039,86 @@ textarea:focus {
   color: var(--muted);
   line-height: 1.52;
   margin: 0;
+}
+
+.audience-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.audience-grid article {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(15, 36, 64, 0.06);
+  display: grid;
+  gap: 10px;
+  min-height: 168px;
+  padding: 18px;
+}
+
+.audience-grid svg {
+  color: #0f766e;
+}
+
+.audience-grid h3,
+.availability-section h2 {
+  color: var(--ink);
+  margin: 0;
+}
+
+.audience-grid h3 {
+  font-size: 1.05rem;
+}
+
+.audience-grid p,
+.availability-section p,
+.availability-section li {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.availability-section {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: 42px;
+}
+
+.availability-section article {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: clamp(20px, 3vw, 30px);
+}
+
+.availability-section h2 {
+  font-size: clamp(1.35rem, 2.3vw, 2rem);
+  line-height: 1.12;
+}
+
+.availability-section ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.availability-section .future-product-card {
+  background: #10213b;
+  border-color: #29415f;
+}
+
+.availability-section .future-product-card h2 {
+  color: #ffffff;
+}
+
+.availability-section .future-product-card p:not(.doc-kicker) {
+  color: rgba(255, 255, 255, 0.76);
 }
 
 .doc-process-grid {
@@ -3548,6 +3631,24 @@ textarea:focus {
   margin: 0;
 }
 
+.tablet-preorder-form > p {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0 0 2px;
+}
+
+.tablet-preorder-form label {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.tablet-preorder-form label span {
+  color: rgba(255, 255, 255, 0.58);
+  font-weight: 700;
+}
+
 .tablet-preorder-form input,
 .tablet-preorder-form select,
 .tablet-preorder-form textarea {
@@ -3569,11 +3670,26 @@ textarea:focus {
 .tablet-preorder-row {
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(0, 1fr) 84px;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 0.55fr);
+}
+
+.tablet-preorder-row > div {
+  display: grid;
+  gap: 6px;
 }
 
 .tablet-preorder-button {
   width: 100%;
+}
+
+.tablet-privacy-note {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.tablet-privacy-note a {
+  color: #d7f7ff;
 }
 
 .tablet-premium-link {
@@ -3761,6 +3877,31 @@ textarea:focus {
   min-height: 44px;
   padding: 0 14px;
   text-decoration: none;
+}
+
+.mobile-coming-soon {
+  align-items: center;
+  background: #eef2f7;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  color: #526174;
+  display: flex;
+  font-size: 1rem;
+  font-weight: 900;
+  height: 220px;
+  justify-content: center;
+  width: 220px;
+}
+
+.mobile-store-disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.support-form-note {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 12px 0 0;
 }
 
 .mobile-download-footer {
@@ -4142,6 +4283,8 @@ textarea:focus {
   .visual-step-stack,
   .launch-step-grid,
   .vision-capability-grid,
+  .audience-grid,
+  .availability-section,
   .pricing-panel,
   .faq-grid,
   .mobile-store-grid {
@@ -4154,7 +4297,7 @@ textarea:focus {
   }
 
   .video-hero {
-    padding: 42px 18px 34px;
+    padding: 38px 18px 32px;
   }
 
   .doc-auth-actions {
@@ -4307,7 +4450,7 @@ textarea:focus {
   }
 
   .doc-hero h1 {
-    font-size: clamp(2rem, 13vw, 3rem);
+    font-size: clamp(2rem, 11.5vw, 2.85rem);
   }
 
   .doc-hero-copy > p:not(.doc-kicker) {
@@ -4319,6 +4462,11 @@ textarea:focus {
   .doc-tablet-actions a {
     justify-content: center;
     width: 100%;
+  }
+
+  .vision-output-grid,
+  .tablet-preorder-row {
+    grid-template-columns: 1fr;
   }
 
   .doc-tool-preview {

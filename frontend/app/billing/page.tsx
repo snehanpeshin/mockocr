@@ -73,6 +73,10 @@ export default function BillingPage() {
             Premium is a one-time $0.99 launch payment. Secure Checkout is powered by Stripe,
             owned by Karigari Home LLC, and branded as Cleanote.
           </p>
+          <p>
+            This direct web payment is separate from the $0.99 iPhone App Store download and
+            does not purchase or install the mobile app.
+          </p>
           <p className="company-line">
             Cleanote, a product of Karigari Home LLC · <a href="/privacy">Privacy Policy</a> ·{" "}
             <a href="/refund">Refund Policy</a>

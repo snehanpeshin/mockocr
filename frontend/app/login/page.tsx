@@ -98,8 +98,8 @@ export default function LoginPage() {
         </div>
 
         <p className="auth-copy">
-          Use your account for supported web access, syncing, and future Cleanote features. The
-          iPhone app remains available through the App Store.
+          Use your account for supported web features. Some notes may remain only in this browser
+          unless cloud saving is explicitly shown. The iPhone app remains available through the App Store.
         </p>
 
         {!isFirebaseReady ? (

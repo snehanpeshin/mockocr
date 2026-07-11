@@ -15,6 +15,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from image_preprocess import preprocess_image_variants
+from firebase_auth import require_matching_email
 from beta_service import (
     beta_summary,
     feedback_summary,
@@ -185,9 +186,15 @@ def request_tablet_bundle_preorder(payload: TabletPreorderRequest) -> dict[str, 
 
 
 @app.post("/api/notes")
-def save_user_note(payload: NoteRequest) -> dict[str, str]:
+def save_user_note(
+    payload: NoteRequest,
+    authorization: str | None = Header(default=None),
+) -> dict[str, str]:
     try:
+        require_matching_email(authorization, payload.email)
         return save_note(payload.model_dump())
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -197,9 +204,17 @@ def save_user_note(payload: NoteRequest) -> dict[str, str]:
 
 
 @app.get("/api/notes/search")
-def search_user_notes(email: str, q: str = "", limit: int = 30) -> dict[str, object]:
+def search_user_notes(
+    email: str,
+    q: str = "",
+    limit: int = 30,
+    authorization: str | None = Header(default=None),
+) -> dict[str, object]:
     try:
+        require_matching_email(authorization, email)
         return search_notes(email, q, limit)
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -209,9 +224,16 @@ def search_user_notes(email: str, q: str = "", limit: int = 30) -> dict[str, obj
 
 
 @app.delete("/api/notes/{note_id}")
-def delete_user_note(note_id: str, email: str) -> dict[str, str]:
+def delete_user_note(
+    note_id: str,
+    email: str,
+    authorization: str | None = Header(default=None),
+) -> dict[str, str]:
     try:
+        require_matching_email(authorization, email)
         return delete_note(email, note_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:

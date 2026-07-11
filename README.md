@@ -83,6 +83,7 @@ BETA_TOKEN_TTL_HOURS=24
 SES_FROM_EMAIL=hello@cleanote.com
 APP_BASE_URL=https://cleanote.com
 NOTE_TABLE_NAME=cleanote-notes
+FIREBASE_PROJECT_ID=cleanote-443ef
 SCAN_EVENTS_TABLE_NAME=cleanote-scan-events
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
@@ -181,8 +182,10 @@ For launch, keep `NEXT_PUBLIC_BETA_GATE=false` until SES and DynamoDB are workin
 
 ### Cloud Note Search
 
-Cleanote keeps a browser-local archive by default. When a user has verified beta access and
-`NOTE_TABLE_NAME` is configured, notes are also saved to DynamoDB and searched from the backend.
+Cleanote keeps a browser-local archive by default. When a user signs in with Firebase and
+`NOTE_TABLE_NAME` is configured, notes can also be saved to DynamoDB and searched from the backend.
+The frontend sends a Firebase ID token, and the backend verifies that the authenticated email
+matches the note owner before save, search, or delete operations.
 
 AWS resource needed for cloud search:
 
@@ -251,8 +254,8 @@ save/search using a verified beta email.
 - `POST /api/ocr` accepts `file` as multipart form data and returns extracted text.
 - `POST /api/beta/request` accepts JSON `{ "name": "...", "email": "...", "role": "Student" }` and sends a verification link.
 - `GET /api/beta/verify?token=...` verifies the email link.
-- `POST /api/notes` saves a verified user's note to DynamoDB.
-- `GET /api/notes/search?email=...&q=...` searches a verified user's saved notes.
+- `POST /api/notes` saves an authenticated user's note to DynamoDB and requires a Firebase bearer token.
+- `GET /api/notes/search?email=...&q=...` searches an authenticated user's saved notes and requires a Firebase bearer token.
 - `POST /api/stripe/checkout-session` creates a server-side Stripe Checkout Session.
 - `POST /api/stripe/payment-link` creates an admin-protected Stripe Payment Link.
 - `POST /api/stripe/webhook` receives and verifies Stripe webhook events.

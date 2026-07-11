@@ -283,7 +283,7 @@ export default function AdminPage() {
   function downloadTabletPreorderCsv() {
     const rows = summary?.tablet_preorder_summary?.recent_preorders ?? [];
     if (!rows.length) {
-      setMessage("No tablet preorder interest yet.");
+      setMessage("No tablet waitlist interest yet.");
       return;
     }
 
@@ -444,7 +444,7 @@ export default function AdminPage() {
               </p>
             ) : (
               <p className="message">
-                Download early Cleanote+ tablet bundle preorder interest.
+                Download Cleanote+ tablet concept waitlist interest.
               </p>
             )}
             <button className="primary" onClick={downloadTabletPreorderCsv} type="button">
@@ -463,7 +463,7 @@ export default function AdminPage() {
               row.status,
               row.created_at.slice(0, 10)
             ])}
-            title="Tablet preorder interest"
+            title="Tablet waitlist interest"
           />
           <Table
             columns={["Name", "Email", "Role", "Access", "Email status", "Follow-up", "App link", "Premium"]}

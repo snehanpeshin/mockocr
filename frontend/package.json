@@ -5,6 +5,9 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "engines": {
+    "node": ">=20 <23"
+  },
   "dependencies": {
     "firebase": "^11.6.0",
     "lucide-react": "^0.468.0",
@@ -19,5 +22,8 @@
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.0",
     "typescript": "^5.7.2"
+  },
+  "overrides": {
+    "postcss": "8.5.10"
   }
 }

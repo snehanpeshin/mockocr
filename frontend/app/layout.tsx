@@ -6,20 +6,26 @@ import "./styles.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.cleanote.in"),
   title: {
-    default: "Cleanote",
+    default: "Cleanote | Scan Handwritten Notes into Editable Text",
     template: "%s | Cleanote"
   },
   description:
-    "Cleanote turns handwritten notes, printed handouts, equations, and annotated pages into editable, searchable text.",
-  alternates: {
-    canonical: "/"
-  },
+    "Capture handwritten notes, printed handouts, and annotated pages as editable text you can review, save, and export.",
+  applicationName: "Cleanote",
+  category: "productivity",
+  keywords: [
+    "handwriting scanning app",
+    "digital handwritten notes",
+    "scan and organize notes",
+    "note capture app",
+    "student note organization"
+  ],
   openGraph: {
     description:
       "Scan handwritten notes, worksheets, research pages, and annotated documents into searchable text.",
     images: ["/cleanote-icon.png"],
     siteName: "Cleanote",
-    title: "Cleanote",
+    title: "Cleanote | Scan Handwritten Notes into Editable Text",
     type: "website",
     url: "/"
   },
@@ -28,11 +34,16 @@ export const metadata: Metadata = {
     description:
       "Scan handwritten notes, worksheets, research pages, and annotated documents into searchable text.",
     images: ["/cleanote-icon.png"],
-    title: "Cleanote"
+    title: "Cleanote | Scan Handwritten Notes into Editable Text"
   },
   icons: {
     apple: "/cleanote-icon.png",
     icon: "/cleanote-icon.png"
+  },
+  manifest: "/manifest.webmanifest",
+  robots: {
+    follow: true,
+    index: true
   }
 };
 

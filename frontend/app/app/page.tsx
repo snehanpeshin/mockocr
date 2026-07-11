@@ -22,9 +22,10 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, MutableRefObject } from "react";
 import { getApiBase } from "../apiBase";
+import { useAuth } from "../lib/auth";
 
 const API_BASE = getApiBase();
-const APP_STORE_URL = "https://apps.apple.com/bz/app/cleanote/id6784403759";
+const APP_STORE_URL = "https://apps.apple.com/app/cleanote/id6784403759";
 const SAVED_NOTES_KEY = "cleanote.savedNotes";
 const LEGACY_SAVED_NOTES_KEY = "pen2txt.savedNotes";
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -101,6 +102,7 @@ const SUBJECTS = [
 ];
 
 export default function Home() {
+  const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -190,7 +192,6 @@ export default function Home() {
     try {
       const betaAccess = window.localStorage.getItem("cleanote.betaAccess");
       const parsedAccess = betaAccess ? (JSON.parse(betaAccess) as BetaAccess) : null;
-      setUserEmail(parsedAccess?.beta_access && parsedAccess.email ? parsedAccess.email : null);
       setUserName(parsedAccess?.name ?? "");
       setUserRole(parsedAccess?.role ?? "");
       setDiscoveryEmail(parsedAccess?.email ?? "");
@@ -208,7 +209,15 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!userEmail) {
+    const authenticatedEmail = user?.email?.trim().toLowerCase() ?? null;
+    setUserEmail(authenticatedEmail);
+    if (authenticatedEmail) {
+      setDiscoveryEmail((currentEmail) => currentEmail || authenticatedEmail);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!userEmail || !user) {
       setCloudNotes([]);
       return;
     }
@@ -221,7 +230,11 @@ export default function Home() {
     });
     setIsSearchingArchive(true);
 
-    fetch(`${API_BASE}/api/notes/search?${params.toString()}`, { signal: controller.signal })
+    user.getIdToken()
+      .then((token) => fetch(`${API_BASE}/api/notes/search?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal
+      }))
       .then(async (response) => {
         if (!response.ok) {
           throw new Error("Cloud note search is unavailable.");
@@ -240,7 +253,7 @@ export default function Home() {
       .finally(() => setIsSearchingArchive(false));
 
     return () => controller.abort();
-  }, [searchQuery, userEmail]);
+  }, [searchQuery, user, userEmail]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -699,8 +712,11 @@ export default function Home() {
       window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(nextNotes));
       return nextNotes;
     });
-    if (userEmail) {
-      void syncNoteToCloud(note, userEmail).catch(() => undefined);
+    if (userEmail && user) {
+      void user.getIdToken()
+        .then((token) => syncNoteToCloud(note, userEmail, token))
+        .then(() => setMessage("Saved locally and to your signed-in cloud archive."))
+        .catch(() => setMessage("Saved locally. Cloud saving is currently unavailable."));
     }
   }
 
@@ -725,7 +741,7 @@ export default function Home() {
     setFilename(noteFilename);
     setSaveStatus("saved");
     window.setTimeout(() => setSaveStatus("idle"), 1400);
-    setMessage(userEmail ? "Saved note for cloud search." : "Saved note for local search.");
+    setMessage(userEmail ? "Saved locally. Syncing your signed-in cloud copy..." : "Saved note for local search.");
   }
 
   function clearEditor() {
@@ -766,10 +782,13 @@ export default function Home() {
       setCurrentNoteId(null);
     }
 
-    if (userEmail) {
-      void deleteCloudNote(note.id, userEmail).catch(() => undefined);
+    if (userEmail && user) {
+      void user.getIdToken()
+        .then((token) => deleteCloudNote(note.id, userEmail, token))
+        .then(() => setMessage("Saved note deleted locally and from your cloud archive."))
+        .catch(() => setMessage("Deleted locally. Cloud deletion is currently unavailable."));
     }
-    setMessage("Saved note deleted.");
+    setMessage(userEmail ? "Deleted locally. Updating your cloud archive..." : "Saved note deleted locally.");
   }
 
   async function submitDiscovery() {
@@ -1293,6 +1312,7 @@ export default function Home() {
         <span>© {new Date().getFullYear()} KARIGARI HOME LLC DBA CLEANOTE. All Rights Reserved.</span>
         <nav aria-label="Scanner footer links">
           <a href="/privacy">Privacy Policy</a>
+          <a href="/delete-account">Delete account or data</a>
           <a href="/refund">Refund Policy</a>
           <a href="/support">Support</a>
           <a href="/mobile">Mobile App</a>
@@ -1308,17 +1328,21 @@ async function buildProcessedImageFile(file: File, adjustments: ImageAdjustments
   return new File([blob], `${baseName}-cleaned.jpg`, { type: "image/jpeg" });
 }
 
-async function syncNoteToCloud(note: SavedNote, email: string) {
+async function syncNoteToCloud(note: SavedNote, email: string, token: string) {
   await fetch(`${API_BASE}/api/notes`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify({ ...note, email })
   });
 }
 
-async function deleteCloudNote(noteId: string, email: string) {
+async function deleteCloudNote(noteId: string, email: string, token: string) {
   const params = new URLSearchParams({ email });
   await fetch(`${API_BASE}/api/notes/${encodeURIComponent(noteId)}?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
     method: "DELETE"
   });
 }

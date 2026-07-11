@@ -23,7 +23,7 @@ export default function SupportPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [isReadyToSend, setIsReadyToSend] = useState(false);
   const emailError = email.trim() ? validateSupportEmail(email) : "";
   const canSubmit = Boolean(name.trim() && message.trim() && email.trim() && !emailError);
 
@@ -32,10 +32,12 @@ export default function SupportPage() {
     if (!canSubmit) {
       return;
     }
-    setSubmitted(true);
-    setName("");
-    setEmail("");
-    setMessage("");
+    const subject = encodeURIComponent(`Cleanote support request from ${name.trim()}`);
+    const body = encodeURIComponent(
+      `Name: ${name.trim()}\nEmail: ${email.trim()}\n\n${message.trim()}`
+    );
+    setIsReadyToSend(true);
+    window.location.href = `mailto:info@cleanote.in?subject=${subject}&body=${body}`;
   }
 
   return (
@@ -92,8 +94,18 @@ export default function SupportPage() {
           <button className="primary" disabled={!canSubmit} type="submit">
             Submit
           </button>
-          {submitted ? <p className="support-success">Form submitted successfully.</p> : null}
+          {isReadyToSend ? (
+            <p className="support-success" role="status">
+              Your email app should open with a draft addressed to info@cleanote.in. Send that
+              draft to complete your request.
+            </p>
+          ) : null}
         </form>
+
+        <p className="support-form-note">
+          This form opens your email app. Cleanote does not claim the message was received until
+          you send it. You can also email <a href="mailto:info@cleanote.in">info@cleanote.in</a> directly.
+        </p>
 
         <section>
           <h2>What To Include</h2>

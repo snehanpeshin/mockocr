@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Refund Policy",
+  description: "Refund information for Cleanote purchases made through Stripe or mobile app stores.",
+  alternates: { canonical: "/refund/" }
+};
+
 export default function RefundPage() {
   return (
     <main className="policy-shell">
@@ -44,9 +52,9 @@ export default function RefundPage() {
         <section>
           <h2>Contact</h2>
           <p>
-            To request a refund, contact Karigari Home LLC at the support email listed in
-            Google Play Console and include the email used for purchase, purchase date, and a
-            short reason for the request.
+            To request a refund for a direct Cleanote purchase, contact Karigari Home LLC at
+            info@cleanote.in and include the email used for purchase, purchase date, and a short
+            reason for the request. App Store purchases are handled under the store&apos;s refund process.
           </p>
         </section>
 
