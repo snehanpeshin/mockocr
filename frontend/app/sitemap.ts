@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 
 const SITE_URL = "https://www.cleanote.in";
 
+export const dynamic = "force-static";
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     "",
