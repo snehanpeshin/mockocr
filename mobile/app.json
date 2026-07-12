@@ -24,7 +24,6 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.cleanote.app",
-      "versionCode": 4,
       "permissions": [
         "CAMERA"
       ],
