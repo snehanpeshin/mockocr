@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,14 @@ import {
   TextInput,
   View
 } from "react-native";
+import mobileAds, {
+  AdEventType,
+  BannerAd,
+  BannerAdSize,
+  InterstitialAd,
+  MaxAdContentRating,
+  TestIds
+} from "react-native-google-mobile-ads";
 
 const API_BASE =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
@@ -49,9 +57,19 @@ const SUBJECTS = [
   "research"
 ];
 
-const OUTCOMES = ["Full pages", "Equations & labels", "Searchable notes"];
+const OUTCOMES = ["Ordinary paper", "Editable text", "Review & export"];
+
+const AD_UNIT_IDS = {
+  banner: __DEV__ ? TestIds.BANNER : "ca-app-pub-6605747981994820/1494286316",
+  interstitial: __DEV__ ? TestIds.INTERSTITIAL : "ca-app-pub-6605747981994820/6178647101",
+  rewarded: __DEV__ ? TestIds.REWARDED : "ca-app-pub-6605747981994820/3330112161"
+};
+
+const INTERSTITIAL_COOLDOWN_MS = 3 * 60 * 1000;
 
 export default function App() {
+  const interstitialAdRef = useRef<InterstitialAd | null>(null);
+  const lastInterstitialShownAtRef = useRef(0);
   const [pickedImages, setPickedImages] = useState<PickedImage[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [text, setText] = useState("");
@@ -64,6 +82,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isInterstitialLoaded, setIsInterstitialLoaded] = useState(false);
   const [message, setMessage] = useState("Choose a page to turn handwriting into searchable text.");
 
   const pickedImage = pickedImages[activeImageIndex] ?? null;
@@ -71,6 +90,68 @@ export default function App() {
   const wordCount = useMemo(() => {
     return text.trim() ? text.trim().split(/\s+/).length : 0;
   }, [text]);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") {
+      return undefined;
+    }
+
+    let isMounted = true;
+    const interstitial = InterstitialAd.createForAdRequest(AD_UNIT_IDS.interstitial, {
+      requestNonPersonalizedAdsOnly: true
+    });
+    interstitialAdRef.current = interstitial;
+
+    const unsubscribeLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () => {
+      if (isMounted) {
+        setIsInterstitialLoaded(true);
+      }
+    });
+    const unsubscribeClosed = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+      if (isMounted) {
+        setIsInterstitialLoaded(false);
+      }
+      interstitial.load();
+    });
+    const unsubscribeError = interstitial.addAdEventListener(AdEventType.ERROR, () => {
+      if (isMounted) {
+        setIsInterstitialLoaded(false);
+      }
+    });
+
+    void mobileAds()
+      .setRequestConfiguration({
+        maxAdContentRating: MaxAdContentRating.G,
+        tagForChildDirectedTreatment: false,
+        tagForUnderAgeOfConsent: false
+      })
+      .then(() => mobileAds().initialize())
+      .then(() => {
+        interstitial.load();
+      });
+
+    return () => {
+      isMounted = false;
+      unsubscribeLoaded();
+      unsubscribeClosed();
+      unsubscribeError();
+    };
+  }, []);
+
+  function maybeShowScanCompleteAd() {
+    if (Platform.OS !== "android" || !isInterstitialLoaded || !interstitialAdRef.current) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastInterstitialShownAtRef.current < INTERSTITIAL_COOLDOWN_MS) {
+      return;
+    }
+
+    lastInterstitialShownAtRef.current = now;
+    setIsInterstitialLoaded(false);
+    interstitialAdRef.current.show();
+  }
 
   async function choosePhoto(source: "camera" | "library") {
     if (source === "camera") {
@@ -168,6 +249,7 @@ export default function App() {
           ? `Scan complete for ${results.length} pages.`
           : "Scan complete. Edit, save, or search your note."
       );
+      maybeShowScanCompleteAd();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "OCR failed.");
     } finally {
@@ -275,13 +357,17 @@ export default function App() {
       >
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
-            <Image source={require("./assets/icon.png")} style={styles.logo} />
-            <Text style={styles.eyebrow}>Cleanote mobile</Text>
-            <Text style={styles.title}>Convert handwritten notes into searchable documents</Text>
-            <Text style={styles.companyLine}>Cleanote, a product of Karigari Home LLC</Text>
+            <View style={styles.brandRow}>
+              <Image source={require("./assets/icon.png")} style={styles.logo} />
+              <View style={styles.brandCopy}>
+                <Text style={styles.eyebrow}>Cleanote mobile</Text>
+                <Text style={styles.companyLine}>A product of Karigari Home LLC</Text>
+              </View>
+            </View>
+            <Text style={styles.title}>Turn handwritten pages into editable notes.</Text>
             <Text style={styles.subtitle}>
-              Capture notebook pages, worksheets, and handwritten study material. Review the
-              editable text, save it, and find it later.
+              Photograph ordinary paper, worksheets, and study pages. Cleanote creates a text draft
+              you can review, edit, save, and search.
             </Text>
             <View style={styles.outcomeRow}>
               {OUTCOMES.map((outcome) => (
@@ -293,6 +379,14 @@ export default function App() {
             <Pressable onPress={openPrivacyPolicy}>
               <Text style={styles.policyLink}>Privacy Policy</Text>
             </Pressable>
+          </View>
+
+          <View style={styles.tipsPanel}>
+            <Text style={styles.eyebrow}>Best scan results</Text>
+            <Text style={styles.tipText}>Use bright light, keep the page flat, and fill the frame.</Text>
+            <Text style={styles.tipText}>
+              For long notes, scan one clear page at a time and review the OCR before relying on it.
+            </Text>
           </View>
 
           <View style={styles.actions}>
@@ -416,6 +510,17 @@ export default function App() {
             <Text style={styles.message}>{message}</Text>
           </View>
 
+          {Platform.OS === "android" ? (
+            <View style={styles.adPanel}>
+              <Text style={styles.adLabel}>Advertisement</Text>
+              <BannerAd
+                unitId={AD_UNIT_IDS.banner}
+                size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+                requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+              />
+            </View>
+          ) : null}
+
           <View style={styles.panel}>
             <Text style={styles.eyebrow}>Cloud search</Text>
             <Text style={styles.hint}>
@@ -470,6 +575,32 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     gap: 12
+  },
+  adLabel: {
+    color: "#7c8a8f",
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase"
+  },
+  adPanel: {
+    alignItems: "center",
+    backgroundColor: "#eef7f5",
+    borderColor: "#d8e0e2",
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+    minHeight: 82,
+    overflow: "hidden",
+    padding: 10
+  },
+  brandCopy: {
+    flex: 1,
+    gap: 4
+  },
+  brandRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 14
   },
   container: {
     gap: 18,
@@ -562,10 +693,9 @@ const styles = StyleSheet.create({
     fontWeight: "800"
   },
   logo: {
-    borderRadius: 18,
-    height: 92,
-    marginBottom: 4,
-    width: 92
+    borderRadius: 16,
+    height: 72,
+    width: 72
   },
   message: {
     color: "#607078",
@@ -762,5 +892,18 @@ const styles = StyleSheet.create({
     fontSize: 31,
     fontWeight: "800",
     lineHeight: 36
+  },
+  tipText: {
+    color: "#405058",
+    fontSize: 14,
+    lineHeight: 20
+  },
+  tipsPanel: {
+    backgroundColor: "#fff8e6",
+    borderColor: "#eadcae",
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 6,
+    padding: 14
   }
 });
