@@ -60,7 +60,13 @@ const SUBJECTS = [
 const OUTCOMES = ["Ordinary paper", "Editable text", "Review & export"];
 
 const AD_UNIT_IDS = {
-  banner: __DEV__ ? TestIds.BANNER : "ca-app-pub-6605747981994820/1494286316",
+  banner: __DEV__
+    ? TestIds.BANNER
+    : (Platform.select({
+        android: "ca-app-pub-6605747981994820/1494286316",
+        ios: "ca-app-pub-6605747981994820/3345434359",
+        default: TestIds.BANNER
+      }) as string),
   interstitial: __DEV__ ? TestIds.INTERSTITIAL : "ca-app-pub-6605747981994820/6178647101",
   rewarded: __DEV__ ? TestIds.REWARDED : "ca-app-pub-6605747981994820/3330112161"
 };
@@ -92,6 +98,14 @@ export default function App() {
   }, [text]);
 
   useEffect(() => {
+    void mobileAds()
+      .setRequestConfiguration({
+        maxAdContentRating: MaxAdContentRating.G,
+        tagForChildDirectedTreatment: false,
+        tagForUnderAgeOfConsent: false
+      })
+      .then(() => mobileAds().initialize());
+
     if (Platform.OS !== "android") {
       return undefined;
     }
@@ -119,16 +133,7 @@ export default function App() {
       }
     });
 
-    void mobileAds()
-      .setRequestConfiguration({
-        maxAdContentRating: MaxAdContentRating.G,
-        tagForChildDirectedTreatment: false,
-        tagForUnderAgeOfConsent: false
-      })
-      .then(() => mobileAds().initialize())
-      .then(() => {
-        interstitial.load();
-      });
+    interstitial.load();
 
     return () => {
       isMounted = false;
@@ -510,7 +515,7 @@ export default function App() {
             <Text style={styles.message}>{message}</Text>
           </View>
 
-          {Platform.OS === "android" ? (
+          {Platform.OS === "android" || Platform.OS === "ios" ? (
             <View style={styles.adPanel}>
               <Text style={styles.adLabel}>Advertisement</Text>
               <BannerAd
