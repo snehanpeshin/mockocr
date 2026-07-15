@@ -1,4 +1,5 @@
 import { StatusBar } from "expo-status-bar";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -74,15 +75,18 @@ const AD_UNIT_IDS = {
 
 const INTERSTITIAL_COOLDOWN_MS = 3 * 60 * 1000;
 const INSTALLATION_ID_KEY = "cleanote.installationId";
+const GUIDED_CAPTURE_STEPS = ["Fill the frame", "Bright light", "Hold steady"];
 
 function createInstallationId() {
   return `mobile-${Platform.OS}-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
 export default function App() {
+  const cameraRef = useRef<CameraView | null>(null);
   const interstitialAdRef = useRef<InterstitialAd | null>(null);
   const lastInterstitialShownAtRef = useRef(0);
   const installationIdRef = useRef(createInstallationId());
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [pickedImages, setPickedImages] = useState<PickedImage[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [text, setText] = useState("");
@@ -96,6 +100,9 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isInterstitialLoaded, setIsInterstitialLoaded] = useState(false);
+  const [isGuidedCameraOpen, setIsGuidedCameraOpen] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
   const [message, setMessage] = useState("Choose a page to turn handwriting into searchable text.");
 
   const pickedImage = pickedImages[activeImageIndex] ?? null;
@@ -177,33 +184,78 @@ export default function App() {
 
   async function choosePhoto(source: "camera" | "library") {
     if (source === "camera") {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      await openGuidedCamera();
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsMultipleSelection: true,
+      mediaTypes: ["images"],
+      quality: 0.92,
+      selectionLimit: 10
+    });
+
+    if (result.canceled || !result.assets[0]) {
+      return;
+    }
+
+    addPickedAssets(
+      result.assets.map((asset, index) => ({
+        fileName: asset.fileName ?? `cleanote-scan-${Date.now()}-${index + 1}.jpg`,
+        mimeType: asset.mimeType ?? "image/jpeg",
+        uri: asset.uri
+      })),
+      "library"
+    );
+  }
+
+  async function openGuidedCamera() {
+    let permission = cameraPermission;
+    if (!permission?.granted) {
+      permission = await requestCameraPermission();
       if (!permission.granted) {
         Alert.alert("Permission needed", "Cleanote needs camera access to scan handwritten notes.");
         return;
       }
     }
 
-    const result =
-      source === "camera"
-        ? await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.92 })
-        : await ImagePicker.launchImageLibraryAsync({
-            allowsMultipleSelection: true,
-            mediaTypes: ["images"],
-            quality: 0.92,
-            selectionLimit: 10
-          });
+    setIsCameraReady(false);
+    setIsGuidedCameraOpen(true);
+    setMessage("Align the paper inside the guide, then capture.");
+  }
 
-    if (result.canceled || !result.assets[0]) {
+  async function captureGuidedPhoto() {
+    if (!cameraRef.current || !isCameraReady || isCapturing) {
       return;
     }
 
-    const nextImages = result.assets.map((asset, index) => ({
-      fileName: asset.fileName ?? `cleanote-scan-${Date.now()}-${index + 1}.jpg`,
-      mimeType: asset.mimeType ?? "image/jpeg",
-      uri: asset.uri
-    }));
+    setIsCapturing(true);
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.94,
+        skipProcessing: false
+      });
 
+      addPickedAssets(
+        [
+          {
+            fileName: `cleanote-camera-${Date.now()}.jpg`,
+            mimeType: "image/jpeg",
+            uri: photo.uri
+          }
+        ],
+        "camera"
+      );
+      setIsGuidedCameraOpen(false);
+      setIsCameraReady(false);
+    } catch {
+      setMessage("Could not capture the page. Try again or choose an image.");
+    } finally {
+      setIsCapturing(false);
+    }
+  }
+
+  function addPickedAssets(nextImages: PickedImage[], source: "camera" | "library") {
     setPickedImages((currentImages) =>
       source === "camera" ? [...currentImages, nextImages[0]] : nextImages
     );
@@ -379,6 +431,77 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
+      {isGuidedCameraOpen ? (
+        <View style={styles.cameraScreen}>
+          <CameraView
+            active={isGuidedCameraOpen}
+            autofocus="on"
+            facing="back"
+            mode="picture"
+            onCameraReady={() => setIsCameraReady(true)}
+            onMountError={() => {
+              setIsGuidedCameraOpen(false);
+              setMessage("Could not open guided camera. Try choosing an image instead.");
+            }}
+            ref={cameraRef}
+            responsiveOrientationWhenOrientationLocked
+            style={styles.cameraView}
+          >
+            <View style={styles.cameraScrim}>
+              <View style={styles.cameraTopBar}>
+                <View>
+                  <Text style={styles.cameraEyebrow}>Guided capture</Text>
+                  <Text style={styles.cameraTitle}>Detect the full page</Text>
+                </View>
+                <Pressable
+                  style={styles.cameraCloseButton}
+                  onPress={() => {
+                    setIsGuidedCameraOpen(false);
+                    setIsCameraReady(false);
+                  }}
+                >
+                  <Text style={styles.cameraCloseText}>Close</Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.documentGuide}>
+                <View style={[styles.guideCorner, styles.guideCornerTopLeft]} />
+                <View style={[styles.guideCorner, styles.guideCornerTopRight]} />
+                <View style={[styles.guideCorner, styles.guideCornerBottomLeft]} />
+                <View style={[styles.guideCorner, styles.guideCornerBottomRight]} />
+                <Text style={styles.guideText}>Place all page edges inside this frame</Text>
+              </View>
+
+              <View style={styles.cameraBottomBar}>
+                <View style={styles.qualityRow}>
+                  {GUIDED_CAPTURE_STEPS.map((step) => (
+                    <View key={step} style={styles.qualityPill}>
+                      <Text style={styles.qualityDot}>•</Text>
+                      <Text style={styles.qualityText}>{step}</Text>
+                    </View>
+                  ))}
+                </View>
+                <Text style={styles.cameraHint}>
+                  Keep the tablet or paper flat. Avoid shadows and glare before capturing.
+                </Text>
+                <Pressable
+                  disabled={!isCameraReady || isCapturing}
+                  onPress={captureGuidedPhoto}
+                  style={[
+                    styles.captureButton,
+                    !isCameraReady || isCapturing ? styles.disabledButton : null
+                  ]}
+                >
+                  {isCapturing ? <ActivityIndicator color="#182024" /> : null}
+                  <Text style={styles.captureButtonText}>
+                    {isCapturing ? "Capturing" : isCameraReady ? "Capture page" : "Opening camera"}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </CameraView>
+        </View>
+      ) : null}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.keyboardView}
@@ -630,6 +753,81 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 14
   },
+  cameraBottomBar: {
+    gap: 12,
+    paddingBottom: 28
+  },
+  cameraCloseButton: {
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9
+  },
+  cameraCloseText: {
+    color: "#182024",
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  cameraEyebrow: {
+    color: "#9ff3df",
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase"
+  },
+  cameraHint: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+    textAlign: "center"
+  },
+  cameraScreen: {
+    backgroundColor: "#000000",
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+    zIndex: 20
+  },
+  cameraScrim: {
+    backgroundColor: "rgba(0,0,0,0.22)",
+    flex: 1,
+    justifyContent: "space-between",
+    padding: 20,
+    paddingTop: Platform.OS === "ios" ? 56 : 28
+  },
+  cameraTitle: {
+    color: "#ffffff",
+    fontSize: 25,
+    fontWeight: "900",
+    marginTop: 3
+  },
+  cameraTopBar: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  cameraView: {
+    flex: 1
+  },
+  captureButton: {
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: "#ffffff",
+    borderRadius: 999,
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    minHeight: 56,
+    minWidth: 190,
+    paddingHorizontal: 22
+  },
+  captureButtonText: {
+    color: "#182024",
+    fontSize: 16,
+    fontWeight: "900"
+  },
   container: {
     gap: 18,
     padding: 20,
@@ -654,6 +852,58 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.7
+  },
+  documentGuide: {
+    alignItems: "center",
+    alignSelf: "center",
+    aspectRatio: 3 / 4,
+    borderColor: "rgba(159,243,223,0.8)",
+    borderRadius: 16,
+    borderWidth: 2,
+    justifyContent: "center",
+    maxHeight: "58%",
+    width: "82%"
+  },
+  guideCorner: {
+    borderColor: "#9ff3df",
+    height: 34,
+    position: "absolute",
+    width: 34
+  },
+  guideCornerBottomLeft: {
+    borderBottomWidth: 5,
+    borderLeftWidth: 5,
+    bottom: -4,
+    left: -4
+  },
+  guideCornerBottomRight: {
+    borderBottomWidth: 5,
+    borderRightWidth: 5,
+    bottom: -4,
+    right: -4
+  },
+  guideCornerTopLeft: {
+    borderLeftWidth: 5,
+    borderTopWidth: 5,
+    left: -4,
+    top: -4
+  },
+  guideCornerTopRight: {
+    borderRightWidth: 5,
+    borderTopWidth: 5,
+    right: -4,
+    top: -4
+  },
+  guideText: {
+    backgroundColor: "rgba(0,0,0,0.56)",
+    borderRadius: 999,
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "800",
+    overflow: "hidden",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    textAlign: "center"
   },
   editor: {
     backgroundColor: "#fbfcfa",
@@ -824,6 +1074,34 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     padding: 12
+  },
+  qualityDot: {
+    color: "#9ff3df",
+    fontSize: 18,
+    fontWeight: "900",
+    lineHeight: 18
+  },
+  qualityPill: {
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.16)",
+    borderColor: "rgba(255,255,255,0.3)",
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7
+  },
+  qualityRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    justifyContent: "center"
+  },
+  qualityText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800"
   },
   primaryButton: {
     alignItems: "center",
