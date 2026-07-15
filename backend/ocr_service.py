@@ -34,10 +34,11 @@ def extract_text(
     subject: str = "general",
     context_text: str = "",
     fast_mode: bool = False,
+    cleanup_mode: str | None = None,
 ) -> OcrResult:
     provider = (provider_override or os.getenv("OCR_PROVIDER", "mock")).lower()
     if provider in {"aws", "textract"}:
-        return _extract_with_textract(image_path, subject, context_text, fast_mode)
+        return _extract_with_textract(image_path, subject, context_text, fast_mode, cleanup_mode)
 
     return {
         "provider": "mock",
@@ -54,6 +55,7 @@ def _extract_with_textract(
     subject: str,
     context_text: str = "",
     fast_mode: bool = False,
+    cleanup_mode: str | None = None,
 ) -> OcrResult:
     try:
         import boto3
@@ -97,6 +99,7 @@ def _extract_with_textract(
         context_text,
         best_candidate.image_path,
         document_context,
+        cleanup_provider_override=cleanup_mode,
     )
     provider = provider_base if cleanup_provider == "rules" else f"{provider_base}+{cleanup_provider}"
     return {"provider": provider, "text": enhanced_text}
@@ -351,8 +354,9 @@ def enhance_with_ai(
     context_text: str = "",
     image_path: Path | None = None,
     document_context: str = "",
+    cleanup_provider_override: str | None = None,
 ) -> tuple[str, str]:
-    cleanup_provider = os.getenv("AI_CLEANUP_PROVIDER", "rules").lower()
+    cleanup_provider = (cleanup_provider_override or os.getenv("AI_CLEANUP_PROVIDER", "rules")).lower()
     has_image = image_path is not None and image_path.exists()
     vision_enabled = os.getenv("AI_VISION_REVIEW", "true").lower() in {"1", "true", "yes", "on"}
     if cleanup_provider not in {"bedrock", "aws"} or (

@@ -25,6 +25,25 @@ from beta_service import (
     tablet_preorder_summary,
     verify_beta_token,
 )
+from cost_control import (
+    DuplicateInProgress,
+    LimitExceeded,
+    MonetizationRequired,
+    ServiceDisabled,
+    abandon_cache,
+    admin_usage_summary,
+    cache_key_for,
+    client_status,
+    complete_cache,
+    effective_access,
+    enforce_kill_switch,
+    identify_scan_request,
+    max_pages_per_upload,
+    max_upload_bytes,
+    reserve_limits,
+    reserve_or_get_cache,
+    usage_event,
+)
 from note_service import delete_note, save_note, search_notes
 from ocr_service import clean_ocr_text, extract_text
 from payment_service import (
@@ -310,6 +329,34 @@ def admin_revenue(x_admin_token: str | None = Header(default=None)) -> dict[str,
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@app.get("/api/admin/usage")
+def admin_usage(
+    days: int = 1,
+    x_admin_token: str | None = Header(default=None),
+) -> dict[str, object]:
+    try:
+        validate_admin_token(x_admin_token)
+        return admin_usage_summary(days)
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/config/status")
+def config_status(
+    authorization: str | None = Header(default=None),
+    x_cleanote_installation_id: str | None = Header(default=None),
+) -> dict[str, object]:
+    try:
+        identity = identify_scan_request(authorization, x_cleanote_installation_id)
+    except Exception:
+        identity = None
+    return client_status(identity)
+
+
 def _safe_beta_summary() -> dict[str, object]:
     try:
         return beta_summary()
@@ -344,7 +391,11 @@ async def run_ocr(
     provider: str | None = Form(default=None),
     subject: str = Form(default="general"),
     context_text: str = Form(default=""),
-) -> dict[str, str]:
+    cleanup_mode: str = Form(default="rules"),
+    authorization: str | None = Header(default=None),
+    x_cleanote_installation_id: str | None = Header(default=None),
+    idempotency_key: str | None = Header(default=None),
+) -> dict[str, object]:
     filename = file.filename or "upload"
     suffix = Path(filename).suffix.lower()
     if suffix not in {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff", ".pdf", ".docx"}:
@@ -363,30 +414,51 @@ async def run_ocr(
             detail="Upload an image, PDF, or DOCX file.",
         )
 
+    upload_bytes = await file.read()
+    file_size_bytes = len(upload_bytes)
+    if file_size_bytes > max_upload_bytes():
+        record_scan_event(
+            {
+                "filename": filename,
+                "file_type": suffix.lstrip("."),
+                "file_size_bytes": file_size_bytes,
+                "provider": provider or "",
+                "subject": subject,
+                "status": "rejected",
+                "error_message": "Upload exceeds server size limit.",
+            }
+        )
+        raise HTTPException(status_code=413, detail="This upload is too large. Try fewer pages or a smaller image.")
+
+    cache_reservation = None
     try:
+        identity = identify_scan_request(authorization, x_cleanote_installation_id)
+        access = effective_access(identity, cleanup_mode)
+        enforce_kill_switch(identity, access)
+
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             uploaded_path = temp_path / f"upload{suffix}"
             original_path = temp_path / "original.png" if suffix == ".pdf" else uploaded_path
 
-            with uploaded_path.open("wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-            file_size_bytes = uploaded_path.stat().st_size
+            uploaded_path.write_bytes(upload_bytes)
 
             if suffix == ".docx":
                 extracted_text = clean_ocr_text(_extract_docx_text(uploaded_path))
-                record_scan_event(
-                    {
-                        "filename": filename,
-                        "file_type": suffix.lstrip("."),
-                        "file_size_bytes": file_size_bytes,
-                        "provider": "docx",
-                        "subject": subject,
-                        "status": "success",
-                        "page_count": 1,
-                        "text_length": len(extracted_text),
-                    }
-                )
+                record_scan_event(usage_event(
+                    identity=identity,
+                    access=access,
+                    filename=filename,
+                    file_type=suffix.lstrip("."),
+                    upload_bytes=file_size_bytes,
+                    page_count=1,
+                    provider="docx",
+                    status="success",
+                    cache_hit=False,
+                    idempotency_key=idempotency_key,
+                    subject=subject,
+                    text_length=len(extracted_text),
+                ))
 
                 return {
                     "text": extracted_text,
@@ -394,6 +466,9 @@ async def run_ocr(
                     "filename": filename,
                     "subject": subject,
                     "context_text": context_text,
+                    "usage_tier": access.tier,
+                    "effective_cleanup_mode": access.cleanup_mode,
+                    "cache_hit": False,
                 }
 
             page_paths = (
@@ -401,8 +476,62 @@ async def run_ocr(
                 if suffix == ".pdf"
                 else [original_path]
             )
+            page_count = len(page_paths)
+            if page_count > max_pages_per_upload():
+                record_scan_event(usage_event(
+                    identity=identity,
+                    access=access,
+                    filename=filename,
+                    file_type=suffix.lstrip("."),
+                    upload_bytes=file_size_bytes,
+                    page_count=page_count,
+                    provider=provider or "",
+                    status="rejected",
+                    cache_hit=False,
+                    idempotency_key=idempotency_key,
+                    subject=subject,
+                    error_message="Upload exceeds page limit.",
+                ))
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"This upload has {page_count} pages. Upload {max_pages_per_upload()} pages or fewer.",
+                )
+
+            cache_reservation = cache_key_for(
+                identity=identity,
+                upload_bytes=upload_bytes,
+                provider=provider or os.getenv("OCR_PROVIDER", "mock"),
+                cleanup_mode=access.cleanup_mode,
+                subject=subject,
+                options={
+                    "context_text_hash": context_text,
+                    "fast_multi_page": page_count > 1,
+                    "file_type": suffix.lstrip("."),
+                },
+            )
+            cache_reservation = reserve_or_get_cache(cache_reservation, idempotency_key)
+            if cache_reservation.cache_hit and cache_reservation.cached_response:
+                cached_response = dict(cache_reservation.cached_response)
+                record_scan_event(usage_event(
+                    identity=identity,
+                    access=access,
+                    filename=filename,
+                    file_type=suffix.lstrip("."),
+                    upload_bytes=file_size_bytes,
+                    page_count=page_count,
+                    provider=str(cached_response.get("provider") or provider or ""),
+                    status="success",
+                    cache_hit=True,
+                    idempotency_key=idempotency_key,
+                    subject=subject,
+                    text_length=len(str(cached_response.get("text") or "")),
+                ))
+                cached_response["cache_hit"] = True
+                return cached_response
+
+            reservation = reserve_limits(identity, access, page_count)
             page_results: list[dict[str, str]] = []
-            fast_multi_page = len(page_paths) > 1
+            fast_multi_page = page_count > 1
             for page_index, page_path in enumerate(page_paths):
                 processed_paths = preprocess_image_variants(
                     page_path,
@@ -417,36 +546,68 @@ async def run_ocr(
                         subject,
                         context_text,
                         fast_mode=fast_multi_page,
+                        cleanup_mode=access.cleanup_mode,
                     )
                 )
 
             result_text = _combine_page_results(page_results)
             result_provider = _combine_providers(page_results)
-            record_scan_event(
-                {
-                    "filename": filename,
-                    "file_type": suffix.lstrip("."),
-                    "file_size_bytes": file_size_bytes,
-                    "provider": result_provider,
-                    "subject": subject,
-                    "status": "success",
-                    "page_count": len(page_paths),
-                    "text_length": len(result_text),
-                }
-            )
-
-            return {
+            response_payload: dict[str, object] = {
                 "text": result_text,
                 "provider": result_provider,
                 "filename": filename,
                 "subject": subject,
                 "context_text": context_text,
+                "usage_tier": access.tier,
+                "effective_cleanup_mode": access.cleanup_mode,
+                "cache_hit": False,
             }
-    except ValueError as exc:
+            complete_cache(cache_reservation, response_payload, idempotency_key)
+            record_scan_event(usage_event(
+                identity=identity,
+                access=access,
+                filename=filename,
+                file_type=suffix.lstrip("."),
+                upload_bytes=file_size_bytes,
+                page_count=page_count,
+                provider=result_provider,
+                status="success",
+                cache_hit=False,
+                idempotency_key=idempotency_key,
+                subject=subject,
+                text_length=len(result_text),
+            ))
+            _ = reservation
+            return response_payload
+    except DuplicateInProgress as exc:
+        raise HTTPException(status_code=409, detail=exc.detail) from exc
+    except LimitExceeded as exc:
+        abandon_cache(cache_reservation)
         record_scan_event(
             {
                 "filename": filename,
                 "file_type": suffix.lstrip("."),
+                "file_size_bytes": file_size_bytes,
+                "provider": provider or "",
+                "subject": subject,
+                "status": "rejected",
+                "error_message": "Scan limit exceeded.",
+            }
+        )
+        raise HTTPException(status_code=429, detail=exc.detail) from exc
+    except MonetizationRequired as exc:
+        raise HTTPException(status_code=402, detail=exc.detail) from exc
+    except ServiceDisabled as exc:
+        raise HTTPException(status_code=503, detail=exc.detail) from exc
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        abandon_cache(cache_reservation)
+        record_scan_event(
+            {
+                "filename": filename,
+                "file_type": suffix.lstrip("."),
+                "file_size_bytes": file_size_bytes,
                 "provider": provider or "",
                 "subject": subject,
                 "status": "failed",
@@ -455,10 +616,12 @@ async def run_ocr(
         )
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
+        abandon_cache(cache_reservation)
         record_scan_event(
             {
                 "filename": filename,
                 "file_type": suffix.lstrip("."),
+                "file_size_bytes": file_size_bytes,
                 "provider": provider or "",
                 "subject": subject,
                 "status": "failed",

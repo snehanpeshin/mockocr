@@ -1,5 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
+import * as SecureStore from "expo-secure-store";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -72,10 +73,16 @@ const AD_UNIT_IDS = {
 };
 
 const INTERSTITIAL_COOLDOWN_MS = 3 * 60 * 1000;
+const INSTALLATION_ID_KEY = "cleanote.installationId";
+
+function createInstallationId() {
+  return `mobile-${Platform.OS}-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
 
 export default function App() {
   const interstitialAdRef = useRef<InterstitialAd | null>(null);
   const lastInterstitialShownAtRef = useRef(0);
+  const installationIdRef = useRef(createInstallationId());
   const [pickedImages, setPickedImages] = useState<PickedImage[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [text, setText] = useState("");
@@ -98,6 +105,16 @@ export default function App() {
   }, [text]);
 
   useEffect(() => {
+    void SecureStore.getItemAsync(INSTALLATION_ID_KEY)
+      .then((storedId) => {
+        if (storedId && storedId.length >= 16) {
+          installationIdRef.current = storedId;
+          return;
+        }
+        return SecureStore.setItemAsync(INSTALLATION_ID_KEY, installationIdRef.current);
+      })
+      .catch(() => undefined);
+
     void mobileAds()
       .setRequestConfiguration({
         maxAdContentRating: MaxAdContentRating.G,
@@ -226,6 +243,12 @@ export default function App() {
 
         const response = await fetch(`${API_BASE}/api/ocr`, {
           body: formData,
+          headers: {
+            "X-Cleanote-Installation-Id": installationIdRef.current,
+            "Idempotency-Key": `${installationIdRef.current}-${Date.now()}-${Math.random()
+              .toString(36)
+              .slice(2, 12)}`
+          },
           method: "POST"
         });
         const payload = await response.json();

@@ -212,6 +212,32 @@ def revenue_summary() -> dict[str, Any]:
     }
 
 
+def has_paid_entitlement(email: str) -> bool:
+    normalized_email = email.strip().lower()
+    if not normalized_email or boto3 is None:
+        return False
+
+    try:
+        if os.getenv("STRIPE_PAYMENT_TABLE_NAME"):
+            for payment in _scan_all(_payments_table()):
+                payment_email = str(payment.get("customer_email") or "").strip().lower()
+                if payment_email == normalized_email and payment.get("product_key") in PRODUCT_CONFIG:
+                    return True
+
+        if os.getenv("STRIPE_SUBSCRIPTION_TABLE_NAME"):
+            for subscription in _scan_all(_subscriptions_table()):
+                subscription_email = str(subscription.get("customer_email") or "").strip().lower()
+                if (
+                    subscription_email == normalized_email
+                    and subscription.get("status") in SUBSCRIPTION_ACTIVE_STATUSES
+                ):
+                    return True
+    except Exception:
+        return False
+
+    return False
+
+
 def validate_admin_token(token: str | None) -> None:
     expected = os.getenv("ADMIN_DASHBOARD_TOKEN")
     if not expected:

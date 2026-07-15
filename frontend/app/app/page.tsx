@@ -28,6 +28,7 @@ const API_BASE = getApiBase();
 const APP_STORE_URL = "https://apps.apple.com/app/cleanote/id6784403759";
 const SAVED_NOTES_KEY = "cleanote.savedNotes";
 const LEGACY_SAVED_NOTES_KEY = "pen2txt.savedNotes";
+const INSTALLATION_ID_KEY = "cleanote.installationId";
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 const MAX_PROCESSED_IMAGE_SIDE = 2200;
 const PROCESSED_IMAGE_QUALITY = 0.88;
@@ -100,6 +101,21 @@ const SUBJECTS = [
   { label: "Medicine", value: "medicine" },
   { label: "Research", value: "research" }
 ];
+
+function getInstallationId() {
+  if (typeof window === "undefined") {
+    return "server-render-placeholder";
+  }
+
+  const existing = window.localStorage.getItem(INSTALLATION_ID_KEY);
+  if (existing && existing.length >= 16) {
+    return existing;
+  }
+
+  const nextId = crypto.randomUUID();
+  window.localStorage.setItem(INSTALLATION_ID_KEY, nextId);
+  return nextId;
+}
 
 export default function Home() {
   const { user } = useAuth();
@@ -574,10 +590,21 @@ export default function Home() {
         formData.append("provider", "textract");
         formData.append("subject", subject);
         formData.append("context_text", contextText);
+        formData.append("cleanup_mode", "rules");
+
+        const token = user ? await user.getIdToken() : null;
+        const headers: HeadersInit = {
+          "X-Cleanote-Installation-Id": getInstallationId(),
+          "Idempotency-Key": crypto.randomUUID()
+        };
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
 
         const response = await fetch(`${API_BASE}/api/ocr`, {
           method: "POST",
-          body: formData
+          body: formData,
+          headers
         });
 
         if (!response.ok) {

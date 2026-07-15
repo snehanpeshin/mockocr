@@ -1,0 +1,25 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CleanoteCostControlTables",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Scan"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:us-east-1:924225826927:table/cleanote-usage-counters",
+        "arn:aws:dynamodb:us-east-1:924225826927:table/cleanote-ocr-cache",
+        "arn:aws:dynamodb:us-east-1:924225826927:table/cleanote-idempotency",
+        "arn:aws:dynamodb:us-east-1:924225826927:table/cleanote-monetization-policy",
+        "arn:aws:dynamodb:us-east-1:924225826927:table/cleanote-scan-events",
+        "arn:aws:dynamodb:us-east-1:924225826927:table/cleanote-payments",
+        "arn:aws:dynamodb:us-east-1:924225826927:table/cleanote-subscriptions"
+      ]
+    }
+  ]
+}

@@ -18,16 +18,31 @@ def record_scan_event(event: dict[str, Any]) -> None:
 
     try:
         item = {
-            "scan_id": str(uuid4()),
-            "created_at": _now_iso(),
+            "scan_id": event.get("event_id") or str(uuid4()),
+            "created_at": event.get("created_at") or _now_iso(),
+            "identity_hash": event.get("identity_hash", ""),
+            "identity_type": event.get("identity_type", ""),
             "filename": event.get("filename", ""),
             "file_type": event.get("file_type", ""),
             "file_size_bytes": int(event.get("file_size_bytes") or 0),
             "provider": event.get("provider", ""),
+            "cleanup_mode": event.get("cleanup_mode", ""),
+            "cache_hit": bool(event.get("cache_hit", False)),
             "subject": event.get("subject", "general"),
             "status": event.get("status", "unknown"),
             "page_count": int(event.get("page_count") or 1),
             "text_length": int(event.get("text_length") or 0),
+            "textract_calls": int(event.get("textract_calls") or 0),
+            "textract_pages": int(event.get("textract_pages") or 0),
+            "bedrock_used": bool(event.get("bedrock_used", False)),
+            "bedrock_input_tokens": int(event.get("bedrock_input_tokens") or 0),
+            "bedrock_output_tokens": int(event.get("bedrock_output_tokens") or 0),
+            "estimated_textract_micro_usd": int(event.get("estimated_textract_micro_usd") or 0),
+            "estimated_bedrock_micro_usd": int(event.get("estimated_bedrock_micro_usd") or 0),
+            "estimated_storage_micro_usd": int(event.get("estimated_storage_micro_usd") or 0),
+            "estimated_total_micro_usd": int(event.get("estimated_total_micro_usd") or 0),
+            "subscription_tier": event.get("subscription_tier", ""),
+            "idempotency_key_hash": event.get("idempotency_key_hash", ""),
             "error_message": event.get("error_message", ""),
         }
         _table(table_name).put_item(Item=item)
@@ -50,6 +65,8 @@ def scan_summary() -> dict[str, Any]:
     total_scans = 0
     successful_scans = 0
     failed_scans = 0
+    estimated_total_micro_usd = 0
+    cache_hits = 0
 
     for event in events:
         total_scans += 1
@@ -61,6 +78,9 @@ def scan_summary() -> dict[str, Any]:
             successful_scans += 1
         elif status in {"failed", "rejected"}:
             failed_scans += 1
+        estimated_total_micro_usd += int(event.get("estimated_total_micro_usd") or 0)
+        if event.get("cache_hit"):
+            cache_hits += 1
 
     return {
         "configured": True,
@@ -68,6 +88,8 @@ def scan_summary() -> dict[str, Any]:
         "total_scans": total_scans,
         "successful_scans": successful_scans,
         "failed_scans": failed_scans,
+        "cache_hits": cache_hits,
+        "estimated_total_micro_usd": estimated_total_micro_usd,
         "by_status": [
             {"status": key, "count": value}
             for key, value in sorted(by_status.items())
