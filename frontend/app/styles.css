@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800;900&family=Space+Grotesk:wght@600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800;900&family=Patrick+Hand&family=Space+Grotesk:wght@600;700&display=swap");
 
 :root {
   color-scheme: light;
@@ -18,10 +18,10 @@
 
 .one-page-site {
   background:
-    radial-gradient(circle at 8% 18%, rgba(255, 204, 77, 0.34), transparent 18%),
-    radial-gradient(circle at 84% 14%, rgba(120, 202, 255, 0.36), transparent 22%),
-    radial-gradient(circle at 76% 86%, rgba(255, 122, 116, 0.32), transparent 20%),
-    linear-gradient(135deg, #24304a 0%, #1f5260 52%, #5b48c8 100%);
+    radial-gradient(circle at 8% 18%, rgba(255, 210, 80, 0.42), transparent 18%),
+    radial-gradient(circle at 86% 12%, rgba(127, 200, 255, 0.42), transparent 22%),
+    radial-gradient(circle at 78% 88%, rgba(255, 122, 116, 0.34), transparent 20%),
+    linear-gradient(135deg, #183650 0%, #196066 50%, #6551d8 100%);
   color: #17202a;
   min-height: 100vh;
   padding: 18px clamp(16px, 4vw, 42px) 28px;
@@ -37,6 +37,12 @@
   position: fixed;
   transform: rotate(-12deg);
   width: 54px;
+}
+
+.one-page-site::before {
+  box-shadow:
+    82vw 13vh 0 -12px rgba(255, 255, 255, 0.18),
+    12vw 76vh 0 -14px rgba(255, 122, 116, 0.34);
 }
 
 .one-page-site::before {
@@ -81,8 +87,12 @@
 
 .one-page-brand img {
   border-radius: 14px;
-  height: 46px;
-  width: 46px;
+  height: 54px;
+  width: 54px;
+}
+
+.one-page-brand span {
+  font-size: 1.12rem;
 }
 
 .one-page-nav nav {
@@ -103,7 +113,7 @@
   align-items: center;
   display: grid;
   gap: clamp(22px, 4vw, 48px);
-  grid-template-columns: minmax(0, 1fr) minmax(330px, 420px);
+  grid-template-columns: minmax(0, 0.88fr) minmax(380px, 1.12fr);
   min-height: calc(100vh - 190px);
 }
 
@@ -115,16 +125,16 @@
 
 .one-page-kicker {
   color: #ffe18a;
-  font-size: 0.78rem;
+  font-family: "Patrick Hand", "Manrope", sans-serif;
+  font-size: 1.18rem;
   font-weight: 900;
   letter-spacing: 0;
   margin: 0;
-  text-transform: uppercase;
 }
 
 .one-page-copy h1 {
   color: #ffffff;
-  font-size: clamp(2.25rem, 5.4vw, 4.85rem);
+  font-size: clamp(2.2rem, 4.8vw, 4.35rem);
   letter-spacing: 0;
   line-height: 0.98;
   margin: 0;
@@ -133,7 +143,7 @@
 
 .one-page-copy > p:not(.one-page-kicker) {
   color: rgba(255, 255, 255, 0.82);
-  font-size: clamp(1rem, 1.5vw, 1.24rem);
+  font-size: clamp(0.98rem, 1.32vw, 1.14rem);
   line-height: 1.65;
   margin: 0;
   max-width: 720px;
@@ -202,25 +212,47 @@
 }
 
 .one-page-card {
-  background: rgba(255, 252, 244, 0.97);
+  background:
+    linear-gradient(#fff3bf 1px, transparent 1px),
+    rgba(255, 252, 244, 0.98);
+  background-size: 100% 26px;
   border: 3px solid rgba(255, 255, 255, 0.62);
-  border-radius: 18px;
+  border-radius: 22px;
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.25);
   display: grid;
-  gap: 18px;
-  padding: 18px;
+  gap: 14px;
+  padding: 16px;
+  position: relative;
+  transform: rotate(0.4deg);
+}
+
+.one-page-card::before {
+  background: #ff7a74;
+  border-radius: 999px;
+  box-shadow: 76px 12px 0 #7fc8ff, 148px -4px 0 #ffe18a;
+  content: "";
+  height: 10px;
+  left: 26px;
+  position: absolute;
+  top: -8px;
+  width: 58px;
+}
+
+.crayon-hero-image {
+  aspect-ratio: 16 / 9;
+  border: 3px solid #26324a;
+  border-radius: 16px;
+  box-shadow: 0 18px 38px rgba(38, 50, 74, 0.18);
+  display: block;
+  object-fit: cover;
+  width: 100%;
 }
 
 .mini-scan {
-  background:
-    linear-gradient(#eef4ff 1px, transparent 1px),
-    #fff7df;
-  background-size: 100% 24px;
+  background: #ffffff;
   border: 2px dashed #ffcf70;
   border-radius: 14px;
-  display: grid;
-  gap: 10px;
-  padding: 14px;
+  padding: 11px 13px;
 }
 
 .mini-paper {
@@ -302,6 +334,7 @@
   display: inline-flex;
   font-weight: 900;
   gap: 8px;
+  line-height: 1.3;
 }
 
 .simple-interest-form {
@@ -311,13 +344,14 @@
 
 .simple-interest-form h2 {
   color: #17202a;
-  font-size: 1.35rem;
+  font-size: 1.22rem;
   margin: 0;
 }
 
 .simple-interest-form p {
   color: #667085;
-  line-height: 1.45;
+  font-size: 0.94rem;
+  line-height: 1.42;
   margin: 0 0 4px;
 }
 

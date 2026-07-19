@@ -9,11 +9,7 @@ const APP_STORE_URL = "https://apps.apple.com/app/cleanote/id6784403759";
 const GOOGLE_PLAY_URL =
   "https://play.google.com/store/apps/details?id=com.cleanote.app&utm_source=cleanote_website";
 
-const STEPS = [
-  "Write or draw",
-  "Capture the page",
-  "Review together"
-];
+const STEPS = ["Write", "Capture", "Review"];
 
 export default function LandingPage() {
   const [name, setName] = useState("");
@@ -70,11 +66,11 @@ export default function LandingPage() {
 
       <section className="one-page-hero">
         <div className="one-page-copy">
-          <p className="one-page-kicker">For notes, homework, and little ideas</p>
-          <h1>Turn kids&apos; handwritten pages into tidy digital notes.</h1>
+          <p className="one-page-kicker">For kids, students, parents, and teachers</p>
+          <h1>Turn handwritten schoolwork into clean digital notes.</h1>
           <p>
-            Cleanote helps families, students, and teachers capture worksheets, study pages,
-            drawings, and annotated notes as editable text that can be reviewed together.
+            Scan worksheets, class notes, equations, and doodles. Cleanote helps make paper pages
+            easier to read, save, and review together.
           </p>
 
           <div className="one-page-actions" id="apps">
@@ -102,21 +98,15 @@ export default function LandingPage() {
         </div>
 
         <aside className="one-page-card" aria-label="Join Cleanote updates">
+          <img
+            alt="Crayon-style worksheet being scanned into digital notes"
+            className="crayon-hero-image"
+            src="/cleanote-crayon-hero.png"
+          />
           <div className="mini-scan">
-            <div className="mini-paper">
-              <div className="crayon-sun" aria-hidden="true" />
-              <div className="crayon-house" aria-hidden="true">
-                <span />
-              </div>
-              <span />
-              <span />
-              <strong>My science notes</strong>
-              <span />
-              <div className="crayon-equation">2 + 3 = 5</div>
-            </div>
             <div className="mini-output">
               <Check aria-hidden="true" size={18} />
-              Ready to review
+              Worksheets, equations, drawings, and notes
             </div>
           </div>
 
@@ -161,8 +151,8 @@ export default function LandingPage() {
 
       <section className="one-page-strip" aria-label="Cleanote highlights">
         <span><Upload aria-hidden="true" size={17} /> Homework pages</span>
-        <span><Check aria-hidden="true" size={17} /> Parent review first</span>
-        <span><ArrowRight aria-hidden="true" size={17} /> Study notes, not clutter</span>
+        <span><Check aria-hidden="true" size={17} /> Study notes</span>
+        <span><ArrowRight aria-hidden="true" size={17} /> Kid-friendly capture</span>
       </section>
 
       <section className="tablet-note" id="tablet">
