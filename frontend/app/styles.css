@@ -18,13 +18,39 @@
 
 .one-page-site {
   background:
-    linear-gradient(135deg, rgba(21, 28, 45, 0.9), rgba(19, 40, 50, 0.78)),
-    radial-gradient(circle at 82% 10%, rgba(0, 166, 166, 0.22), transparent 34%),
-    radial-gradient(circle at 12% 88%, rgba(109, 93, 252, 0.18), transparent 28%),
-    #f6f8fb;
+    radial-gradient(circle at 8% 18%, rgba(255, 204, 77, 0.34), transparent 18%),
+    radial-gradient(circle at 84% 14%, rgba(120, 202, 255, 0.36), transparent 22%),
+    radial-gradient(circle at 76% 86%, rgba(255, 122, 116, 0.32), transparent 20%),
+    linear-gradient(135deg, #24304a 0%, #1f5260 52%, #5b48c8 100%);
   color: #17202a;
   min-height: 100vh;
   padding: 18px clamp(16px, 4vw, 42px) 28px;
+  position: relative;
+}
+
+.one-page-site::before,
+.one-page-site::after {
+  border: 4px solid rgba(255, 255, 255, 0.18);
+  content: "";
+  height: 54px;
+  pointer-events: none;
+  position: fixed;
+  transform: rotate(-12deg);
+  width: 54px;
+}
+
+.one-page-site::before {
+  border-color: rgba(255, 204, 77, 0.55);
+  border-radius: 50%;
+  left: 22px;
+  top: 104px;
+}
+
+.one-page-site::after {
+  border-color: rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  bottom: 70px;
+  right: 28px;
 }
 
 .one-page-nav,
@@ -88,7 +114,7 @@
 }
 
 .one-page-kicker {
-  color: #8ee6d8;
+  color: #ffe18a;
   font-size: 0.78rem;
   font-weight: 900;
   letter-spacing: 0;
@@ -98,7 +124,7 @@
 
 .one-page-copy h1 {
   color: #ffffff;
-  font-size: clamp(2.35rem, 6vw, 5.2rem);
+  font-size: clamp(2.25rem, 5.4vw, 4.85rem);
   letter-spacing: 0;
   line-height: 0.98;
   margin: 0;
@@ -142,7 +168,7 @@
 
 .store-button.android,
 .form-button {
-  background: #00a6a6;
+  background: #14a88b;
   border: 0;
   color: #ffffff;
 }
@@ -161,8 +187,8 @@
 }
 
 .one-page-steps span {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.13);
+  border: 2px dashed rgba(255, 255, 255, 0.24);
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.86);
   display: grid;
@@ -171,14 +197,14 @@
 }
 
 .one-page-steps strong {
-  color: #8ee6d8;
+  color: #ffe18a;
   font-size: 0.82rem;
 }
 
 .one-page-card {
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 16px;
+  background: rgba(255, 252, 244, 0.97);
+  border: 3px solid rgba(255, 255, 255, 0.62);
+  border-radius: 18px;
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.25);
   display: grid;
   gap: 18px;
@@ -186,8 +212,12 @@
 }
 
 .mini-scan {
-  background: #eff7f7;
-  border-radius: 12px;
+  background:
+    linear-gradient(#eef4ff 1px, transparent 1px),
+    #fff7df;
+  background-size: 100% 24px;
+  border: 2px dashed #ffcf70;
+  border-radius: 14px;
   display: grid;
   gap: 10px;
   padding: 14px;
@@ -195,12 +225,13 @@
 
 .mini-paper {
   background: #ffffff;
-  border: 1px solid #dbe3ef;
-  border-radius: 10px;
+  border: 2px solid #26324a;
+  border-radius: 12px;
   display: grid;
   gap: 10px;
   min-height: 170px;
   padding: 18px;
+  position: relative;
 }
 
 .mini-paper span {
@@ -222,14 +253,52 @@
 }
 
 .mini-paper strong {
-  color: #17202a;
+  color: #3453b8;
   font-family: "Space Grotesk", "Manrope", sans-serif;
   font-size: 1rem;
 }
 
+.crayon-sun {
+  background: #ffcc4d;
+  border: 3px solid #f59e0b;
+  border-radius: 50%;
+  height: 34px;
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  width: 34px;
+}
+
+.crayon-house {
+  border-bottom: 30px solid #ff7a74;
+  border-left: 31px solid transparent;
+  border-right: 31px solid transparent;
+  height: 0;
+  margin-top: 12px;
+  width: 0;
+}
+
+.crayon-house span {
+  background: #7fc8ff;
+  border: 3px solid #3453b8;
+  display: block;
+  height: 34px;
+  margin-left: -22px;
+  margin-top: 30px;
+  width: 44px;
+}
+
+.crayon-equation {
+  color: #f05f5f;
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 1.2rem;
+  font-weight: 800;
+  transform: rotate(-1.8deg);
+}
+
 .mini-output {
   align-items: center;
-  color: #006d69;
+  color: #096a5b;
   display: inline-flex;
   font-weight: 900;
   gap: 8px;
@@ -287,8 +356,8 @@
 
 .one-page-strip span {
   align-items: center;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px dashed rgba(255, 255, 255, 0.25);
   border-radius: 999px;
   display: inline-flex;
   font-weight: 850;
@@ -298,8 +367,9 @@
 
 .tablet-note {
   align-items: center;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
+  background: rgba(255, 252, 244, 0.96);
+  border: 3px solid rgba(255, 255, 255, 0.64);
+  border-radius: 18px;
   color: #17202a;
   display: grid;
   gap: 22px;

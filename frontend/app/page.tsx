@@ -10,9 +10,9 @@ const GOOGLE_PLAY_URL =
   "https://play.google.com/store/apps/details?id=com.cleanote.app&utm_source=cleanote_website";
 
 const STEPS = [
-  "Capture a page",
-  "Get editable text",
-  "Review and export"
+  "Write or draw",
+  "Capture the page",
+  "Review together"
 ];
 
 export default function LandingPage() {
@@ -70,11 +70,11 @@ export default function LandingPage() {
 
       <section className="one-page-hero">
         <div className="one-page-copy">
-          <p className="one-page-kicker">AI note capture</p>
-          <h1>Convert handwritten notes into searchable documents.</h1>
+          <p className="one-page-kicker">For notes, homework, and little ideas</p>
+          <h1>Turn kids&apos; handwritten pages into tidy digital notes.</h1>
           <p>
-            Cleanote helps students, parents, researchers, and professionals turn paper notes,
-            worksheets, and annotated pages into editable text.
+            Cleanote helps families, students, and teachers capture worksheets, study pages,
+            drawings, and annotated notes as editable text that can be reviewed together.
           </p>
 
           <div className="one-page-actions" id="apps">
@@ -104,21 +104,26 @@ export default function LandingPage() {
         <aside className="one-page-card" aria-label="Join Cleanote updates">
           <div className="mini-scan">
             <div className="mini-paper">
+              <div className="crayon-sun" aria-hidden="true" />
+              <div className="crayon-house" aria-hidden="true">
+                <span />
+              </div>
               <span />
               <span />
-              <strong>(a+b)² = a² + b² + 2ab</strong>
+              <strong>My science notes</strong>
               <span />
+              <div className="crayon-equation">2 + 3 = 5</div>
             </div>
             <div className="mini-output">
               <Check aria-hidden="true" size={18} />
-              Editable draft ready
+              Ready to review
             </div>
           </div>
 
           <form className="simple-interest-form" onSubmit={submitInterest}>
-            <h2>Get Cleanote updates</h2>
-            <p>One short form for beta access, product updates, and tablet interest.</p>
-            <label htmlFor="interest-name">Name</label>
+            <h2>Parent or teacher updates</h2>
+            <p>For beta access, family use, classroom ideas, and tablet updates.</p>
+            <label htmlFor="interest-name">Parent or teacher name</label>
             <input
               autoComplete="name"
               id="interest-name"
@@ -127,7 +132,7 @@ export default function LandingPage() {
               required
               value={name}
             />
-            <label htmlFor="interest-email">Email</label>
+            <label htmlFor="interest-email">Parent or teacher email</label>
             <input
               autoComplete="email"
               id="interest-email"
@@ -140,7 +145,7 @@ export default function LandingPage() {
             <label htmlFor="interest-role">I am a</label>
             <select id="interest-role" onChange={(event) => setRole(event.target.value)} value={role}>
               <option>Student</option>
-              <option>Parent</option>
+              <option>Parent / Family</option>
               <option>Researcher</option>
               <option>Teacher</option>
               <option>Professional</option>
@@ -155,19 +160,19 @@ export default function LandingPage() {
       </section>
 
       <section className="one-page-strip" aria-label="Cleanote highlights">
-        <span><Upload aria-hidden="true" size={17} /> Photos, PDFs, screenshots</span>
-        <span><Check aria-hidden="true" size={17} /> Edit before using</span>
-        <span><ArrowRight aria-hidden="true" size={17} /> TXT, DOCX, PDF export</span>
+        <span><Upload aria-hidden="true" size={17} /> Homework pages</span>
+        <span><Check aria-hidden="true" size={17} /> Parent review first</span>
+        <span><ArrowRight aria-hidden="true" size={17} /> Study notes, not clutter</span>
       </section>
 
       <section className="tablet-note" id="tablet">
         <img alt="Cleanote writing tablet concept" src="/cleanote-tablet-concept.jpg" />
         <div>
           <p className="one-page-kicker">Coming soon</p>
-          <h2>Cleanote+ writing tablet bundle</h2>
+          <h2>Cleanote+ writing tablet for kids</h2>
           <p>
-            A simple 8.5-inch reusable writing tablet concept for kids, homework, and quick notes.
-            Join the form above if you want updates.
+            A simple reusable writing tablet concept for practice, homework, and quick sketches.
+            Join the form above if your family or classroom wants updates.
           </p>
         </div>
       </section>
