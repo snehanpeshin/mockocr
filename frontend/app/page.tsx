@@ -1,6 +1,17 @@
 "use client";
 
-import { ArrowRight, Check, Loader2, Play, Smartphone, Upload } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Camera,
+  Check,
+  Loader2,
+  Play,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  Upload
+} from "lucide-react";
 import { FormEvent, useState } from "react";
 import { getApiBase } from "./apiBase";
 
@@ -10,6 +21,26 @@ const GOOGLE_PLAY_URL =
   "https://play.google.com/store/apps/details?id=com.cleanote.app&utm_source=cleanote_website";
 
 const STEPS = ["Write", "Capture", "Review"];
+
+const STORY = [
+  {
+    icon: BookOpen,
+    title: "Write naturally",
+    copy: "Kids keep practicing on paper: worksheets, equations, sketches, and class notes."
+  },
+  {
+    icon: Camera,
+    title: "Capture clearly",
+    copy: "Cleanote guides the scan so pages are brighter, straighter, and easier for AI to read."
+  },
+  {
+    icon: Sparkles,
+    title: "Review together",
+    copy: "Parents and teachers get cleaner digital notes, uncertainty cues, and study-ready text."
+  }
+];
+
+const MODES = ["Exact transcription", "Clean correction", "Study review"];
 
 export default function LandingPage() {
   const [name, setName] = useState("");
@@ -66,11 +97,11 @@ export default function LandingPage() {
 
       <section className="one-page-hero">
         <div className="one-page-copy">
-          <p className="one-page-kicker">For kids, students, parents, and teachers</p>
-          <h1>Turn handwritten schoolwork into clean digital notes.</h1>
+          <p className="one-page-kicker">Handwriting-first AI for learning</p>
+          <h1>Turn messy school pages into searchable learning records.</h1>
           <p>
-            Scan worksheets, class notes, equations, and doodles. Cleanote helps make paper pages
-            easier to read, save, and review together.
+            Cleanote helps kids and students keep writing by hand, then gives families and teachers
+            a safer way to capture, review, and organize what was written.
           </p>
 
           <div className="one-page-actions" id="apps">
@@ -106,7 +137,7 @@ export default function LandingPage() {
           <div className="mini-scan">
             <div className="mini-output">
               <Check aria-hidden="true" size={18} />
-              Worksheets, equations, drawings, and notes
+              Worksheets, equations, drawings, notes, and review
             </div>
           </div>
 
@@ -155,14 +186,43 @@ export default function LandingPage() {
         <span><ArrowRight aria-hidden="true" size={17} /> Kid-friendly capture</span>
       </section>
 
+      <section className="learning-story" aria-label="Cleanote learning workflow">
+        {STORY.map(({ icon: Icon, title, copy }) => (
+          <article key={title}>
+            <Icon aria-hidden="true" size={22} />
+            <h2>{title}</h2>
+            <p>{copy}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="trust-note" aria-label="Cleanote AI trust modes">
+        <div>
+          <p className="one-page-kicker">Built for trust</p>
+          <h2>Not just OCR. A handwriting-aware learning layer.</h2>
+          <p>
+            Cleanote separates transcription from interpretation, so a student&apos;s original work
+            stays traceable before AI turns it into searchable notes, summaries, or quizzes.
+          </p>
+        </div>
+        <div className="mode-list" aria-label="Cleanote modes">
+          {MODES.map((mode) => (
+            <span key={mode}>
+              <ShieldCheck aria-hidden="true" size={17} />
+              {mode}
+            </span>
+          ))}
+        </div>
+      </section>
+
       <section className="tablet-note" id="tablet">
         <img alt="Cleanote writing tablet concept" src="/cleanote-tablet-concept.jpg" />
         <div>
           <p className="one-page-kicker">Coming soon</p>
-          <h2>Cleanote+ writing tablet for kids</h2>
+          <h2>Cleanote+ tablet bundle for screen-light practice</h2>
           <p>
-            A simple reusable writing tablet concept for practice, homework, and quick sketches.
-            Join the form above if your family or classroom wants updates.
+            A reusable writing tablet plus Cleanote capture creates a simple loop: write by hand,
+            scan once, and build a searchable learning record over time.
           </p>
         </div>
       </section>

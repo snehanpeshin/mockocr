@@ -48,6 +48,8 @@
 .one-page-nav,
 .one-page-hero,
 .one-page-strip,
+.learning-story,
+.trust-note,
 .tablet-note,
 .one-page-footer {
   margin: 0 auto;
@@ -390,6 +392,99 @@
   padding: 9px 13px;
 }
 
+.learning-story {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 18px 0 0;
+}
+
+.learning-story article {
+  background:
+    linear-gradient(90deg, rgba(127, 200, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(#fff7d6 1px, transparent 1px),
+    rgba(255, 252, 244, 0.97);
+  background-size: 28px 100%, 100% 25px, auto;
+  border: 3px solid rgba(255, 255, 255, 0.66);
+  border-radius: 18px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.13);
+  color: #17202a;
+  padding: 18px;
+  position: relative;
+}
+
+.learning-story article:nth-child(2) {
+  transform: rotate(-0.8deg);
+}
+
+.learning-story article:nth-child(3) {
+  transform: rotate(0.8deg);
+}
+
+.learning-story svg,
+.trust-note svg {
+  color: #14a88b;
+}
+
+.learning-story h2 {
+  font-size: 1.15rem;
+  margin: 12px 0 8px;
+}
+
+.learning-story p {
+  color: #5b6474;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.trust-note {
+  align-items: center;
+  background:
+    radial-gradient(circle at 8% 18%, rgba(255, 207, 112, 0.32), transparent 24%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(238, 251, 248, 0.96));
+  border: 3px solid rgba(255, 255, 255, 0.68);
+  border-radius: 22px;
+  box-shadow: 0 20px 54px rgba(15, 23, 42, 0.16);
+  color: #17202a;
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.62fr);
+  margin-top: 18px;
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.trust-note h2 {
+  font-size: clamp(1.55rem, 3vw, 2.45rem);
+  line-height: 1.08;
+  margin: 6px 0 10px;
+  max-width: 680px;
+}
+
+.trust-note p:not(.one-page-kicker) {
+  color: #5b6474;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 720px;
+}
+
+.mode-list {
+  display: grid;
+  gap: 10px;
+}
+
+.mode-list span {
+  align-items: center;
+  background: #ffffff;
+  border: 2px dashed #bfeee5;
+  border-radius: 999px;
+  color: #096a5b;
+  display: inline-flex;
+  font-weight: 900;
+  gap: 8px;
+  padding: 11px 13px;
+}
+
 .tablet-note {
   align-items: center;
   background: rgba(255, 252, 244, 0.96);
@@ -455,6 +550,8 @@
   }
 
   .one-page-hero,
+  .learning-story,
+  .trust-note,
   .tablet-note {
     grid-template-columns: 1fr;
   }
