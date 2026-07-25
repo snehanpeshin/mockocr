@@ -89,7 +89,8 @@ export default function LandingPage() {
           <span>Cleanote</span>
         </a>
         <nav aria-label="Cleanote links">
-          <a href="#apps">Apps</a>
+          <a href="/handwriting-to-text/">Handwriting</a>
+          <a href="/homework-scanner/">Homework</a>
           <a href="#tablet">Tablet</a>
           <a href="/app">Web scanner</a>
         </nav>
@@ -98,7 +99,7 @@ export default function LandingPage() {
       <section className="one-page-hero">
         <div className="one-page-copy">
           <p className="one-page-kicker">Handwriting-first AI for learning</p>
-          <h1>Turn messy school pages into searchable learning records.</h1>
+          <h1>Turn handwritten school pages into searchable learning records.</h1>
           <p>
             Cleanote helps kids and students keep writing by hand, then gives families and teachers
             a safer way to capture, review, and organize what was written.
@@ -199,7 +200,7 @@ export default function LandingPage() {
       <section className="trust-note" aria-label="Cleanote AI trust modes">
         <div>
           <p className="one-page-kicker">Built for trust</p>
-          <h2>Not just OCR. A handwriting-aware learning layer.</h2>
+          <h2>More than handwriting OCR: a reviewable learning layer.</h2>
           <p>
             Cleanote separates transcription from interpretation, so a student&apos;s original work
             stays traceable before AI turns it into searchable notes, summaries, or quizzes.
@@ -230,6 +231,8 @@ export default function LandingPage() {
       <footer className="one-page-footer">
         <span>© {new Date().getFullYear()} KARIGARI HOME LLC DBA CLEANOTE</span>
         <nav aria-label="Legal links">
+          <a href="/handwriting-to-text/">Handwriting to text</a>
+          <a href="/homework-scanner/">Homework scanner</a>
           <a href="/privacy">Privacy</a>
           <a href="/terms">Terms</a>
           <a href="/support">Support</a>

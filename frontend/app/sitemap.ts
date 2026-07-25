@@ -7,19 +7,29 @@ export const dynamic = "force-static";
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     "",
-    "/app",
-    "/login",
+    "/handwriting-to-text",
+    "/homework-scanner",
     "/support",
     "/privacy",
     "/terms",
     "/refund",
-    "/delete-account"
+    "/delete-account",
+    "/kashmiri-translator"
   ];
 
   return routes.map((route) => ({
     url: `${SITE_URL}${route}/`,
     lastModified: new Date(),
-    changeFrequency: route === "" ? "weekly" : "monthly",
-    priority: route === "" ? 1 : route === "/app" ? 0.9 : 0.6
+    changeFrequency: route === "" || route === "/handwriting-to-text" ? "weekly" : "monthly",
+    priority:
+      route === ""
+        ? 1
+        : route === "/handwriting-to-text"
+          ? 0.95
+          : route === "/homework-scanner"
+            ? 0.9
+            : route === "/kashmiri-translator"
+              ? 0.35
+              : 0.6
   }));
 }
