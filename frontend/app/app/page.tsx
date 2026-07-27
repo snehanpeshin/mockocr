@@ -887,10 +887,10 @@ export default function Home() {
       <section className="premium-banner" aria-label="Cleanote Premium">
         <div>
           <strong>Cleanote for iPhone is available now</strong>
-          <span>Download the paid iOS app from the App Store for a one-time $0.99 purchase.</span>
+          <span>Download the free iOS app from the App Store, or keep using the web scanner here.</span>
         </div>
         <div className="premium-actions">
-          <a href={APP_STORE_URL} rel="noreferrer" target="_blank">Download app</a>
+          <a href={APP_STORE_URL} rel="noreferrer" target="_blank">Download free app</a>
           <a href="/refund">Refund policy</a>
         </div>
       </section>
