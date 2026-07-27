@@ -6,6 +6,8 @@ import { getApiBase } from "../apiBase";
 
 const API_BASE = getApiBase();
 const PREMIUM_ACCESS_KEY = "cleanote.premiumAccess";
+const PURCHASE_CONVERSION_ID = "AW-18335791503/hqCKCN_C9NUcEI_zl6dE";
+const PURCHASE_CONVERSION_STORAGE_PREFIX = "cleanote.purchaseConversionSent.";
 
 const PRODUCTS = [
   {
@@ -24,11 +26,24 @@ export default function BillingPage() {
   const [checkoutStatus, setCheckoutStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    const status = new URLSearchParams(window.location.search).get("status");
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("status");
+    const sessionId = params.get("session_id") ?? "";
     setCheckoutStatus(status);
     if (status === "success") {
       window.localStorage.setItem(PREMIUM_ACCESS_KEY, "true");
       setMessage("Premium is active on this browser. You can return to the scanner.");
+      const conversionKey = `${PURCHASE_CONVERSION_STORAGE_PREFIX}${sessionId || "unknown"}`;
+      if (!window.sessionStorage.getItem(conversionKey)) {
+        window.sessionStorage.setItem(conversionKey, "true");
+        const gtag = (window as typeof window & {
+          gtag?: (event: "event", action: string, params: Record<string, string>) => void;
+        }).gtag;
+        gtag?.("event", "conversion", {
+          send_to: PURCHASE_CONVERSION_ID,
+          transaction_id: sessionId
+        });
+      }
     } else if (status === "cancelled") {
       setMessage("Checkout was cancelled. You can try again when you are ready.");
     }
@@ -46,7 +61,7 @@ export default function BillingPage() {
         body: JSON.stringify({
           product_key: productKey,
           customer_email: email.trim() || null,
-          success_url: `${window.location.origin}/billing?status=success`,
+          success_url: `${window.location.origin}/billing?status=success&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${window.location.origin}/billing?status=cancelled`
         })
       });
