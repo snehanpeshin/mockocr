@@ -1,0 +1,16 @@
+# Cleanote
+
+Cleanote converts handwritten notes, worksheets, equations, and study pages into editable, searchable text.
+
+## Important pages
+
+- Homepage: https://www.cleanote.in/
+- Handwriting to text: https://www.cleanote.in/handwriting-to-text/
+- Homework scanner: https://www.cleanote.in/homework-scanner/
+- Web scanner: https://www.cleanote.in/app/
+- Support: https://www.cleanote.in/support/
+- Privacy: https://www.cleanote.in/privacy/
+
+## Product notes
+
+Cleanote is a product of Karigari Home LLC. It is designed for students, parents, researchers, and professionals who need to capture handwritten or annotated paper material and review converted text before using it.

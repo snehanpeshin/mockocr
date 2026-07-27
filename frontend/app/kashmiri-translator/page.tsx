@@ -8,13 +8,13 @@ export const metadata: Metadata = {
   description:
     "Kashmiri Translator is a focused iPhone app for translating English into Kashmiri.",
   alternates: {
-    canonical: "/kashmiri-translator"
+    canonical: "/kashmiri-translator/"
   },
   openGraph: {
     description: "Translate English into Kashmiri with a focused iPhone app from Cleanote.",
     images: ["/kashmiri-translator-bg.jpg"],
     title: "Kashmiri Translator",
-    url: "/kashmiri-translator"
+    url: "/kashmiri-translator/"
   }
 };
 

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { AuthProvider } from "./lib/auth";
 import "./styles.css";
@@ -54,6 +54,11 @@ export const metadata: Metadata = {
   }
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1
+};
+
 const structuredData = {
   "@context": "https://schema.org",
   "@graph": [
@@ -78,13 +83,19 @@ const structuredData = {
       url: "https://www.cleanote.in/",
       publisher: {
         "@id": "https://www.cleanote.in/#organization"
+      },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: "https://www.cleanote.in/app?q={search_term_string}",
+        "query-input": "required name=search_term_string"
       }
     },
     {
       "@type": "SoftwareApplication",
       "@id": "https://www.cleanote.in/#software",
       name: "Cleanote",
-      applicationCategory: "EducationalApplication",
+      applicationCategory: "EducationApplication",
+      softwareVersion: "1.0",
       operatingSystem: "iOS, Android, Web",
       url: "https://www.cleanote.in/",
       description:

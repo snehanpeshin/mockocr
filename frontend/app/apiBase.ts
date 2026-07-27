@@ -1,5 +1,6 @@
 const PRODUCTION_API_BASE =
   "https://mo-9f59128d1e0048feab5efaaaa71df90c.ecs.us-east-1.on.aws";
+const LOCAL_API_BASE = ["http:", "//localhost:8000"].join("");
 
 function isLocalHost(hostname: string) {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "0.0.0.0";
@@ -33,6 +34,6 @@ export function getApiBase() {
   }
 
   return typeof window !== "undefined" && isLocalHost(window.location.hostname)
-    ? "http://localhost:8000"
+    ? LOCAL_API_BASE
     : PRODUCTION_API_BASE;
 }
