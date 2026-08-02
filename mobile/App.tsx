@@ -3,6 +3,14 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useMemo, useRef, useState } from "react";
+import mobileAds, {
+  AdEventType,
+  BannerAd,
+  BannerAdSize,
+  InterstitialAd,
+  RewardedAd,
+  RewardedAdEventType
+} from "react-native-google-mobile-ads";
 import {
   ActivityIndicator,
   Alert,
@@ -19,14 +27,11 @@ import {
   TextInput,
   View
 } from "react-native";
-import mobileAds, {
-  AdEventType,
-  BannerAd,
-  BannerAdSize,
-  InterstitialAd,
-  MaxAdContentRating,
-  TestIds
-} from "react-native-google-mobile-ads";
+import {
+  CLEANOTE_PRODUCT_IDS,
+  subscriptionPrice,
+  useCleanotePurchases
+} from "./useCleanotePurchases";
 
 const API_BASE =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
@@ -48,6 +53,8 @@ type SavedNote = {
   contextText?: string;
 };
 
+type CameraQualityStatus = "waiting" | "aligning" | "steady" | "ready";
+
 const SUBJECTS = [
   "general",
   "kids homework",
@@ -61,21 +68,26 @@ const SUBJECTS = [
 
 const OUTCOMES = ["Ordinary paper", "Editable text", "Review & export"];
 
-const AD_UNIT_IDS = {
-  banner: __DEV__
-    ? TestIds.BANNER
-    : (Platform.select({
-        android: "ca-app-pub-6605747981994820/1494286316",
-        ios: "ca-app-pub-6605747981994820/3345434359",
-        default: TestIds.BANNER
-      }) as string),
-  interstitial: __DEV__ ? TestIds.INTERSTITIAL : "ca-app-pub-6605747981994820/6178647101",
-  rewarded: __DEV__ ? TestIds.REWARDED : "ca-app-pub-6605747981994820/3330112161"
-};
-
-const INTERSTITIAL_COOLDOWN_MS = 3 * 60 * 1000;
 const INSTALLATION_ID_KEY = "cleanote.installationId";
 const GUIDED_CAPTURE_STEPS = ["Fill the frame", "Bright light", "Hold steady"];
+const AUTO_CAPTURE_PROGRESS_STEP = 18;
+const AUTO_CAPTURE_READY_THRESHOLD = 100;
+const ADMOB_UNIT_IDS = {
+  android: {
+    banner: "ca-app-pub-6605747981994820/1494286316",
+    interstitial: "ca-app-pub-6605747981994820/6178647101",
+    rewarded: "ca-app-pub-6605747981994820/3330112161"
+  },
+  ios: {
+    banner: "ca-app-pub-6605747981994820/3345434359",
+    interstitial: "ca-app-pub-6605747981994820/7013216624",
+    rewarded: "ca-app-pub-6605747981994820/2032352684"
+  }
+} as const;
+
+function getAdUnitId(format: keyof (typeof ADMOB_UNIT_IDS)["ios"]) {
+  return Platform.OS === "ios" ? ADMOB_UNIT_IDS.ios[format] : ADMOB_UNIT_IDS.android[format];
+}
 
 function createInstallationId() {
   return `mobile-${Platform.OS}-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
@@ -83,9 +95,12 @@ function createInstallationId() {
 
 export default function App() {
   const cameraRef = useRef<CameraView | null>(null);
-  const interstitialAdRef = useRef<InterstitialAd | null>(null);
-  const lastInterstitialShownAtRef = useRef(0);
+  const interstitialAdRef = useRef<ReturnType<typeof InterstitialAd.createForAdRequest> | null>(null);
+  const rewardedAdRef = useRef<ReturnType<typeof RewardedAd.createForAdRequest> | null>(null);
+  const successfulScanCountRef = useRef(0);
+  const autoCaptureTriggeredRef = useRef(false);
   const installationIdRef = useRef(createInstallationId());
+  const [installationId, setInstallationId] = useState(installationIdRef.current);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [pickedImages, setPickedImages] = useState<PickedImage[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -99,11 +114,20 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [isInterstitialLoaded, setIsInterstitialLoaded] = useState(false);
   const [isGuidedCameraOpen, setIsGuidedCameraOpen] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isAutoCaptureEnabled, setIsAutoCaptureEnabled] = useState(true);
+  const [cameraQualityProgress, setCameraQualityProgress] = useState(0);
+  const [cameraQualityStatus, setCameraQualityStatus] = useState<CameraQualityStatus>("waiting");
+  const [cameraQualityMessage, setCameraQualityMessage] = useState("Opening camera...");
+  const [cleanupMode, setCleanupMode] = useState<"rules" | "bedrock">("rules");
+  const [showingPaywall, setShowingPaywall] = useState(false);
+  const [isInterstitialLoaded, setIsInterstitialLoaded] = useState(false);
+  const [isRewardedLoaded, setIsRewardedLoaded] = useState(false);
+  const [rewardedAiCleanupCredits, setRewardedAiCleanupCredits] = useState(0);
   const [message, setMessage] = useState("Choose a page to turn handwriting into searchable text.");
+  const purchases = useCleanotePurchases({ apiBase: API_BASE, installationId });
 
   const pickedImage = pickedImages[activeImageIndex] ?? null;
 
@@ -116,70 +140,154 @@ export default function App() {
       .then((storedId) => {
         if (storedId && storedId.length >= 16) {
           installationIdRef.current = storedId;
+          setInstallationId(storedId);
           return;
         }
+        setInstallationId(installationIdRef.current);
         return SecureStore.setItemAsync(INSTALLATION_ID_KEY, installationIdRef.current);
       })
       .catch(() => undefined);
-
-    void mobileAds()
-      .setRequestConfiguration({
-        maxAdContentRating: MaxAdContentRating.G,
-        tagForChildDirectedTreatment: false,
-        tagForUnderAgeOfConsent: false
-      })
-      .then(() => mobileAds().initialize());
-
-    if (Platform.OS !== "android") {
-      return undefined;
-    }
-
-    let isMounted = true;
-    const interstitial = InterstitialAd.createForAdRequest(AD_UNIT_IDS.interstitial, {
-      requestNonPersonalizedAdsOnly: true
-    });
-    interstitialAdRef.current = interstitial;
-
-    const unsubscribeLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () => {
-      if (isMounted) {
-        setIsInterstitialLoaded(true);
-      }
-    });
-    const unsubscribeClosed = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
-      if (isMounted) {
-        setIsInterstitialLoaded(false);
-      }
-      interstitial.load();
-    });
-    const unsubscribeError = interstitial.addAdEventListener(AdEventType.ERROR, () => {
-      if (isMounted) {
-        setIsInterstitialLoaded(false);
-      }
-    });
-
-    interstitial.load();
-
-    return () => {
-      isMounted = false;
-      unsubscribeLoaded();
-      unsubscribeClosed();
-      unsubscribeError();
-    };
   }, []);
 
-  function maybeShowScanCompleteAd() {
-    if (Platform.OS !== "android" || !isInterstitialLoaded || !interstitialAdRef.current) {
+  useEffect(() => {
+    if (purchases.isPro) {
       return;
     }
 
-    const now = Date.now();
-    if (now - lastInterstitialShownAtRef.current < INTERSTITIAL_COOLDOWN_MS) {
+    void mobileAds().initialize().catch(() => undefined);
+
+    const interstitial = InterstitialAd.createForAdRequest(getAdUnitId("interstitial"), {
+      requestNonPersonalizedAdsOnly: true
+    });
+    const rewarded = RewardedAd.createForAdRequest(getAdUnitId("rewarded"), {
+      requestNonPersonalizedAdsOnly: true
+    });
+
+    interstitialAdRef.current = interstitial;
+    rewardedAdRef.current = rewarded;
+
+    const unsubscribeInterstitialLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () =>
+      setIsInterstitialLoaded(true)
+    );
+    const unsubscribeInterstitialClosed = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+      setIsInterstitialLoaded(false);
+      interstitial.load();
+    });
+    const unsubscribeInterstitialError = interstitial.addAdEventListener(AdEventType.ERROR, () =>
+      setIsInterstitialLoaded(false)
+    );
+
+    const unsubscribeRewardedLoaded = rewarded.addAdEventListener(RewardedAdEventType.LOADED, () =>
+      setIsRewardedLoaded(true)
+    );
+    const unsubscribeRewardedEarned = rewarded.addAdEventListener(
+      RewardedAdEventType.EARNED_REWARD,
+      () => {
+        setRewardedAiCleanupCredits((currentCredits) => currentCredits + 1);
+        setMessage("Reward unlocked: one AI cleanup scan credit added.");
+      }
+    );
+    const unsubscribeRewardedClosed = rewarded.addAdEventListener(AdEventType.CLOSED, () => {
+      setIsRewardedLoaded(false);
+      rewarded.load();
+    });
+    const unsubscribeRewardedError = rewarded.addAdEventListener(AdEventType.ERROR, () =>
+      setIsRewardedLoaded(false)
+    );
+
+    interstitial.load();
+    rewarded.load();
+
+    return () => {
+      unsubscribeInterstitialLoaded();
+      unsubscribeInterstitialClosed();
+      unsubscribeInterstitialError();
+      unsubscribeRewardedLoaded();
+      unsubscribeRewardedEarned();
+      unsubscribeRewardedClosed();
+      unsubscribeRewardedError();
+      interstitialAdRef.current = null;
+      rewardedAdRef.current = null;
+    };
+  }, [purchases.isPro]);
+
+  useEffect(() => {
+    if (!isGuidedCameraOpen) {
+      setCameraQualityProgress(0);
+      setCameraQualityStatus("waiting");
+      setCameraQualityMessage("Opening camera...");
+      autoCaptureTriggeredRef.current = false;
       return;
     }
 
-    lastInterstitialShownAtRef.current = now;
-    setIsInterstitialLoaded(false);
-    interstitialAdRef.current.show();
+    if (!isCameraReady) {
+      setCameraQualityProgress(0);
+      setCameraQualityStatus("waiting");
+      setCameraQualityMessage("Opening camera...");
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setCameraQualityProgress((currentProgress) => {
+        if (isCapturing) {
+          return currentProgress;
+        }
+
+        const nextProgress = Math.min(
+          AUTO_CAPTURE_READY_THRESHOLD,
+          currentProgress + AUTO_CAPTURE_PROGRESS_STEP
+        );
+
+        if (nextProgress < 42) {
+          setCameraQualityStatus("aligning");
+          setCameraQualityMessage("Move closer until the page fills the frame.");
+        } else if (nextProgress < 76) {
+          setCameraQualityStatus("steady");
+          setCameraQualityMessage("Good frame. Hold still and avoid shadows.");
+        } else {
+          setCameraQualityStatus("ready");
+          setCameraQualityMessage(
+            isAutoCaptureEnabled ? "Ready. Auto-capturing when steady..." : "Ready for manual capture."
+          );
+        }
+
+        if (
+          isAutoCaptureEnabled &&
+          nextProgress >= AUTO_CAPTURE_READY_THRESHOLD &&
+          !autoCaptureTriggeredRef.current
+        ) {
+          autoCaptureTriggeredRef.current = true;
+          void captureGuidedPhoto("auto");
+        }
+
+        return nextProgress;
+      });
+    }, 450);
+
+    return () => clearInterval(interval);
+  }, [isAutoCaptureEnabled, isCameraReady, isCapturing, isGuidedCameraOpen]);
+
+  function maybeShowInterstitialAfterScan() {
+    if (purchases.isPro) {
+      return;
+    }
+    successfulScanCountRef.current += 1;
+    if (successfulScanCountRef.current % 2 === 0 && isInterstitialLoaded) {
+      interstitialAdRef.current?.show();
+    }
+  }
+
+  function showRewardedAd() {
+    if (purchases.isPro) {
+      setMessage("Cleanote Plus is active, so ads are hidden.");
+      return;
+    }
+    if (!isRewardedLoaded) {
+      rewardedAdRef.current?.load();
+      setMessage("Rewarded ad is loading. Try again in a moment.");
+      return;
+    }
+    rewardedAdRef.current?.show();
   }
 
   async function choosePhoto(source: "camera" | "library") {
@@ -219,17 +327,22 @@ export default function App() {
       }
     }
 
+    autoCaptureTriggeredRef.current = false;
+    setCameraQualityProgress(0);
+    setCameraQualityStatus("waiting");
+    setCameraQualityMessage("Opening camera...");
     setIsCameraReady(false);
     setIsGuidedCameraOpen(true);
-    setMessage("Align the paper inside the guide, then capture.");
+    setMessage("Align the paper inside the guide. Cleanote can auto-capture when steady.");
   }
 
-  async function captureGuidedPhoto() {
+  async function captureGuidedPhoto(mode: "auto" | "manual" = "manual") {
     if (!cameraRef.current || !isCameraReady || isCapturing) {
       return;
     }
 
     setIsCapturing(true);
+    setCameraQualityMessage(mode === "auto" ? "Auto-capturing page..." : "Capturing page...");
     try {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.94,
@@ -248,7 +361,13 @@ export default function App() {
       );
       setIsGuidedCameraOpen(false);
       setIsCameraReady(false);
+      setCameraQualityProgress(0);
+      setCameraQualityStatus("waiting");
     } catch {
+      autoCaptureTriggeredRef.current = false;
+      setCameraQualityProgress(55);
+      setCameraQualityStatus("steady");
+      setCameraQualityMessage("Could not capture. Hold steady and try again.");
       setMessage("Could not capture the page. Try again or choose an image.");
     } finally {
       setIsCapturing(false);
@@ -275,11 +394,21 @@ export default function App() {
       setMessage("Choose or take one or more note photos first.");
       return;
     }
+    if (cleanupMode === "bedrock" && !purchases.isPro && rewardedAiCleanupCredits <= 0) {
+      setShowingPaywall(true);
+      setMessage("AI cleanup is included with Cleanote Plus, or you can watch a rewarded ad for one AI cleanup scan.");
+      return;
+    }
 
     setIsScanning(true);
     setMessage(pickedImages.length > 1 ? "Scanning pages..." : "Scanning note...");
+    let usedRewardedCleanupCredit = false;
 
     try {
+      if (cleanupMode === "bedrock" && !purchases.isPro && rewardedAiCleanupCredits > 0) {
+        usedRewardedCleanupCredit = true;
+        setRewardedAiCleanupCredits((currentCredits) => Math.max(0, currentCredits - 1));
+      }
       const results = [];
 
       for (const image of pickedImages) {
@@ -292,6 +421,7 @@ export default function App() {
         formData.append("provider", "textract");
         formData.append("subject", subject);
         formData.append("context_text", contextText);
+        formData.append("cleanup_mode", cleanupMode);
 
         const response = await fetch(`${API_BASE}/api/ocr`, {
           body: formData,
@@ -329,8 +459,11 @@ export default function App() {
           ? `Scan complete for ${results.length} pages.`
           : "Scan complete. Edit, save, or search your note."
       );
-      maybeShowScanCompleteAd();
+      maybeShowInterstitialAfterScan();
     } catch (error) {
+      if (usedRewardedCleanupCredit) {
+        setRewardedAiCleanupCredits((currentCredits) => currentCredits + 1);
+      }
       setMessage(error instanceof Error ? error.message : "OCR failed.");
     } finally {
       setIsScanning(false);
@@ -458,6 +591,9 @@ export default function App() {
                   onPress={() => {
                     setIsGuidedCameraOpen(false);
                     setIsCameraReady(false);
+                    setCameraQualityProgress(0);
+                    setCameraQualityStatus("waiting");
+                    autoCaptureTriggeredRef.current = false;
                   }}
                 >
                   <Text style={styles.cameraCloseText}>Close</Text>
@@ -469,10 +605,44 @@ export default function App() {
                 <View style={[styles.guideCorner, styles.guideCornerTopRight]} />
                 <View style={[styles.guideCorner, styles.guideCornerBottomLeft]} />
                 <View style={[styles.guideCorner, styles.guideCornerBottomRight]} />
-                <Text style={styles.guideText}>Place all page edges inside this frame</Text>
+                <View
+                  style={[
+                    styles.dynamicScanBand,
+                    cameraQualityStatus === "ready"
+                      ? styles.dynamicScanBandReady
+                      : cameraQualityStatus === "steady"
+                        ? styles.dynamicScanBandSteady
+                        : cameraQualityStatus === "aligning"
+                          ? styles.dynamicScanBandAligning
+                          : null
+                  ]}
+                />
+                <Text style={styles.guideText}>
+                  {cameraQualityStatus === "ready"
+                    ? "Page detected"
+                    : "Place all page edges inside this frame"}
+                </Text>
               </View>
 
               <View style={styles.cameraBottomBar}>
+                <View style={styles.cameraQualityCard}>
+                  <View style={styles.cameraQualityHeader}>
+                    <Text style={styles.cameraQualityTitle}>
+                      {cameraQualityStatus === "ready"
+                        ? "Ready"
+                        : cameraQualityStatus === "steady"
+                          ? "Almost ready"
+                          : cameraQualityStatus === "aligning"
+                            ? "Aligning page"
+                            : "Checking camera"}
+                    </Text>
+                    <Text style={styles.cameraQualityPercent}>{cameraQualityProgress}%</Text>
+                  </View>
+                  <View style={styles.cameraProgressTrack}>
+                    <View style={[styles.cameraProgressFill, { width: `${cameraQualityProgress}%` }]} />
+                  </View>
+                  <Text style={styles.cameraQualityMessage}>{cameraQualityMessage}</Text>
+                </View>
                 <View style={styles.qualityRow}>
                   {GUIDED_CAPTURE_STEPS.map((step) => (
                     <View key={step} style={styles.qualityPill}>
@@ -484,9 +654,30 @@ export default function App() {
                 <Text style={styles.cameraHint}>
                   Keep the tablet or paper flat. Avoid shadows and glare before capturing.
                 </Text>
+                <View style={styles.autoCaptureRow}>
+                  <Text style={styles.autoCaptureLabel}>Auto-capture</Text>
+                  <Pressable
+                    onPress={() => {
+                      autoCaptureTriggeredRef.current = false;
+                      setCameraQualityProgress(0);
+                      setIsAutoCaptureEnabled((currentValue) => !currentValue);
+                    }}
+                    style={[
+                      styles.autoCaptureToggle,
+                      isAutoCaptureEnabled ? styles.autoCaptureToggleActive : null
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.autoCaptureKnob,
+                        isAutoCaptureEnabled ? styles.autoCaptureKnobActive : null
+                      ]}
+                    />
+                  </Pressable>
+                </View>
                 <Pressable
                   disabled={!isCameraReady || isCapturing}
-                  onPress={captureGuidedPhoto}
+                  onPress={() => captureGuidedPhoto("manual")}
                   style={[
                     styles.captureButton,
                     !isCameraReady || isCapturing ? styles.disabledButton : null
@@ -539,6 +730,88 @@ export default function App() {
               For long notes, scan one clear page at a time and review the OCR before relying on it.
             </Text>
           </View>
+
+          {Platform.OS === "ios" ? (
+            <View style={[styles.panel, styles.plusPanel]}>
+              <View style={styles.resultHeader}>
+                <View style={styles.plusHeading}>
+                  <Text style={styles.eyebrow}>Cleanote Plus</Text>
+                  <Text style={styles.sectionTitle}>
+                    {purchases.isPro ? "Your plan is active" : "More scans and AI cleanup"}
+                  </Text>
+                </View>
+                {purchases.isPro ? (
+                  <View style={styles.activeBadge}>
+                    <Text style={styles.activeBadgeText}>Active</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <Text style={styles.hint}>
+                {purchases.isPro
+                  ? "AI cleanup and the higher monthly scan allowance are available on this device."
+                  : "Standard OCR remains free within the monthly allowance. Plus supports the ongoing cloud cost of higher limits and optional AI cleanup."}
+              </Text>
+
+              {!purchases.isPro && (showingPaywall || purchases.annual || purchases.monthly) ? (
+                <View style={styles.planList}>
+                  <Pressable
+                    disabled={purchases.isPurchasing}
+                    onPress={() => purchases.purchase(CLEANOTE_PRODUCT_IDS.annual)}
+                    style={styles.planButton}
+                  >
+                    <View>
+                      <Text style={styles.planTitle}>Annual</Text>
+                      <Text style={styles.planDetail}>Best value · cancel anytime</Text>
+                    </View>
+                    <Text style={styles.planPrice}>
+                      {subscriptionPrice(purchases.annual, "$29.99/year")}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    disabled={purchases.isPurchasing}
+                    onPress={() => purchases.purchase(CLEANOTE_PRODUCT_IDS.monthly)}
+                    style={styles.planButton}
+                  >
+                    <View>
+                      <Text style={styles.planTitle}>Monthly</Text>
+                      <Text style={styles.planDetail}>Flexible monthly access</Text>
+                    </View>
+                    <Text style={styles.planPrice}>
+                      {subscriptionPrice(purchases.monthly, "$4.99/month")}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {!purchases.isPro && !showingPaywall ? (
+                <Pressable style={styles.primaryButton} onPress={() => setShowingPaywall(true)}>
+                  <Text style={styles.primaryButtonText}>See Plus options</Text>
+                </Pressable>
+              ) : null}
+
+              <View style={styles.purchaseLinks}>
+                <Pressable onPress={purchases.isPro ? purchases.manage : purchases.restore}>
+                  <Text style={styles.policyLink}>
+                    {purchases.isPro ? "Manage subscription" : "Restore purchases"}
+                  </Text>
+                </Pressable>
+                {showingPaywall && !purchases.isPro ? (
+                  <Pressable onPress={() => setShowingPaywall(false)}>
+                    <Text style={styles.policyLink}>Not now</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              {purchases.isPurchasing ? <ActivityIndicator color="#17614f" /> : null}
+              {purchases.purchaseMessage ? (
+                <Text style={styles.message}>{purchases.purchaseMessage}</Text>
+              ) : null}
+              <Text style={styles.purchaseTerms}>
+                Payment is charged to your Apple Account. Subscriptions renew automatically unless
+                canceled at least 24 hours before the current period ends.
+              </Text>
+            </View>
+          ) : null}
 
           <View style={styles.actions}>
             <Pressable style={styles.primaryButton} onPress={() => choosePhoto("camera")}>
@@ -623,6 +896,56 @@ export default function App() {
               textAlignVertical="top"
               value={contextText}
             />
+            <Text style={styles.label}>Text cleanup</Text>
+            <View style={styles.cleanupRow}>
+              <Pressable
+                onPress={() => setCleanupMode("rules")}
+                style={[
+                  styles.cleanupOption,
+                  cleanupMode === "rules" ? styles.cleanupOptionActive : null
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.cleanupOptionTitle,
+                    cleanupMode === "rules" ? styles.cleanupOptionTitleActive : null
+                  ]}
+                >
+                  Standard
+                </Text>
+                <Text style={styles.cleanupOptionDetail}>Fast OCR cleanup</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  if (!purchases.isPro && rewardedAiCleanupCredits <= 0) {
+                    if (Platform.OS === "ios") {
+                      setShowingPaywall(true);
+                    } else {
+                      Alert.alert(
+                        "Cleanote Plus",
+                        "AI cleanup purchases are currently available in the iPhone and iPad app."
+                      );
+                    }
+                    return;
+                  }
+                  setCleanupMode("bedrock");
+                }}
+                style={[
+                  styles.cleanupOption,
+                  cleanupMode === "bedrock" ? styles.cleanupOptionActive : null
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.cleanupOptionTitle,
+                    cleanupMode === "bedrock" ? styles.cleanupOptionTitleActive : null
+                  ]}
+                >
+                  AI cleanup {purchases.isPro ? "" : "· Plus"}
+                </Text>
+                <Text style={styles.cleanupOptionDetail}>For difficult handwriting</Text>
+              </Pressable>
+            </View>
             <Pressable
               disabled={isScanning}
               onPress={scanHandwriting}
@@ -660,17 +983,6 @@ export default function App() {
             />
             <Text style={styles.message}>{message}</Text>
           </View>
-
-          {Platform.OS === "android" || Platform.OS === "ios" ? (
-            <View style={styles.adPanel}>
-              <Text style={styles.adLabel}>Advertisement</Text>
-              <BannerAd
-                unitId={AD_UNIT_IDS.banner}
-                size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-                requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-              />
-            </View>
-          ) : null}
 
           <View style={styles.panel}>
             <Text style={styles.eyebrow}>Cloud search</Text>
@@ -716,33 +1028,152 @@ export default function App() {
               scrollEnabled={false}
             />
           </View>
+
+          {!purchases.isPro ? (
+            <View style={styles.adSupportPanel}>
+              <View style={styles.adSupportCopy}>
+                <Text style={styles.eyebrow}>Free app support</Text>
+                <Text style={styles.adSupportTitle}>Watch an ad for one AI cleanup scan</Text>
+                <Text style={styles.hint}>
+                  Credits available: {rewardedAiCleanupCredits}. Standard OCR stays free within
+                  the monthly allowance.
+                </Text>
+              </View>
+              <Pressable
+                disabled={!isRewardedLoaded}
+                onPress={showRewardedAd}
+                style={[styles.secondaryButtonSmall, !isRewardedLoaded ? styles.disabledButton : null]}
+              >
+                <Text style={styles.secondaryButtonText}>
+                  {isRewardedLoaded ? "Watch ad" : "Loading ad"}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
+      {!purchases.isPro ? (
+        <View style={styles.bannerAdContainer}>
+          <BannerAd
+            requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            unitId={getAdUnitId("banner")}
+          />
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  adSupportCopy: {
+    flex: 1,
+    gap: 5
+  },
+  adSupportPanel: {
+    alignItems: "center",
+    backgroundColor: "#eef7f5",
+    borderColor: "#cde4df",
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    padding: 14
+  },
+  adSupportTitle: {
+    color: "#182024",
+    fontSize: 16,
+    fontWeight: "900"
+  },
   actions: {
     flexDirection: "row",
     gap: 12
   },
-  adLabel: {
-    color: "#7c8a8f",
-    fontSize: 11,
-    fontWeight: "800",
+  bannerAdContainer: {
+    alignItems: "center",
+    backgroundColor: "#f7f8f4",
+    borderTopColor: "#d8e0e2",
+    borderTopWidth: 1,
+    minHeight: 56,
+    paddingVertical: 4
+  },
+  autoCaptureKnob: {
+    backgroundColor: "#ffffff",
+    borderRadius: 999,
+    height: 20,
+    transform: [{ translateX: 0 }],
+    width: 20
+  },
+  autoCaptureKnobActive: {
+    transform: [{ translateX: 22 }]
+  },
+  autoCaptureLabel: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  autoCaptureRow: {
+    alignItems: "center",
+    alignSelf: "center",
+    flexDirection: "row",
+    gap: 10
+  },
+  autoCaptureToggle: {
+    backgroundColor: "rgba(255,255,255,0.28)",
+    borderColor: "rgba(255,255,255,0.45)",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 28,
+    justifyContent: "center",
+    paddingHorizontal: 3,
+    width: 52
+  },
+  autoCaptureToggleActive: {
+    backgroundColor: "#287c6b",
+    borderColor: "#9ff3df"
+  },
+  activeBadge: {
+    backgroundColor: "#dff4eb",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7
+  },
+  activeBadgeText: {
+    color: "#17614f",
+    fontSize: 12,
+    fontWeight: "900",
     textTransform: "uppercase"
   },
-  adPanel: {
-    alignItems: "center",
-    backgroundColor: "#eef7f5",
+  cleanupOption: {
+    backgroundColor: "#fbfcfa",
     borderColor: "#d8e0e2",
     borderRadius: 8,
     borderWidth: 1,
+    flex: 1,
     gap: 8,
-    minHeight: 82,
-    overflow: "hidden",
-    padding: 10
+    minHeight: 74,
+    padding: 12
+  },
+  cleanupOptionActive: {
+    backgroundColor: "#eef7f5",
+    borderColor: "#287c6b"
+  },
+  cleanupOptionDetail: {
+    color: "#607078",
+    fontSize: 12,
+    lineHeight: 17
+  },
+  cleanupOptionTitle: {
+    color: "#405058",
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  cleanupOptionTitleActive: {
+    color: "#17614f"
+  },
+  cleanupRow: {
+    flexDirection: "row",
+    gap: 10
   },
   brandCopy: {
     flex: 1,
@@ -862,7 +1293,29 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     justifyContent: "center",
     maxHeight: "58%",
+    overflow: "hidden",
     width: "82%"
+  },
+  dynamicScanBand: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    height: 4,
+    left: "12%",
+    opacity: 0.7,
+    position: "absolute",
+    right: "12%",
+    top: "34%"
+  },
+  dynamicScanBandAligning: {
+    backgroundColor: "rgba(255,210,80,0.8)",
+    top: "46%"
+  },
+  dynamicScanBandReady: {
+    backgroundColor: "rgba(159,243,223,0.95)",
+    top: "58%"
+  },
+  dynamicScanBandSteady: {
+    backgroundColor: "rgba(159,243,223,0.72)",
+    top: "52%"
   },
   guideCorner: {
     borderColor: "#9ff3df",
@@ -904,6 +1357,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     textAlign: "center"
+  },
+  cameraProgressFill: {
+    backgroundColor: "#9ff3df",
+    borderRadius: 999,
+    height: "100%"
+  },
+  cameraProgressTrack: {
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: 999,
+    height: 7,
+    overflow: "hidden"
+  },
+  cameraQualityCard: {
+    alignSelf: "center",
+    backgroundColor: "rgba(0,0,0,0.48)",
+    borderColor: "rgba(255,255,255,0.22)",
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 8,
+    maxWidth: 420,
+    padding: 12,
+    width: "100%"
+  },
+  cameraQualityHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  cameraQualityMessage: {
+    color: "rgba(255,255,255,0.86)",
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 17
+  },
+  cameraQualityPercent: {
+    color: "#9ff3df",
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  cameraQualityTitle: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "900"
   },
   editor: {
     backgroundColor: "#fbfcfa",
@@ -1055,10 +1551,57 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8
   },
+  planButton: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderColor: "#cde4df",
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    minHeight: 68,
+    padding: 14
+  },
+  planDetail: {
+    color: "#607078",
+    fontSize: 12,
+    marginTop: 3
+  },
+  planList: {
+    gap: 10
+  },
+  planPrice: {
+    color: "#17614f",
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  planTitle: {
+    color: "#182024",
+    fontSize: 16,
+    fontWeight: "900"
+  },
+  plusHeading: {
+    flex: 1,
+    gap: 4
+  },
+  plusPanel: {
+    backgroundColor: "#f4fbf8",
+    borderColor: "#b9ded5"
+  },
   policyLink: {
     color: "#17614f",
     fontSize: 15,
     fontWeight: "900"
+  },
+  purchaseLinks: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  purchaseTerms: {
+    color: "#7c8a8f",
+    fontSize: 11,
+    lineHeight: 16
   },
   preview: {
     aspectRatio: 3 / 4,

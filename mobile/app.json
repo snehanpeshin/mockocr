@@ -2,13 +2,13 @@
   "expo": {
     "name": "Cleanote",
     "slug": "cleanote",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "com.cleanote.app",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "infoPlist": {
         "NSCameraUsageDescription": "Cleanote uses the camera to scan handwritten notes.",
         "NSPhotoLibraryUsageDescription": "Cleanote uses your photo library to import handwritten notes.",
@@ -33,14 +33,16 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-iap",
+      "expo-secure-store",
       [
         "react-native-google-mobile-ads",
         {
           "androidAppId": "ca-app-pub-6605747981994820~5650365199",
-          "iosAppId": "ca-app-pub-6605747981994820~9910842704"
+          "iosAppId": "ca-app-pub-6605747981994820~9910842704",
+          "userTrackingUsageDescription": "This identifier may be used to deliver more relevant ads and measure ad performance."
         }
-      ],
-      "expo-secure-store"
+      ]
     ],
     "extra": {
       "eas": {
