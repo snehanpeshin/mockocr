@@ -13,7 +13,7 @@ export default function TermsPage() {
         <p className="eyebrow">Cleanote</p>
         <h1>Terms of Service</h1>
         <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
-        <p className="policy-date">Last updated: July 4, 2026</p>
+        <p className="policy-date">Last updated: July 28, 2026</p>
 
         <section>
           <h2>Use of Cleanote</h2>
@@ -48,6 +48,27 @@ export default function TermsPage() {
             OCR and AI-assisted document processing can make mistakes, especially with unclear
             handwriting, complex formatting, equations, or low-quality images. Always review the
             result before using it for important work.
+          </p>
+        </section>
+
+        <section>
+          <h2>Your Files and Permission to Process Them</h2>
+          <p>
+            You retain ownership of files and text you submit. You give Karigari Home LLC a
+            limited permission to process that material only as needed to provide, secure, and
+            support the requested Cleanote feature. Do not upload another person&apos;s copyrighted
+            or confidential material unless you have permission to do so.
+          </p>
+        </section>
+
+        <section>
+          <h2>Cleanote Content and Third-Party Marks</h2>
+          <p>
+            The Cleanote name, logo, website design, original software, and original marketing
+            materials are owned by Karigari Home LLC or used with permission. References to Apple,
+            Google, AWS, or other services identify tools used in the workflow and do not imply
+            sponsorship, endorsement, or affiliation. Their names and marks belong to their
+            respective owners.
           </p>
         </section>
 

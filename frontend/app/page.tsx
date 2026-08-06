@@ -91,6 +91,7 @@ export default function LandingPage() {
         <nav aria-label="Cleanote links">
           <a href="/handwriting-to-text/">Handwriting</a>
           <a href="/homework-scanner/">Homework</a>
+          <a href="/guides/">Guides</a>
           <a href="#tablet">Tablet</a>
           <a href="/app">Web scanner</a>
         </nav>
@@ -216,8 +217,25 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="guide-preview" aria-label="Cleanote guides">
+        <div>
+          <p className="one-page-kicker">Learning guides</p>
+          <h2>Helpful reading before you scan a page.</h2>
+          <p>
+            Learn why handwriting OCR makes mistakes, how to scan homework more clearly, and how to
+            organize digital study notes without losing the original context.
+          </p>
+        </div>
+        <a className="text-button guide-preview-link" href="/guides/">
+          Read Cleanote guides <ArrowRight aria-hidden="true" size={17} />
+        </a>
+      </section>
+
       <section className="tablet-note" id="tablet">
-        <img alt="Cleanote writing tablet concept" src="/cleanote-tablet-concept.jpg" />
+        <img
+          alt="Vendor-neutral reusable writing tablet concept with a stylus"
+          src="/cleanote-tablet-concept-original.png"
+        />
         <div>
           <p className="one-page-kicker">Coming soon</p>
           <h2>Cleanote+ tablet bundle for screen-light practice</h2>
@@ -233,6 +251,7 @@ export default function LandingPage() {
         <nav aria-label="Legal links">
           <a href="/handwriting-to-text/">Handwriting to text</a>
           <a href="/homework-scanner/">Homework scanner</a>
+          <a href="/guides/">Guides</a>
           <a href="/privacy">Privacy</a>
           <a href="/terms">Terms</a>
           <a href="/support">Support</a>
