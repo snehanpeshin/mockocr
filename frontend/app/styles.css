@@ -28,6 +28,24 @@
   position: relative;
 }
 
+.one-page-skip-link {
+  background: #121528;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.86rem;
+  font-weight: 900;
+  left: 12px;
+  padding: 10px 14px;
+  position: fixed;
+  top: 8px;
+  transform: translateY(-160%);
+  transition: transform 140ms ease;
+  z-index: 1000;
+}
+
+.one-page-skip-link:focus { transform: translateY(0); }
+.one-page-site :focus-visible { outline: 3px solid #ffcf70; outline-offset: 3px; }
+
 .one-page-site::after {
   border: 4px solid rgba(255, 255, 255, 0.18);
   content: "";
@@ -172,7 +190,7 @@
 
 .store-button.android,
 .form-button {
-  background: #14a88b;
+  background: #087765;
   border: 0;
   color: #ffffff;
 }
@@ -424,7 +442,7 @@
 
 .learning-story svg,
 .trust-note svg {
-  color: #14a88b;
+  color: #087765;
 }
 
 .learning-story h2 {
@@ -3647,7 +3665,7 @@ textarea:focus {
   .hero-video-layer {
     background:
       linear-gradient(135deg, rgba(10, 16, 32, 0.92), rgba(17, 33, 63, 0.84)),
-      url("/cleanote-tablet-concept-original.png") center / cover no-repeat,
+      url("/cleanote-tablet-concept.jpg") center / cover no-repeat,
       #0a1020;
   }
 }

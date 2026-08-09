@@ -45,7 +45,7 @@ const MODES = ["Exact transcription", "Clean correction", "Study review"];
 export default function LandingPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("Student");
+  const [role, setRole] = useState("Parent / Family");
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -73,7 +73,7 @@ export default function LandingPage() {
       setMessage("Thanks. Your details were saved. We will follow up as Cleanote improves.");
       setName("");
       setEmail("");
-      setRole("Student");
+      setRole("Parent / Family");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save your details.");
     } finally {
@@ -82,7 +82,8 @@ export default function LandingPage() {
   }
 
   return (
-    <main className="one-page-site">
+    <main className="one-page-site" id="top">
+      <a className="one-page-skip-link" href="#main-content">Skip to main content</a>
       <header className="one-page-nav">
         <a className="one-page-brand" href="/">
           <img alt="" src="/cleanote-icon.png" />
@@ -97,7 +98,7 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      <section className="one-page-hero">
+      <section className="one-page-hero" id="main-content" tabIndex={-1}>
         <div className="one-page-copy">
           <p className="one-page-kicker">Handwriting-first AI for learning</p>
           <h1>Turn handwritten school pages into searchable learning records.</h1>
@@ -134,7 +135,11 @@ export default function LandingPage() {
           <img
             alt="Crayon-style worksheet being scanned into digital notes"
             className="crayon-hero-image"
-            src="/cleanote-crayon-hero.png"
+            decoding="async"
+            fetchPriority="high"
+            height="667"
+            src="/cleanote-crayon-hero.jpg"
+            width="1200"
           />
           <div className="mini-scan">
             <div className="mini-output">
@@ -144,9 +149,9 @@ export default function LandingPage() {
           </div>
 
           <form className="simple-interest-form" onSubmit={submitInterest}>
-            <h2>Parent or teacher updates</h2>
-            <p>For beta access, family use, classroom ideas, and tablet updates.</p>
-            <label htmlFor="interest-name">Parent or teacher name</label>
+            <h2>Join Cleanote updates</h2>
+            <p>For beta access, family use, classroom ideas, research, and tablet updates.</p>
+            <label htmlFor="interest-name">Name</label>
             <input
               autoComplete="name"
               id="interest-name"
@@ -155,7 +160,7 @@ export default function LandingPage() {
               required
               value={name}
             />
-            <label htmlFor="interest-email">Parent or teacher email</label>
+            <label htmlFor="interest-email">Email</label>
             <input
               autoComplete="email"
               id="interest-email"
@@ -234,7 +239,11 @@ export default function LandingPage() {
       <section className="tablet-note" id="tablet">
         <img
           alt="Vendor-neutral reusable writing tablet concept with a stylus"
-          src="/cleanote-tablet-concept-original.png"
+          decoding="async"
+          height="1200"
+          loading="lazy"
+          src="/cleanote-tablet-concept.jpg"
+          width="1200"
         />
         <div>
           <p className="one-page-kicker">Coming soon</p>
