@@ -2815,6 +2815,30 @@ h2 {
   padding: 0 10px;
 }
 
+.quick-search-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.quick-search-row button {
+  background: #f3fbf8;
+  border: 1px solid rgba(20, 168, 139, 0.22);
+  border-radius: 999px;
+  color: var(--accent-strong);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.quick-search-row button.active {
+  background: var(--accent-strong);
+  color: #ffffff;
+}
+
 .saved-list {
   display: grid;
   gap: 6px;

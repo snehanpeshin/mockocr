@@ -129,6 +129,8 @@ class NoteRequest(BaseModel):
     subject: str
     text: str
     contextText: str = ""
+    imageData: str | None = None
+    imageKey: str | None = None
 
 
 class CheckoutRequest(BaseModel):

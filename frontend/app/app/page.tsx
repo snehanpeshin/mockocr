@@ -51,6 +51,8 @@ type SavedNote = {
   createdAt: string;
   filename: string;
   imageData?: string;
+  imageKey?: string;
+  imageUrl?: string;
   provider: string;
   subject: string;
   text: string;
@@ -213,7 +215,7 @@ export default function Home() {
 
   const archiveNotes = useMemo(() => {
     const notesById = new Map<string, SavedNote>();
-    [...cloudNotes, ...savedNotes].forEach((note) => {
+    [...savedNotes, ...cloudNotes].forEach((note) => {
       notesById.set(note.id, note);
     });
     return Array.from(notesById.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -234,6 +236,20 @@ export default function Home() {
       .slice(0, 30);
   }, [archiveNotes, searchQuery]);
 
+  const quickSearches = useMemo(() => {
+    const childSearches = children.slice(0, 4).map((child) => ({
+      label: child.name,
+      value: child.name
+    }));
+    return [
+      { label: "Slate", value: "Cleanote Slate" },
+      { label: "Kids", value: "kids" },
+      ...childSearches,
+      { label: "Math", value: "Math practice" },
+      { label: "Drawings", value: "Drawing" }
+    ];
+  }, [children]);
+
   useEffect(() => {
     try {
       const betaAccess = window.localStorage.getItem("cleanote.betaAccess");
@@ -245,7 +261,9 @@ export default function Home() {
         window.localStorage.getItem(SAVED_NOTES_KEY) ??
         window.localStorage.getItem(LEGACY_SAVED_NOTES_KEY);
       if (storedNotes) {
-        const parsedNotes = JSON.parse(storedNotes) as SavedNote[];
+        const parsedNotes = (JSON.parse(storedNotes) as SavedNote[]).map((note) =>
+          note.provider === "kids-mode" ? note : { ...note, imageData: undefined }
+        );
         setSavedNotes(parsedNotes);
         window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(parsedNotes));
       }
@@ -695,8 +713,10 @@ export default function Home() {
         ].filter(Boolean).join("\n")
       });
       setMessage(
-        isSlateCapture && slateImageData
-          ? "Slate scan saved with original image, OCR text, child, activity, and date."
+        isSlateCapture && slateImageData && userEmail
+          ? "Slate scan saved. Uploading the compressed image to your secure cloud archive..."
+          : isSlateCapture && slateImageData
+            ? "Slate text saved. Sign in to save the original slate image securely in cloud."
           : results.length > 1
             ? `Text extracted successfully from ${results.length} pages.`
             : `Text extracted successfully from ${noteFilename}.`
@@ -794,9 +814,10 @@ export default function Home() {
   }
 
   function saveNote(note: SavedNote) {
+    const localNote = { ...note, imageData: undefined };
     setSavedNotes((currentNotes) => {
       const nextNotes = [
-        note,
+        localNote,
         ...currentNotes.filter((currentNote) => currentNote.id !== note.id)
       ].slice(0, 30);
       window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(nextNotes));
@@ -805,8 +826,26 @@ export default function Home() {
     if (userEmail && user) {
       void user.getIdToken()
         .then((token) => syncNoteToCloud(note, userEmail, token))
-        .then(() => setMessage("Saved locally and to your signed-in cloud archive."))
-        .catch(() => setMessage("Saved locally. Cloud saving is currently unavailable."));
+        .then((cloudNote) => {
+          const syncedNote = { ...localNote, ...cloudNote, imageData: undefined };
+          setSavedNotes((currentNotes) => {
+            const nextNotes = [
+              syncedNote,
+              ...currentNotes.filter((currentNote) => currentNote.id !== note.id)
+            ].slice(0, 30);
+            window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(nextNotes));
+            return nextNotes;
+          });
+          if (cloudNote.imageUrl) {
+            setCurrentNoteImageData(cloudNote.imageUrl);
+          }
+          setMessage(
+            cloudNote.imageKey
+              ? "Saved securely to your cloud archive with a compressed slate image."
+              : "Saved to your signed-in cloud archive."
+          );
+        })
+        .catch(() => setMessage("Saved text locally. Cloud saving is currently unavailable."));
     }
   }
 
@@ -862,7 +901,7 @@ export default function Home() {
     setSubject(note.subject);
     setContextText(note.contextText ?? "");
     setCurrentNoteId(note.id);
-    setCurrentNoteImageData(note.imageData ?? null);
+    setCurrentNoteImageData(note.imageData ?? note.imageUrl ?? null);
     setMessage(`Opened ${note.filename}`);
   }
 
@@ -1301,7 +1340,7 @@ export default function Home() {
               <Search aria-hidden="true" size={18} />
               <input
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder={userEmail ? "Search cloud notes" : "Search local notes"}
+                placeholder={userEmail ? "Search child, activity, date, or OCR text" : "Search local notes"}
                 value={searchQuery}
               />
               {searchQuery ? (
@@ -1310,34 +1349,49 @@ export default function Home() {
                 </button>
               ) : null}
             </label>
+            <div className="quick-search-row" aria-label="Quick archive filters">
+              {quickSearches.map((quickSearch) => (
+                <button
+                  className={searchQuery === quickSearch.value ? "active" : ""}
+                  key={`${quickSearch.label}-${quickSearch.value}`}
+                  onClick={() => setSearchQuery(quickSearch.value)}
+                  type="button"
+                >
+                  {quickSearch.label}
+                </button>
+              ))}
+            </div>
             <div className="saved-list">
               {filteredNotes.length ? (
-                filteredNotes.map((note) => (
-                  <article
-                    className={note.imageData ? "saved-note-row saved-note-row-with-preview" : "saved-note-row"}
-                    key={note.id}
-                  >
-                    <button onClick={() => openSavedNote(note)} type="button">
-                      {note.imageData ? (
-                        <img alt="" className="saved-note-thumb" src={note.imageData} />
-                      ) : null}
-                      <strong>{note.filename}</strong>
-                      <span>
-                        {note.provider === "kids-mode" ? "Kids drawing" : note.subject} ·{" "}
-                        {new Date(note.createdAt).toLocaleDateString()}
-                      </span>
-                    </button>
-                    <button
-                      aria-label={`Delete ${note.filename}`}
-                      className="saved-delete-button"
-                      onClick={() => deleteSavedNote(note)}
-                      title="Delete saved note"
-                      type="button"
+                filteredNotes.map((note) => {
+                  const imageSource = note.imageData ?? note.imageUrl;
+                  return (
+                    <article
+                      className={imageSource ? "saved-note-row saved-note-row-with-preview" : "saved-note-row"}
+                      key={note.id}
                     >
-                      <Trash2 aria-hidden="true" size={16} />
-                    </button>
-                  </article>
-                ))
+                      <button onClick={() => openSavedNote(note)} type="button">
+                        {imageSource ? (
+                          <img alt="" className="saved-note-thumb" src={imageSource} />
+                        ) : null}
+                        <strong>{note.filename}</strong>
+                        <span>
+                          {note.provider === "kids-mode" ? "Kids drawing" : note.subject} ·{" "}
+                          {new Date(note.createdAt).toLocaleDateString()}
+                        </span>
+                      </button>
+                      <button
+                        aria-label={`Delete ${note.filename}`}
+                        className="saved-delete-button"
+                        onClick={() => deleteSavedNote(note)}
+                        title="Delete saved note"
+                        type="button"
+                      >
+                        <Trash2 aria-hidden="true" size={16} />
+                      </button>
+                    </article>
+                  );
+                })
               ) : (
                 <p>
                   {isSearchingArchive
@@ -1534,17 +1588,19 @@ async function buildArchiveImageData(file: File): Promise<string | null> {
   }
 }
 
-async function syncNoteToCloud(note: SavedNote, email: string, token: string) {
-  const cloudNote = { ...note };
-  delete cloudNote.imageData;
-  await fetch(`${API_BASE}/api/notes`, {
+async function syncNoteToCloud(note: SavedNote, email: string, token: string): Promise<Partial<SavedNote>> {
+  const response = await fetch(`${API_BASE}/api/notes`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ ...cloudNote, email })
+    body: JSON.stringify({ ...note, email })
   });
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Cloud note saving is currently unavailable."));
+  }
+  return response.json() as Promise<Partial<SavedNote>>;
 }
 
 async function deleteCloudNote(noteId: string, email: string, token: string) {
