@@ -684,6 +684,10 @@ export default function Home() {
           results.length > 1 ? `Page ${index + 1}: ${result.filename}\n\n${result.text}` : result.text
         )
         .join("\n\n---\n\n");
+      const textLooksUnusable = isSlateCapture && isLikelyGibberishText(combinedText);
+      const savedText = textLooksUnusable
+        ? createSlateVisualDescription(selectedChild.name, slateActivity)
+        : combinedText;
       const noteFilename = isSlateCapture
         ? `${selectedChild.name} - ${slateActivity} ${createShortDate()}`
         : results.length > 1
@@ -691,9 +695,9 @@ export default function Home() {
           : results[0].filename;
       const slateImageData =
         isSlateCapture && files.length === 1 && files[0].type.startsWith("image/")
-          ? await buildArchiveImageData(files[0])
+          ? await buildSlateScrapbookImageData(files[0], selectedChild.name, slateActivity)
           : null;
-      setText(combinedText);
+      setText(savedText);
       setProvider(results[0].provider);
       setFilename(noteFilename);
       const noteId = crypto.randomUUID();
@@ -706,20 +710,21 @@ export default function Home() {
         imageData: slateImageData ?? undefined,
         provider: results[0].provider,
         subject: results[0].subject || subject,
-        text: combinedText,
+        text: savedText,
         contextText: [
           isSlateCapture ? `Cleanote Slate capture for ${selectedChild.name}. Activity: ${slateActivity}.` : "",
           contextText.trim()
         ].filter(Boolean).join("\n")
       });
       setMessage(
-        isSlateCapture && slateImageData && userEmail
-          ? "Slate scan saved. Uploading the compressed image to your secure cloud archive..."
-          : isSlateCapture && slateImageData
-            ? "Slate text saved. Sign in to save the original slate image securely in cloud."
-          : results.length > 1
-            ? `Text extracted successfully from ${results.length} pages.`
-            : `Text extracted successfully from ${noteFilename}.`
+        scanSuccessMessage({
+          hasSlateVisual: Boolean(slateImageData),
+          isSignedIn: Boolean(userEmail),
+          isSlateCapture,
+          noteFilename,
+          pageCount: results.length,
+          textLooksUnusable
+        })
       );
       setShowDiscoveryForm(true);
       setDiscoveryMessage(null);
@@ -863,7 +868,9 @@ export default function Home() {
         : createNoteTitle(subject));
     const slateImageData =
       currentNoteImageData ??
-      (isSlateCapture && file?.type.startsWith("image/") ? await buildArchiveImageData(file) : null);
+      (isSlateCapture && file?.type.startsWith("image/")
+        ? await buildSlateScrapbookImageData(file, selectedChild.name, slateActivity)
+        : null);
     setCurrentNoteId(noteId);
     setCurrentNoteImageData(slateImageData);
     saveNote({
@@ -1453,8 +1460,8 @@ export default function Home() {
           {filename ? <p className="note-reference">Current note: {filename}</p> : null}
           {currentNoteImageData ? (
             <figure className="current-note-image">
-              <img alt="Saved slate capture" src={currentNoteImageData} />
-              <figcaption>Original slate image saved with this note.</figcaption>
+              <img alt="Slate scrapbook visual" src={currentNoteImageData} />
+              <figcaption>Slate Scrapbook visual saved with this note.</figcaption>
             </figure>
           ) : null}
           {showDiscoveryForm ? (
@@ -1561,17 +1568,29 @@ async function buildProcessedImageFile(file: File, adjustments: ImageAdjustments
   return new File([blob], `${baseName}-cleaned.jpg`, { type: "image/jpeg" });
 }
 
-async function buildArchiveImageData(file: File): Promise<string | null> {
+async function buildSlateScrapbookImageData(
+  file: File,
+  childName: string,
+  activity: string
+): Promise<string | null> {
   if (!file.type.startsWith("image/")) {
     return null;
   }
 
   try {
     const bitmap = await createImageBitmap(file);
-    const maxSide = 900;
-    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const width = 900;
+    const height = 1180;
+    const padding = 58;
+    const headerHeight = 150;
+    const footerHeight = 92;
+    const imageMaxWidth = width - padding * 2;
+    const imageMaxHeight = height - headerHeight - footerHeight - padding;
+    const imageScale = Math.min(imageMaxWidth / bitmap.width, imageMaxHeight / bitmap.height);
+    const imageWidth = Math.max(1, Math.round(bitmap.width * imageScale));
+    const imageHeight = Math.max(1, Math.round(bitmap.height * imageScale));
+    const imageX = Math.round((width - imageWidth) / 2);
+    const imageY = headerHeight + Math.round((imageMaxHeight - imageHeight) / 2);
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
@@ -1580,12 +1599,128 @@ async function buildArchiveImageData(file: File): Promise<string | null> {
       bitmap.close();
       return null;
     }
-    context.drawImage(bitmap, 0, 0, width, height);
+
+    const createdDate = new Date().toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric"
+    });
+    drawScrapbookBackground(context, width, height);
+    drawRoundedRect(context, padding - 10, 42, width - padding * 2 + 20, height - 84, 34, "#fffdf7");
+    drawCrayonStickers(context, width, height);
+
+    context.fillStyle = "#26324a";
+    context.font = "700 42px Arial Rounded MT Bold, Arial, sans-serif";
+    context.fillText(`${childName}'s Slate`, padding, 86);
+    context.fillStyle = "#6b7280";
+    context.font = "700 23px Arial, sans-serif";
+    context.fillText(`${activity} · ${createdDate}`, padding, 124);
+
+    context.save();
+    context.shadowColor = "rgba(38, 50, 74, 0.22)";
+    context.shadowBlur = 22;
+    context.shadowOffsetY = 10;
+    drawRoundedRect(context, imageX - 14, imageY - 14, imageWidth + 28, imageHeight + 28, 24, "#ffffff");
+    context.restore();
+
+    context.save();
+    roundedClip(context, imageX, imageY, imageWidth, imageHeight, 18);
+    context.filter = "contrast(1.12) brightness(1.04) saturate(0.94)";
+    context.drawImage(bitmap, imageX, imageY, imageWidth, imageHeight);
+    context.restore();
+
+    context.fillStyle = "#14a88b";
+    context.font = "800 24px Arial Rounded MT Bold, Arial, sans-serif";
+    context.fillText("Saved before erasing", padding, height - 58);
+    context.fillStyle = "#8a4a0a";
+    context.font = "700 18px Arial, sans-serif";
+    context.fillText("Cleanote Slate Scrapbook", padding, height - 30);
     bitmap.close();
-    return canvas.toDataURL("image/jpeg", 0.72);
+    return canvas.toDataURL("image/jpeg", 0.74);
   } catch {
     return null;
   }
+}
+
+function drawScrapbookBackground(context: CanvasRenderingContext2D, width: number, height: number) {
+  const gradient = context.createLinearGradient(0, 0, width, height);
+  gradient.addColorStop(0, "#fff4cf");
+  gradient.addColorStop(0.42, "#eefbf8");
+  gradient.addColorStop(1, "#f8f7ff");
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, width, height);
+
+  context.strokeStyle = "rgba(255, 184, 77, 0.38)";
+  context.lineWidth = 5;
+  for (let y = 185; y < height - 90; y += 86) {
+    context.beginPath();
+    context.moveTo(52, y);
+    context.bezierCurveTo(width * 0.33, y + 12, width * 0.66, y - 12, width - 52, y + 4);
+    context.stroke();
+  }
+}
+
+function drawCrayonStickers(context: CanvasRenderingContext2D, width: number, height: number) {
+  drawSticker(context, width - 154, 66, "#2f80ed", "★");
+  drawSticker(context, width - 88, height - 128, "#f05f5f", "♡");
+  drawSticker(context, 96, height - 156, "#8f3ff2", "ABC");
+}
+
+function drawSticker(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  color: string,
+  label: string
+) {
+  context.save();
+  context.translate(x, y);
+  context.rotate(label === "ABC" ? -0.12 : 0.15);
+  drawRoundedRect(context, -42, -26, 84, 52, 18, color);
+  context.fillStyle = "#ffffff";
+  context.font = label.length > 1 ? "800 20px Arial, sans-serif" : "800 32px Arial, sans-serif";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(label, 0, 1);
+  context.restore();
+}
+
+function drawRoundedRect(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  fillStyle: string
+) {
+  context.beginPath();
+  context.moveTo(x + radius, y);
+  context.arcTo(x + width, y, x + width, y + height, radius);
+  context.arcTo(x + width, y + height, x, y + height, radius);
+  context.arcTo(x, y + height, x, y, radius);
+  context.arcTo(x, y, x + width, y, radius);
+  context.closePath();
+  context.fillStyle = fillStyle;
+  context.fill();
+}
+
+function roundedClip(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  context.beginPath();
+  context.moveTo(x + radius, y);
+  context.arcTo(x + width, y, x + width, y + height, radius);
+  context.arcTo(x + width, y + height, x, y + height, radius);
+  context.arcTo(x, y + height, x, y, radius);
+  context.arcTo(x, y, x + width, y, radius);
+  context.closePath();
+  context.clip();
 }
 
 async function syncNoteToCloud(note: SavedNote, email: string, token: string): Promise<Partial<SavedNote>> {
@@ -1659,6 +1794,86 @@ function createShortDate() {
     day: "2-digit",
     month: "short"
   });
+}
+
+function createSlateVisualDescription(childName: string, activity: string) {
+  const date = new Date().toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  });
+  return [
+    "Slate Scrapbook Memory",
+    "",
+    `Child: ${childName}`,
+    `Activity: ${activity}`,
+    `Date: ${date}`,
+    "",
+    "Cleanote saved this as a visual slate memory because the OCR text did not look reliable.",
+    "Review the scrapbook image for the child's original work."
+  ].join("\n");
+}
+
+function isLikelyGibberishText(value: string) {
+  const textValue = value.trim();
+  if (!textValue) {
+    return true;
+  }
+
+  const compact = textValue.replace(/\s+/g, "");
+  if (compact.length < 3) {
+    return true;
+  }
+
+  const letters = (compact.match(/[A-Za-z]/g) ?? []).length;
+  const digits = (compact.match(/[0-9]/g) ?? []).length;
+  const mathSymbols = (compact.match(/[+\-=×÷*/^()]/g) ?? []).length;
+  const symbols = (compact.match(/[^A-Za-z0-9]/g) ?? []).length;
+  const readableWords = textValue.match(/[A-Za-z]{2,}/g) ?? [];
+  const repeatedNoise = /([^\w\s])\1{2,}|([A-Za-z0-9])\2{5,}/.test(compact);
+
+  if (readableWords.length >= 2 || letters >= 8) {
+    return false;
+  }
+  if (digits + mathSymbols >= 4 && symbols <= compact.length * 0.55) {
+    return false;
+  }
+  if (repeatedNoise) {
+    return true;
+  }
+  return symbols > compact.length * 0.45 || letters + digits < compact.length * 0.35;
+}
+
+function scanSuccessMessage({
+  hasSlateVisual,
+  isSignedIn,
+  isSlateCapture,
+  noteFilename,
+  pageCount,
+  textLooksUnusable
+}: {
+  hasSlateVisual: boolean;
+  isSignedIn: boolean;
+  isSlateCapture: boolean;
+  noteFilename: string;
+  pageCount: number;
+  textLooksUnusable: boolean;
+}) {
+  if (textLooksUnusable && hasSlateVisual && isSignedIn) {
+    return "OCR looked unreliable, so Cleanote saved this as a visual Slate Scrapbook memory.";
+  }
+  if (textLooksUnusable && hasSlateVisual) {
+    return "OCR looked unreliable, so Cleanote kept this as a visual slate memory. Sign in to save visuals in cloud.";
+  }
+  if (isSlateCapture && hasSlateVisual && isSignedIn) {
+    return "Slate Scrapbook saved. Uploading the compressed visual to your secure cloud archive...";
+  }
+  if (isSlateCapture && hasSlateVisual) {
+    return "Slate text saved. Sign in to save the scrapbook visual securely in cloud.";
+  }
+  return pageCount > 1
+    ? `Text extracted successfully from ${pageCount} pages.`
+    : `Text extracted successfully from ${noteFilename}.`;
 }
 
 function fileKind(file: File) {
