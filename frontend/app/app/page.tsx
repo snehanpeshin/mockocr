@@ -29,6 +29,7 @@ const API_BASE = getApiBase();
 const APP_STORE_URL = "https://apps.apple.com/app/cleanote/id6784403759";
 const SAVED_NOTES_KEY = "cleanote.savedNotes";
 const LEGACY_SAVED_NOTES_KEY = "pen2txt.savedNotes";
+const KIDS_PROFILES_KEY = "cleanote.kidsProfiles";
 const INSTALLATION_ID_KEY = "cleanote.installationId";
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 const MAX_PROCESSED_IMAGE_SIDE = 2200;
@@ -61,6 +62,13 @@ type BetaAccess = {
   email?: string;
   name?: string;
   role?: string;
+};
+
+type ChildProfile = {
+  age?: string;
+  avatar: string;
+  id: string;
+  name: string;
 };
 
 type CropValues = {
@@ -102,6 +110,20 @@ const SUBJECTS = [
   { label: "Engineering", value: "engineering" },
   { label: "Medicine", value: "medicine" },
   { label: "Research", value: "research" }
+];
+
+const DEFAULT_CHILDREN: ChildProfile[] = [
+  { age: "4", avatar: "A", id: "aarav", name: "Aarav" },
+  { age: "6", avatar: "M", id: "maya", name: "Maya" }
+];
+
+const SLATE_ACTIVITIES = [
+  "Writing practice",
+  "Math practice",
+  "Drawing",
+  "Homework",
+  "Letter tracing",
+  "Number tracing"
 ];
 
 function getInstallationId() {
@@ -146,6 +168,10 @@ export default function Home() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
+  const [children, setChildren] = useState<ChildProfile[]>(DEFAULT_CHILDREN);
+  const [selectedChildId, setSelectedChildId] = useState(DEFAULT_CHILDREN[0].id);
+  const [slateActivity, setSlateActivity] = useState(SLATE_ACTIVITIES[0]);
+  const [isSlateCapture, setIsSlateCapture] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
   const [isScanning, setIsScanning] = useState(false);
@@ -174,6 +200,7 @@ export default function Home() {
 
   const file = files[activeFileIndex] ?? null;
   const previewUrl = previewUrls[activeFileIndex] ?? null;
+  const selectedChild = children.find((child) => child.id === selectedChildId) ?? children[0] ?? DEFAULT_CHILDREN[0];
   const discoveryEmailError = discoveryEmail.trim()
     ? validateEmail(discoveryEmail)
     : "Email is required.";
@@ -220,6 +247,17 @@ export default function Home() {
         const parsedNotes = JSON.parse(storedNotes) as SavedNote[];
         setSavedNotes(parsedNotes);
         window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(parsedNotes));
+      }
+      const storedProfiles = window.localStorage.getItem(KIDS_PROFILES_KEY);
+      if (storedProfiles) {
+        const parsedProfiles = JSON.parse(storedProfiles) as ChildProfile[];
+        const validProfiles = parsedProfiles
+          .filter((profile) => profile.id && profile.name.trim())
+          .slice(0, 4);
+        if (validProfiles.length) {
+          setChildren(validProfiles);
+          setSelectedChildId(validProfiles[0].id);
+        }
       }
     } catch {
       setSavedNotes([]);
@@ -588,10 +626,14 @@ export default function Home() {
         const fileForOcr = selectedFile.type.startsWith("image/")
           ? await buildProcessedImageFile(selectedFile, { contrast, crop, rotation })
           : selectedFile;
+        const slateContext = isSlateCapture
+          ? `Cleanote Slate capture. Child: ${selectedChild.name}. Activity: ${slateActivity}. Preserve the child's original work and do not over-correct kid handwriting.`
+          : "";
+        const combinedContext = [slateContext, contextText.trim()].filter(Boolean).join("\n");
         formData.append("file", fileForOcr);
         formData.append("provider", "textract");
-        formData.append("subject", subject);
-        formData.append("context_text", contextText);
+        formData.append("subject", isSlateCapture ? "kids" : subject);
+        formData.append("context_text", combinedContext);
         formData.append("cleanup_mode", "rules");
 
         const token = user ? await user.getIdToken() : null;
@@ -756,16 +798,23 @@ export default function Home() {
     }
 
     const noteId = currentNoteId ?? crypto.randomUUID();
-    const noteFilename = filename ?? createNoteTitle(subject);
+    const noteFilename =
+      filename ??
+      (isSlateCapture
+        ? `${selectedChild.name} - ${slateActivity} ${createShortDate()}`
+        : createNoteTitle(subject));
     setCurrentNoteId(noteId);
     saveNote({
       id: noteId,
       createdAt: new Date().toISOString(),
       filename: noteFilename,
       provider: provider ?? "edited",
-      subject,
+      subject: isSlateCapture ? "kids" : subject,
       text,
-      contextText: contextText.trim()
+      contextText: [
+        isSlateCapture ? `Cleanote Slate capture for ${selectedChild.name}. Activity: ${slateActivity}.` : "",
+        contextText.trim()
+      ].filter(Boolean).join("\n")
     });
     setFilename(noteFilename);
     setSaveStatus("saved");
@@ -916,6 +965,48 @@ export default function Home() {
 
       <section className="workspace">
         <div className="upload-panel">
+          <section className="slate-capture-panel" aria-label="Cleanote Slate capture setup">
+            <div className="slate-capture-header">
+              <div>
+                <p className="eyebrow">Cleanote Slate</p>
+                <h2>Capture before erasing</h2>
+              </div>
+              <label className="slate-toggle">
+                <input
+                  checked={isSlateCapture}
+                  onChange={(event) => setIsSlateCapture(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>Slate mode</span>
+              </label>
+            </div>
+            <p>
+              The 8.5-inch writing slate does not need Bluetooth or Wi-Fi. Let a child write naturally,
+              then photograph the slate here before clearing it.
+            </p>
+            <div className="slate-fields">
+              <label>
+                <span>Child</span>
+                <select onChange={(event) => setSelectedChildId(event.target.value)} value={selectedChildId}>
+                  {children.map((child) => (
+                    <option key={child.id} value={child.id}>{child.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Activity</span>
+                <select onChange={(event) => setSlateActivity(event.target.value)} value={slateActivity}>
+                  {SLATE_ACTIVITIES.map((activityOption) => (
+                    <option key={activityOption} value={activityOption}>{activityOption}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="erase-reminder">
+              Save the slate scan first, then erase the board.
+            </div>
+          </section>
+
           <section className="camera-capture-panel" aria-label="Guided camera capture">
             <div className="camera-capture-header">
               <div>
@@ -1443,6 +1534,13 @@ function createNoteTitle(subject: string) {
     minute: "2-digit"
   });
   return `${subject} note ${datePart} ${timePart}`;
+}
+
+function createShortDate() {
+  return new Date().toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short"
+  });
 }
 
 function fileKind(file: File) {

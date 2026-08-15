@@ -272,7 +272,8 @@ export default function KidsModePage() {
           <p className="kids-kicker">Create. Learn. Save. Remember.</p>
           <h1>Kids Mode</h1>
           <p>
-            Draw, trace, and save favorite creations in a calm space made for little hands.
+            Draw and trace in a calm, ad-free space. For the physical Cleanote Slate,
+            ask a parent to scan the board before erasing.
           </p>
           <div className="kids-sticker-row" aria-hidden="true">
             <span>ABC</span>
@@ -354,7 +355,10 @@ export default function KidsModePage() {
         <div>
           <p className="kids-kicker">Try this on your Cleanote Board</p>
           <h2>Screen-light practice, saved later by a parent.</h2>
-          <p>Saved drawings appear in Parent Mode so families can review progress beside scanned notes.</p>
+          <p>
+            The simple writing slate works offline. Parents capture it with Cleanote, then organize it
+            by child, date, and activity.
+          </p>
         </div>
         <div className="prompt-row">
           {PROMPTS.map((prompt) => (

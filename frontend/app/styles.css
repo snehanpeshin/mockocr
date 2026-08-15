@@ -2038,6 +2038,87 @@ input[type="range"],
   color: var(--accent-strong);
 }
 
+.slate-capture-panel {
+  background: #f3fbf8;
+  border: 1px solid rgba(20, 168, 139, 0.24);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 14px;
+}
+
+.slate-capture-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.slate-capture-header h2 {
+  color: var(--ink);
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.slate-capture-panel p {
+  color: var(--muted);
+  font-weight: 650;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.slate-toggle {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--accent-strong);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-weight: 900;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.slate-fields {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.slate-fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.slate-fields label span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.slate-fields select {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  min-height: 44px;
+  padding: 0 10px;
+}
+
+.erase-reminder {
+  background: #fff5de;
+  border: 1px solid rgba(255, 138, 61, 0.3);
+  border-radius: 8px;
+  color: #8a4a0a;
+  font-weight: 900;
+  padding: 10px 12px;
+}
+
 .account-pill {
   align-items: center;
   background: rgba(255, 255, 255, 0.88);
@@ -6543,6 +6624,21 @@ textarea:focus {
   .kids-gallery-grid,
   .child-selector > div:not(.child-selector-title) {
     grid-template-columns: 1fr;
+  }
+
+  .slate-capture-header,
+  .slate-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .slate-capture-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .slate-toggle {
+    justify-content: center;
+    width: 100%;
   }
 
   .kids-account-box {
