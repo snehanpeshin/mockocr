@@ -216,7 +216,19 @@ export default function Home() {
   const archiveNotes = useMemo(() => {
     const notesById = new Map<string, SavedNote>();
     [...savedNotes, ...cloudNotes].forEach((note) => {
-      notesById.set(note.id, note);
+      const existingNote = notesById.get(note.id);
+      notesById.set(
+        note.id,
+        existingNote
+          ? {
+              ...existingNote,
+              ...note,
+              imageData: note.imageData ?? existingNote.imageData,
+              imageKey: note.imageKey ?? existingNote.imageKey,
+              imageUrl: note.imageUrl ?? existingNote.imageUrl
+            }
+          : note
+      );
     });
     return Array.from(notesById.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [cloudNotes, savedNotes]);
@@ -819,26 +831,31 @@ export default function Home() {
   }
 
   function saveNote(note: SavedNote) {
-    const localNote = { ...note, imageData: undefined };
+    const sessionNote = note;
+    const localNote = stripSecureImageData(note);
     setSavedNotes((currentNotes) => {
       const nextNotes = [
-        localNote,
+        sessionNote,
         ...currentNotes.filter((currentNote) => currentNote.id !== note.id)
       ].slice(0, 30);
-      window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(nextNotes));
+      window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(nextNotes.map(stripSecureImageData)));
       return nextNotes;
     });
     if (userEmail && user) {
       void user.getIdToken()
         .then((token) => syncNoteToCloud(note, userEmail, token))
         .then((cloudNote) => {
-          const syncedNote = { ...localNote, ...cloudNote, imageData: undefined };
+          const syncedNote = {
+            ...localNote,
+            ...cloudNote,
+            imageData: cloudNote.imageUrl ? undefined : sessionNote.imageData
+          };
           setSavedNotes((currentNotes) => {
             const nextNotes = [
               syncedNote,
               ...currentNotes.filter((currentNote) => currentNote.id !== note.id)
             ].slice(0, 30);
-            window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(nextNotes));
+            window.localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(nextNotes.map(stripSecureImageData)));
             return nextNotes;
           });
           if (cloudNote.imageUrl) {
@@ -1874,6 +1891,10 @@ function scanSuccessMessage({
   return pageCount > 1
     ? `Text extracted successfully from ${pageCount} pages.`
     : `Text extracted successfully from ${noteFilename}.`;
+}
+
+function stripSecureImageData(note: SavedNote): SavedNote {
+  return note.provider === "kids-mode" ? note : { ...note, imageData: undefined };
 }
 
 function fileKind(file: File) {
