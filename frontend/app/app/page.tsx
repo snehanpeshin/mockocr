@@ -867,7 +867,13 @@ export default function Home() {
               : "Saved to your signed-in cloud archive."
           );
         })
-        .catch(() => setMessage("Saved text locally. Cloud saving is currently unavailable."));
+        .catch(() =>
+          setMessage(
+            note.imageData
+              ? "Saved text locally, but the slate image was not archived. Check backend image storage setup."
+              : "Saved text locally. Cloud saving is currently unavailable."
+          )
+        );
     }
   }
 
