@@ -5718,3 +5718,680 @@ textarea:focus {
     width: 100%;
   }
 }
+
+.kids-mode-shell {
+  background:
+    radial-gradient(circle at 12% 14%, rgba(255, 207, 112, 0.48), transparent 18%),
+    radial-gradient(circle at 85% 10%, rgba(127, 200, 255, 0.44), transparent 20%),
+    radial-gradient(circle at 70% 90%, rgba(255, 122, 116, 0.3), transparent 22%),
+    linear-gradient(180deg, #f9f7ff 0%, #eefaf8 100%);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding: 14px clamp(12px, 3vw, 34px) 30px;
+}
+
+.kids-topbar,
+.kids-hero,
+.kids-layout,
+.cleanote-board-prompts {
+  margin: 0 auto;
+  max-width: 1280px;
+}
+
+.kids-topbar {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 4px 0 14px;
+}
+
+.kids-brand {
+  align-items: center;
+  color: var(--ink);
+  display: inline-flex;
+  font-size: 1.1rem;
+  font-weight: 900;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.kids-brand img {
+  background: #101820;
+  border: 3px solid #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 12px 26px rgba(18, 21, 40, 0.13);
+  height: 54px;
+  object-fit: cover;
+  width: 54px;
+}
+
+.kids-topbar nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.kids-topbar button,
+.child-selector button,
+.kids-activity-card,
+.kids-toolbar button,
+.parent-gate-card button {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.kids-topbar nav button {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: #26324a;
+  display: inline-flex;
+  font-weight: 900;
+  gap: 7px;
+  min-height: 48px;
+  padding: 0 16px;
+}
+
+.kids-topbar nav .parent-gate-button {
+  background: #26324a;
+  color: #ffffff;
+}
+
+.kids-hero {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(310px, 0.42fr);
+  padding: 4px 0 16px;
+}
+
+.kids-kicker {
+  color: #c74765;
+  font-family: "Patrick Hand", "Manrope", sans-serif;
+  font-size: 1.22rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.kids-hero h1 {
+  color: #17202a;
+  font-size: clamp(2.7rem, 6.4vw, 5.8rem);
+  letter-spacing: 0;
+  line-height: 0.9;
+  margin: 4px 0 8px;
+}
+
+.kids-hero p:not(.kids-kicker) {
+  color: #536070;
+  font-size: clamp(1rem, 1.5vw, 1.18rem);
+  line-height: 1.65;
+  margin: 0;
+  max-width: 760px;
+}
+
+.kids-sticker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.kids-sticker-row span {
+  align-items: center;
+  background: #ffffff;
+  border: 2px dashed #ffcf70;
+  border-radius: 999px;
+  box-shadow: 0 12px 24px rgba(18, 21, 40, 0.08);
+  color: #26324a;
+  display: inline-flex;
+  font-family: "Patrick Hand", "Manrope", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+  height: 48px;
+  justify-content: center;
+  min-width: 58px;
+  padding: 0 16px;
+}
+
+.child-selector {
+  background: rgba(255, 255, 255, 0.86);
+  border: 2px solid #ffffff;
+  border-radius: 22px;
+  box-shadow: 0 18px 44px rgba(18, 21, 40, 0.1);
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.child-selector p {
+  color: #26324a;
+  font-size: 1rem;
+  font-weight: 900;
+  margin: 0;
+}
+
+.child-selector div {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.child-selector button {
+  align-items: center;
+  background: #f8f7ff;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  color: #26324a;
+  display: flex;
+  gap: 10px;
+  min-height: 70px;
+  padding: 10px;
+}
+
+.child-selector button.active {
+  background: #fff4cf;
+  border-color: #ffcf70;
+}
+
+.child-selector strong {
+  align-items: center;
+  background: #6d5dfc;
+  border-radius: 16px;
+  color: #ffffff;
+  display: inline-flex;
+  height: 46px;
+  justify-content: center;
+  width: 46px;
+}
+
+.child-selector span {
+  font-size: 1.08rem;
+  font-weight: 900;
+}
+
+.kids-layout {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(220px, 0.28fr) minmax(0, 1fr);
+}
+
+.kids-activity-grid {
+  align-content: start;
+  display: grid;
+  gap: 12px;
+}
+
+.kids-activity-card {
+  align-items: center;
+  background: #ffffff;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 22px;
+  box-shadow: 0 16px 38px rgba(18, 21, 40, 0.08);
+  color: #26324a;
+  display: grid;
+  gap: 5px;
+  justify-items: start;
+  min-height: 104px;
+  padding: 16px;
+  text-align: left;
+}
+
+.kids-activity-card svg {
+  color: #14a88b;
+}
+
+.kids-activity-card span {
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.kids-activity-card small {
+  color: #667085;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.kids-activity-card.active {
+  background: #fff4cf;
+  border-color: #ffcf70;
+  transform: rotate(-0.6deg);
+}
+
+.kids-workspace,
+.cleanote-board-prompts {
+  background: rgba(255, 255, 255, 0.92);
+  border: 3px solid #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 22px 56px rgba(18, 21, 40, 0.12);
+  padding: clamp(14px, 2vw, 22px);
+}
+
+.kids-workspace-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.kids-workspace-header h2,
+.cleanote-board-prompts h2 {
+  color: #17202a;
+  font-size: clamp(1.38rem, 2.8vw, 2.25rem);
+  line-height: 1.05;
+  margin: 4px 0 0;
+}
+
+.celebration-pill {
+  align-items: center;
+  background: #eefbf8;
+  border: 2px dashed #bfeee5;
+  border-radius: 999px;
+  color: #096a5b;
+  display: inline-flex;
+  font-weight: 900;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 15px;
+  white-space: nowrap;
+}
+
+.drawing-studio {
+  display: grid;
+  gap: 14px;
+}
+
+.kids-canvas-wrap {
+  background:
+    linear-gradient(#fff3bf 1px, transparent 1px),
+    #fffdf6;
+  background-size: 100% 34px;
+  border: 3px solid #26324a;
+  border-radius: 20px;
+  box-shadow: inset 0 0 0 8px rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+  touch-action: none;
+}
+
+.kids-canvas-wrap canvas {
+  aspect-ratio: 1120 / 820;
+  display: block;
+  height: auto;
+  touch-action: none;
+  width: 100%;
+}
+
+.kids-toolbars {
+  display: grid;
+  gap: 10px;
+}
+
+.kids-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.kids-toolbar button {
+  align-items: center;
+  background: #ffffff;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  color: #26324a;
+  display: inline-flex;
+  font-size: 1rem;
+  font-weight: 900;
+  gap: 8px;
+  min-height: 56px;
+  padding: 0 14px;
+}
+
+.kids-toolbar button.active {
+  background: #26324a;
+  border-color: #26324a;
+  color: #ffffff;
+}
+
+.kids-toolbar button.save-creation {
+  background: #14a88b;
+  border-color: #14a88b;
+  color: #ffffff;
+}
+
+.kids-toolbar.secondary button.color {
+  border-color: #ffffff;
+  border-radius: 999px;
+  min-height: 52px;
+  padding: 0;
+  width: 52px;
+}
+
+.kids-toolbar.secondary button.color.active {
+  outline: 4px solid rgba(38, 50, 74, 0.24);
+}
+
+.kids-toolbar.secondary button.size,
+.kids-toolbar.secondary button.next-practice {
+  background: #f8f7ff;
+}
+
+.kids-toolbar.secondary button.next-practice {
+  background: #fff4cf;
+  border-color: #ffcf70;
+}
+
+.cleanote-board-prompts {
+  align-items: center;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 0.35fr) minmax(0, 1fr);
+  margin-top: 18px;
+}
+
+.prompt-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.prompt-row span {
+  background: #ffffff;
+  border: 2px dashed #ffcf70;
+  border-radius: 999px;
+  color: #26324a;
+  font-weight: 900;
+  min-height: 48px;
+  padding: 12px 15px;
+}
+
+.kids-gallery {
+  display: grid;
+  gap: 18px;
+}
+
+.kids-gallery-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.kids-gallery-grid article,
+.kids-empty-gallery {
+  background: #fffdf6;
+  border: 2px solid #f2df9c;
+  border-radius: 18px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.kids-gallery-grid img {
+  aspect-ratio: 4 / 3;
+  background: #ffffff;
+  border-radius: 12px;
+  object-fit: contain;
+  width: 100%;
+}
+
+.kids-gallery-grid h3,
+.kids-empty-gallery h3 {
+  color: #26324a;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.kids-gallery-grid p,
+.kids-empty-gallery p {
+  color: #667085;
+  margin: 0;
+}
+
+.kids-empty-gallery {
+  align-items: center;
+  justify-items: center;
+  min-height: 360px;
+  text-align: center;
+}
+
+.kids-empty-gallery svg {
+  color: #ffb84d;
+}
+
+.parent-gate {
+  align-items: center;
+  background: rgba(18, 21, 40, 0.52);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 18px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 20;
+}
+
+.parent-gate-card {
+  background: #ffffff;
+  border: 3px solid #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+  color: #26324a;
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+  padding: 24px;
+  text-align: center;
+  width: 100%;
+}
+
+.parent-gate-card svg {
+  color: #6d5dfc;
+  justify-self: center;
+}
+
+.parent-gate-card h2 {
+  font-size: 2rem;
+  margin: 0;
+}
+
+.parent-gate-card p {
+  color: #667085;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.parent-gate-card button {
+  background: #26324a;
+  border-radius: 16px;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 900;
+  min-height: 58px;
+}
+
+.parent-gate-track {
+  background: #eef2f6;
+  border-radius: 999px;
+  height: 12px;
+  overflow: hidden;
+}
+
+.parent-gate-track span {
+  background: #14a88b;
+  display: block;
+  height: 100%;
+  transition: width 120ms linear;
+}
+
+.parent-gate-card .parent-gate-cancel {
+  background: #f8f7ff;
+  color: #26324a;
+}
+
+@media (max-width: 980px) {
+  .kids-hero,
+  .kids-layout,
+  .cleanote-board-prompts {
+    grid-template-columns: 1fr;
+  }
+
+  .kids-activity-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .kids-gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .kids-mode-shell {
+    padding: 10px 10px 22px;
+  }
+
+  .kids-topbar,
+  .kids-workspace-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .kids-topbar {
+    gap: 10px;
+  }
+
+  .kids-brand img {
+    border-radius: 14px;
+    height: 46px;
+    width: 46px;
+  }
+
+  .kids-topbar nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .kids-topbar nav button {
+    justify-content: center;
+    min-height: 46px;
+    width: 100%;
+  }
+
+  .kids-hero {
+    gap: 10px;
+    padding-bottom: 12px;
+  }
+
+  .kids-hero h1 {
+    font-size: clamp(2.45rem, 16vw, 3.6rem);
+  }
+
+  .kids-hero p:not(.kids-kicker) {
+    font-size: 1rem;
+    line-height: 1.45;
+  }
+
+  .kids-sticker-row {
+    margin-top: 10px;
+  }
+
+  .child-selector {
+    border-radius: 18px;
+    padding: 12px;
+  }
+
+  .kids-activity-grid {
+    display: grid;
+    grid-auto-columns: minmax(155px, 48vw);
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    margin: 0 -10px;
+    overflow-x: auto;
+    padding: 0 10px 8px;
+    scroll-snap-type: x proximity;
+  }
+
+  .kids-activity-card {
+    border-radius: 18px;
+    min-height: 96px;
+    padding: 13px;
+    scroll-snap-align: start;
+  }
+
+  .kids-activity-card span {
+    font-size: 1rem;
+  }
+
+  .kids-workspace,
+  .cleanote-board-prompts {
+    border-radius: 18px;
+    padding: 10px;
+  }
+
+  .kids-workspace-header {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .celebration-pill {
+    align-self: flex-start;
+    min-height: 40px;
+    padding: 0 12px;
+    white-space: normal;
+  }
+
+  .kids-canvas-wrap {
+    border-width: 2px;
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.65);
+  }
+
+  .kids-toolbar {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .kids-toolbar.secondary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .kids-toolbar button {
+    font-size: 0.88rem;
+    gap: 5px;
+    justify-content: center;
+    min-height: 50px;
+    padding: 0 8px;
+    width: 100%;
+  }
+
+  .kids-toolbar button svg {
+    height: 18px;
+    width: 18px;
+  }
+
+  .kids-toolbar.secondary button.color {
+    justify-self: center;
+    min-height: 46px;
+    width: 46px;
+  }
+
+  .kids-gallery-grid,
+  .child-selector div {
+    grid-template-columns: 1fr;
+  }
+
+  .prompt-row span {
+    border-radius: 16px;
+    flex: 1 1 145px;
+    text-align: center;
+  }
+}

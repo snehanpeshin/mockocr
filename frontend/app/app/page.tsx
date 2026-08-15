@@ -891,6 +891,7 @@ export default function Home() {
         </div>
         <div className="premium-actions">
           <a href={APP_STORE_URL} rel="noreferrer" target="_blank">Download free app</a>
+          <a href="/kids">Kids Mode</a>
           <a href="/refund">Refund policy</a>
         </div>
       </section>

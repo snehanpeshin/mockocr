@@ -93,6 +93,7 @@ export default function LandingPage() {
           <a href="/handwriting-to-text/">Handwriting</a>
           <a href="/homework-scanner/">Homework</a>
           <a href="/guides/">Guides</a>
+          <a href="/kids/">Kids Mode</a>
           <a href="#tablet">Tablet</a>
           <a href="/app">Web scanner</a>
         </nav>
@@ -116,9 +117,12 @@ export default function LandingPage() {
               <Play aria-hidden="true" size={18} />
               Google Play
             </a>
-            <a className="text-button" href="/app">
-              Try web scanner <ArrowRight aria-hidden="true" size={17} />
-            </a>
+          <a className="text-button" href="/app">
+            Try web scanner <ArrowRight aria-hidden="true" size={17} />
+          </a>
+          <a className="text-button" href="/kids/">
+            Open Kids Mode <ArrowRight aria-hidden="true" size={17} />
+          </a>
           </div>
 
           <div className="one-page-steps" aria-label="How Cleanote works">
@@ -261,6 +265,7 @@ export default function LandingPage() {
           <a href="/handwriting-to-text/">Handwriting to text</a>
           <a href="/homework-scanner/">Homework scanner</a>
           <a href="/guides/">Guides</a>
+          <a href="/kids/">Kids Mode</a>
           <a href="/privacy">Privacy</a>
           <a href="/terms">Terms</a>
           <a href="/support">Support</a>

@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/guides/why-handwriting-ocr-makes-mistakes",
     "/guides/organize-digital-study-notes",
     "/guides/scanning-math-notes",
+    "/kids",
     "/support",
     "/privacy",
     "/terms",
