@@ -103,7 +103,7 @@ const ACTIVITIES = [
     id: "name" as KidsActivity,
     icon: Baby,
     label: "Practice My Name",
-    note: PRACTICE_NAME
+    note: "Your name"
   },
   {
     id: "gallery" as KidsActivity,
