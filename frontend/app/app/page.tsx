@@ -163,6 +163,7 @@ export default function Home() {
   const [provider, setProvider] = useState<string | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
   const [currentNoteId, setCurrentNoteId] = useState<string | null>(null);
+  const [currentNoteImageData, setCurrentNoteImageData] = useState<string | null>(null);
   const [savedNotes, setSavedNotes] = useState<SavedNote[]>([]);
   const [cloudNotes, setCloudNotes] = useState<SavedNote[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -480,6 +481,7 @@ export default function Home() {
     setProvider(null);
     setFilename(null);
     setCurrentNoteId(null);
+    setCurrentNoteImageData(null);
     setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
     setRotation(0);
     setContrast(112);
@@ -597,6 +599,7 @@ export default function Home() {
     setProvider(null);
     setFilename(null);
     setCurrentNoteId(null);
+    setCurrentNoteImageData(null);
     setCrop({ top: 0, right: 0, bottom: 0, left: 0 });
     setRotation(0);
     setContrast(132);
@@ -663,25 +666,40 @@ export default function Home() {
           results.length > 1 ? `Page ${index + 1}: ${result.filename}\n\n${result.text}` : result.text
         )
         .join("\n\n---\n\n");
-      const noteFilename = results.length > 1 ? `${results.length} page scan` : results[0].filename;
+      const noteFilename = isSlateCapture
+        ? `${selectedChild.name} - ${slateActivity} ${createShortDate()}`
+        : results.length > 1
+          ? `${results.length} page scan`
+          : results[0].filename;
+      const slateImageData =
+        isSlateCapture && files.length === 1 && files[0].type.startsWith("image/")
+          ? await buildArchiveImageData(files[0])
+          : null;
       setText(combinedText);
       setProvider(results[0].provider);
       setFilename(noteFilename);
       const noteId = crypto.randomUUID();
       setCurrentNoteId(noteId);
+      setCurrentNoteImageData(slateImageData);
       saveNote({
         id: noteId,
         createdAt: new Date().toISOString(),
         filename: noteFilename,
+        imageData: slateImageData ?? undefined,
         provider: results[0].provider,
         subject: results[0].subject || subject,
         text: combinedText,
-        contextText: contextText.trim()
+        contextText: [
+          isSlateCapture ? `Cleanote Slate capture for ${selectedChild.name}. Activity: ${slateActivity}.` : "",
+          contextText.trim()
+        ].filter(Boolean).join("\n")
       });
       setMessage(
-        results.length > 1
-          ? `Text extracted successfully from ${results.length} pages.`
-          : `Text extracted successfully from ${noteFilename}.`
+        isSlateCapture && slateImageData
+          ? "Slate scan saved with original image, OCR text, child, activity, and date."
+          : results.length > 1
+            ? `Text extracted successfully from ${results.length} pages.`
+            : `Text extracted successfully from ${noteFilename}.`
       );
       setShowDiscoveryForm(true);
       setDiscoveryMessage(null);
@@ -740,6 +758,7 @@ export default function Home() {
     setProvider(null);
     setFilename(null);
     setCurrentNoteId(null);
+    setCurrentNoteImageData(null);
     setMessage(null);
     setSubject("general");
     setContextText("");
@@ -791,7 +810,7 @@ export default function Home() {
     }
   }
 
-  function saveCurrentNote() {
+  async function saveCurrentNote() {
     if (!text.trim()) {
       setMessage("There is no text to save yet.");
       return;
@@ -803,11 +822,16 @@ export default function Home() {
       (isSlateCapture
         ? `${selectedChild.name} - ${slateActivity} ${createShortDate()}`
         : createNoteTitle(subject));
+    const slateImageData =
+      currentNoteImageData ??
+      (isSlateCapture && file?.type.startsWith("image/") ? await buildArchiveImageData(file) : null);
     setCurrentNoteId(noteId);
+    setCurrentNoteImageData(slateImageData);
     saveNote({
       id: noteId,
       createdAt: new Date().toISOString(),
       filename: noteFilename,
+      imageData: slateImageData ?? undefined,
       provider: provider ?? "edited",
       subject: isSlateCapture ? "kids" : subject,
       text,
@@ -827,6 +851,7 @@ export default function Home() {
     setProvider(null);
     setFilename(null);
     setCurrentNoteId(null);
+    setCurrentNoteImageData(null);
     setMessage("Editor cleared.");
   }
 
@@ -837,6 +862,7 @@ export default function Home() {
     setSubject(note.subject);
     setContextText(note.contextText ?? "");
     setCurrentNoteId(note.id);
+    setCurrentNoteImageData(note.imageData ?? null);
     setMessage(`Opened ${note.filename}`);
   }
 
@@ -858,6 +884,7 @@ export default function Home() {
       setProvider(null);
       setFilename(null);
       setCurrentNoteId(null);
+      setCurrentNoteImageData(null);
     }
 
     if (userEmail && user) {
@@ -1370,6 +1397,12 @@ export default function Home() {
 
           {message ? <p className="message">{message}</p> : null}
           {filename ? <p className="note-reference">Current note: {filename}</p> : null}
+          {currentNoteImageData ? (
+            <figure className="current-note-image">
+              <img alt="Saved slate capture" src={currentNoteImageData} />
+              <figcaption>Original slate image saved with this note.</figcaption>
+            </figure>
+          ) : null}
           {showDiscoveryForm ? (
             <section className="discovery-panel" aria-label="Post-scan feedback">
               <div>
@@ -1474,14 +1507,43 @@ async function buildProcessedImageFile(file: File, adjustments: ImageAdjustments
   return new File([blob], `${baseName}-cleaned.jpg`, { type: "image/jpeg" });
 }
 
+async function buildArchiveImageData(file: File): Promise<string | null> {
+  if (!file.type.startsWith("image/")) {
+    return null;
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxSide = 900;
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      bitmap.close();
+      return null;
+    }
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+    return canvas.toDataURL("image/jpeg", 0.72);
+  } catch {
+    return null;
+  }
+}
+
 async function syncNoteToCloud(note: SavedNote, email: string, token: string) {
+  const cloudNote = { ...note };
+  delete cloudNote.imageData;
   await fetch(`${API_BASE}/api/notes`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ ...note, email })
+    body: JSON.stringify({ ...cloudNote, email })
   });
 }
 
