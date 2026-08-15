@@ -10,16 +10,20 @@ import {
   Lock,
   Paintbrush,
   Pencil,
+  Plus,
   Redo2,
   RotateCcw,
   Save,
+  Settings,
   Shapes,
   Sparkles,
   Star,
-  Undo2
+  Undo2,
+  UserRound
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent } from "react";
+import { useAuth } from "../lib/auth";
 
 type KidsActivity = "draw" | "letters" | "numbers" | "shapes" | "name" | "gallery";
 type Tool = "pen" | "eraser";
@@ -38,7 +42,15 @@ type KidsCreation = {
   type: string;
 };
 
+type ChildProfile = {
+  age: string;
+  avatar: string;
+  id: string;
+  name: string;
+};
+
 const KIDS_CREATIONS_KEY = "cleanote.kidsCreations";
+const KIDS_PROFILES_KEY = "cleanote.kidsProfiles";
 const SAVED_NOTES_KEY = "cleanote.savedNotes";
 
 const COLORS = ["#26324a", "#f05f5f", "#2f80ed", "#14a88b", "#ffb84d", "#8f3ff2"];
@@ -46,10 +58,9 @@ const SIZES = [8, 14, 22];
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const NUMBERS = "0123456789".split("");
 const SHAPES = ["Circle", "Square", "Triangle", "Rectangle", "Star", "Heart"];
-const PRACTICE_NAME = "Aarav";
 const ENCOURAGEMENT = ["Great job!", "Beautiful!", "Nice work!", "You did it!"];
 
-const CHILDREN = [
+const DEFAULT_CHILDREN: ChildProfile[] = [
   { age: "4", avatar: "A", id: "aarav", name: "Aarav" },
   { age: "6", avatar: "M", id: "maya", name: "Maya" }
 ];
@@ -103,7 +114,9 @@ const ACTIVITIES = [
 ];
 
 export default function KidsModePage() {
-  const [selectedChildId, setSelectedChildId] = useState(CHILDREN[0].id);
+  const { user, isAuthLoading, logout } = useAuth();
+  const [children, setChildren] = useState<ChildProfile[]>(DEFAULT_CHILDREN);
+  const [selectedChildId, setSelectedChildId] = useState(DEFAULT_CHILDREN[0].id);
   const [activity, setActivity] = useState<KidsActivity>("draw");
   const [letterIndex, setLetterIndex] = useState(0);
   const [numberIndex, setNumberIndex] = useState(0);
@@ -111,11 +124,12 @@ export default function KidsModePage() {
   const [creations, setCreations] = useState<KidsCreation[]>([]);
   const [celebration, setCelebration] = useState("Create something wonderful.");
   const [showParentGate, setShowParentGate] = useState(false);
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [gateProgress, setGateProgress] = useState(0);
   const gateTimerRef = useRef<number | null>(null);
 
-  const selectedChild = CHILDREN.find((child) => child.id === selectedChildId) ?? CHILDREN[0];
-  const activityTitle = getActivityTitle(activity, letterIndex, numberIndex, shapeIndex);
+  const selectedChild = children.find((child) => child.id === selectedChildId) ?? children[0] ?? DEFAULT_CHILDREN[0];
+  const activityTitle = getActivityTitle(activity, letterIndex, numberIndex, shapeIndex, selectedChild.name);
 
   useEffect(() => {
     try {
@@ -125,6 +139,63 @@ export default function KidsModePage() {
       setCreations([]);
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(KIDS_PROFILES_KEY);
+      if (!stored) {
+        return;
+      }
+      const parsedProfiles = JSON.parse(stored) as ChildProfile[];
+      const validProfiles = parsedProfiles
+        .filter((profile) => profile.id && profile.name.trim())
+        .slice(0, 4);
+      if (validProfiles.length) {
+        setChildren(validProfiles);
+        setSelectedChildId((currentId) =>
+          validProfiles.some((profile) => profile.id === currentId) ? currentId : validProfiles[0].id
+        );
+      }
+    } catch {
+      setChildren(DEFAULT_CHILDREN);
+    }
+  }, []);
+
+  function updateChildName(childId: string, name: string) {
+    const safeName = name.slice(0, 18);
+    setChildren((currentChildren) => {
+      const nextChildren = currentChildren.map((child) =>
+        child.id === childId
+          ? {
+              ...child,
+              avatar: getAvatarLetter(safeName, child.avatar),
+              name: safeName
+            }
+          : child
+      );
+      window.localStorage.setItem(KIDS_PROFILES_KEY, JSON.stringify(nextChildren));
+      return nextChildren;
+    });
+  }
+
+  function addChildProfile() {
+    setChildren((currentChildren) => {
+      if (currentChildren.length >= 4) {
+        return currentChildren;
+      }
+      const nextNumber = currentChildren.length + 1;
+      const nextProfile: ChildProfile = {
+        age: "",
+        avatar: "K",
+        id: `kid-${Date.now()}`,
+        name: `Kid ${nextNumber}`
+      };
+      const nextChildren = [...currentChildren, nextProfile];
+      window.localStorage.setItem(KIDS_PROFILES_KEY, JSON.stringify(nextChildren));
+      setSelectedChildId(nextProfile.id);
+      return nextChildren;
+    });
+  }
 
   function saveCreation(image: string) {
     const now = new Date().toISOString();
@@ -143,7 +214,7 @@ export default function KidsModePage() {
     setCreations(nextCreations);
     window.localStorage.setItem(KIDS_CREATIONS_KEY, JSON.stringify(nextCreations));
     saveParentMemoryNote(nextCreation);
-    setCelebration(ENCOURAGEMENT[Math.floor(Math.random() * ENCOURAGEMENT.length)]);
+    setCelebration(`${ENCOURAGEMENT[Math.floor(Math.random() * ENCOURAGEMENT.length)]} Saved for parent review.`);
   }
 
   function startParentHold() {
@@ -211,8 +282,10 @@ export default function KidsModePage() {
           </div>
         </div>
         <ChildSelector
+          children={children}
           selectedChildId={selectedChildId}
           onSelect={setSelectedChildId}
+          onOpenSettings={() => setShowProfileSettings(true)}
         />
       </section>
 
@@ -268,7 +341,7 @@ export default function KidsModePage() {
                     : activity === "numbers"
                       ? NUMBERS[numberIndex]
                       : activity === "name"
-                        ? PRACTICE_NAME
+                        ? selectedChild.name
                         : ""
                 }
               />
@@ -281,6 +354,7 @@ export default function KidsModePage() {
         <div>
           <p className="kids-kicker">Try this on your Cleanote Board</p>
           <h2>Screen-light practice, saved later by a parent.</h2>
+          <p>Saved drawings appear in Parent Mode so families can review progress beside scanned notes.</p>
         </div>
         <div className="prompt-row">
           {PROMPTS.map((prompt) => (
@@ -294,6 +368,7 @@ export default function KidsModePage() {
           <div className="parent-gate-card">
             <Lock aria-hidden="true" size={34} />
             <h2>Parent Area</h2>
+            <AccountStatus isAuthLoading={isAuthLoading} userEmail={user?.email ?? null} onLogout={logout} />
             <p>Hold the button for 3 seconds to leave Kids Mode.</p>
             <button
               onPointerDown={startParentHold}
@@ -312,22 +387,66 @@ export default function KidsModePage() {
           </div>
         </div>
       ) : null}
+
+      {showProfileSettings ? (
+        <div className="parent-gate" role="dialog" aria-modal="true" aria-label="Kid profiles">
+          <div className="parent-gate-card kids-profile-card">
+            <Settings aria-hidden="true" size={34} />
+            <h2>Kid Profiles</h2>
+            <p>Use first names or nicknames. Profiles and drawings are saved privately in this browser.</p>
+            <div className="kids-profile-list">
+              {children.map((child) => (
+                <label key={child.id}>
+                  <span>{child.avatar}</span>
+                  <input
+                    aria-label={`Name for ${child.name}`}
+                    maxLength={18}
+                    onChange={(event) => updateChildName(child.id, event.target.value)}
+                    value={child.name}
+                  />
+                </label>
+              ))}
+            </div>
+            <button
+              className="kids-add-profile-button"
+              disabled={children.length >= 4}
+              onClick={addChildProfile}
+              type="button"
+            >
+              <Plus aria-hidden="true" size={18} />
+              Add child
+            </button>
+            <button className="parent-gate-cancel" onClick={() => setShowProfileSettings(false)} type="button">
+              Done
+            </button>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
 
 function ChildSelector({
+  children,
   onSelect,
+  onOpenSettings,
   selectedChildId
 }: {
+  children: ChildProfile[];
   onSelect: (childId: string) => void;
+  onOpenSettings: () => void;
   selectedChildId: string;
 }) {
   return (
     <div className="child-selector">
-      <p>Who is creating today?</p>
+      <div className="child-selector-title">
+        <p>Who is creating today?</p>
+        <button aria-label="Edit kid names" onClick={onOpenSettings} type="button">
+          <Settings aria-hidden="true" size={17} />
+        </button>
+      </div>
       <div>
-        {CHILDREN.map((child) => (
+        {children.map((child) => (
           <button
             className={selectedChildId === child.id ? "active" : ""}
             key={child.id}
@@ -339,6 +458,38 @@ function ChildSelector({
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function AccountStatus({
+  isAuthLoading,
+  onLogout,
+  userEmail
+}: {
+  isAuthLoading: boolean;
+  onLogout: () => Promise<void>;
+  userEmail: string | null;
+}) {
+  if (isAuthLoading) {
+    return <p className="kids-account-note">Checking account...</p>;
+  }
+
+  if (!userEmail) {
+    return (
+      <div className="kids-account-box">
+        <UserRound aria-hidden="true" size={20} />
+        <span>Sign in from Parent Mode to connect this browser to a Cleanote account.</span>
+        <a href="/login">Sign in</a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="kids-account-box">
+      <Check aria-hidden="true" size={20} />
+      <span>Signed in as {userEmail}. Drawings are visible in Parent Mode on this device.</span>
+      <button onClick={() => void onLogout()} type="button">Sign out</button>
     </div>
   );
 }
@@ -564,7 +715,13 @@ function KidsGallery({ childName, creations }: { childName: string; creations: K
   );
 }
 
-function getActivityTitle(activity: KidsActivity, letterIndex: number, numberIndex: number, shapeIndex: number) {
+function getActivityTitle(
+  activity: KidsActivity,
+  letterIndex: number,
+  numberIndex: number,
+  shapeIndex: number,
+  childName: string
+) {
   if (activity === "letters") {
     return `Trace Letter ${LETTERS[letterIndex]}`;
   }
@@ -575,7 +732,7 @@ function getActivityTitle(activity: KidsActivity, letterIndex: number, numberInd
     return `Trace a ${SHAPES[shapeIndex]}`;
   }
   if (activity === "name") {
-    return `Trace ${PRACTICE_NAME}`;
+    return `Trace ${childName}`;
   }
   return "Draw Anything";
 }
@@ -589,6 +746,7 @@ function saveParentMemoryNote(creation: KidsCreation) {
       createdAt: creation.createdAt,
       filename: `${creation.childName} - ${creation.title}`,
       id: `kids-${creation.createdAt}`,
+      imageData: creation.image,
       provider: "kids-mode",
       subject: "kids",
       text: `${creation.title}\n\nSource: Kids Mode\nChild: ${creation.childName}\nSaved privately for parent review.`
@@ -597,6 +755,11 @@ function saveParentMemoryNote(creation: KidsCreation) {
   } catch {
     // If storage is unavailable, the child can keep drawing without interruption.
   }
+}
+
+function getAvatarLetter(name: string, fallback: string) {
+  const trimmedName = name.trim();
+  return trimmedName ? trimmedName[0].toUpperCase() : fallback;
 }
 
 function drawCanvas(

@@ -17,7 +17,8 @@ import {
   SlidersHorizontal,
   Star,
   Trash2,
-  Upload
+  Upload,
+  UserRound
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, MutableRefObject } from "react";
@@ -48,6 +49,7 @@ type SavedNote = {
   id: string;
   createdAt: string;
   filename: string;
+  imageData?: string;
   provider: string;
   subject: string;
   text: string;
@@ -118,7 +120,7 @@ function getInstallationId() {
 }
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, isAuthLoading, logout } = useAuth();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -881,13 +883,29 @@ export default function Home() {
         <div className="status-strip">
           <span>{provider ? `OCR: ${provider}` : "OCR: ready"}</span>
           <span>{wordCount} words</span>
+          {isAuthLoading ? (
+            <span>Account: checking</span>
+          ) : userEmail ? (
+            <button className="account-pill" onClick={() => void logout()} type="button">
+              <UserRound aria-hidden="true" size={15} />
+              <span>Signed in</span>
+            </button>
+          ) : (
+            <a className="account-pill" href="/login">
+              <UserRound aria-hidden="true" size={15} />
+              <span>Sign in</span>
+            </a>
+          )}
         </div>
       </section>
 
       <section className="premium-banner" aria-label="Cleanote Premium">
         <div>
           <strong>Cleanote for iPhone is available now</strong>
-          <span>Download the free iOS app from the App Store, or keep using the web scanner here.</span>
+          <span>
+            Download the free iOS app, scan a child&apos;s tablet page in Parent Mode, or open Kids Mode
+            for drawing and tracing practice.
+          </span>
         </div>
         <div className="premium-actions">
           <a href={APP_STORE_URL} rel="noreferrer" target="_blank">Download free app</a>
@@ -1177,10 +1195,19 @@ export default function Home() {
             <div className="saved-list">
               {filteredNotes.length ? (
                 filteredNotes.map((note) => (
-                  <article className="saved-note-row" key={note.id}>
+                  <article
+                    className={note.imageData ? "saved-note-row saved-note-row-with-preview" : "saved-note-row"}
+                    key={note.id}
+                  >
                     <button onClick={() => openSavedNote(note)} type="button">
+                      {note.imageData ? (
+                        <img alt="" className="saved-note-thumb" src={note.imageData} />
+                      ) : null}
                       <strong>{note.filename}</strong>
-                      <span>{note.subject} · {new Date(note.createdAt).toLocaleDateString()}</span>
+                      <span>
+                        {note.provider === "kids-mode" ? "Kids drawing" : note.subject} ·{" "}
+                        {new Date(note.createdAt).toLocaleDateString()}
+                      </span>
                     </button>
                     <button
                       aria-label={`Delete ${note.filename}`}
