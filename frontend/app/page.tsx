@@ -86,7 +86,7 @@ export default function LandingPage() {
       <a className="one-page-skip-link" href="#main-content">Skip to main content</a>
       <header className="one-page-nav">
         <a className="one-page-brand" href="/">
-          <img alt="" src="/cleanote-icon.png" />
+          <img alt="Cleanote" src="/cleanote-icon.png" />
           <span>Cleanote</span>
         </a>
         <nav aria-label="Cleanote links">
@@ -268,6 +268,7 @@ export default function LandingPage() {
           <a href="/kids/">Kids Mode</a>
           <a href="/privacy">Privacy</a>
           <a href="/terms">Terms</a>
+          <a href="/refund">Refunds</a>
           <a href="/support">Support</a>
           <a href="/delete-account">Delete data</a>
         </nav>

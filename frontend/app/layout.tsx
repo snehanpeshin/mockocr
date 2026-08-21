@@ -30,17 +30,24 @@ export const metadata: Metadata = {
   openGraph: {
     description:
       "Convert handwritten notes, worksheets, equations, and study pages into editable, searchable text with Cleanote's handwriting-first scanner.",
-    images: ["/cleanote-icon.png"],
+    images: [
+      {
+        url: "/og-card.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Cleanote turns handwritten pages into searchable text"
+      }
+    ],
     siteName: "Cleanote",
     title: "Handwriting to Text for Students | Cleanote",
     type: "website",
     url: "/"
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     description:
       "Convert handwritten notes, worksheets, equations, and study pages into editable, searchable text with Cleanote's handwriting-first scanner.",
-    images: ["/cleanote-icon.png"],
+    images: ["/og-card.jpg"],
     title: "Handwriting to Text for Students | Cleanote"
   },
   icons: {
