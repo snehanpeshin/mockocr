@@ -9,12 +9,12 @@ const GOOGLE_PLAY_URL =
 export const metadata: Metadata = {
   title: "Homework Scanner App for Students",
   description:
-    "Cleanote helps students and families scan handwritten homework, worksheets, equations, and class notes into reviewable digital text.",
+    "Karigari helps students and families scan handwritten homework, worksheets, equations, and class notes into reviewable digital text.",
   alternates: {
     canonical: "/homework-scanner/"
   },
   openGraph: {
-    title: "Homework Scanner App for Students | Cleanote",
+    title: "Homework Scanner App for Students | Karigari Home LLC",
     description:
       "Scan handwritten homework and worksheets into searchable text while preserving review and student learning.",
     url: "https://www.cleanote.in/homework-scanner/",
@@ -29,19 +29,19 @@ const faqs = [
       "A homework scanner app captures paper homework or worksheets and converts the visible writing into digital text that can be reviewed, searched, and saved."
   },
   {
-    question: "Can Cleanote scan worksheets with handwriting?",
+    question: "Can Karigari scan worksheets with handwriting?",
     answer:
-      "Yes. Cleanote can process printed worksheets and handwritten notes or annotations, then returns editable text for review."
+      "Yes. Karigari can process printed worksheets and handwritten notes or annotations, then returns editable text for review."
   },
   {
-    question: "Is Cleanote for parents and teachers too?",
+    question: "Is Karigari for parents and teachers too?",
     answer:
-      "Yes. Parents and teachers can use Cleanote to keep a digital record of handwritten work, class notes, study pages, and practice sheets."
+      "Yes. Parents and teachers can use Karigari to keep a digital record of handwritten work, class notes, study pages, and practice sheets."
   },
   {
-    question: "Does Cleanote replace doing homework?",
+    question: "Does Karigari replace doing homework?",
     answer:
-      "No. Cleanote is a capture and organization tool. It helps preserve and review work that has already been written."
+      "No. Karigari is a capture and organization tool. It helps preserve and review work that has already been written."
   }
 ];
 
@@ -70,9 +70,9 @@ export default function HomeworkScannerPage() {
       <header className="seo-nav">
         <a className="seo-brand" href="/">
           <img alt="" src="/cleanote-icon.png" />
-          <span>Cleanote</span>
+          <span>Karigari Home LLC</span>
         </a>
-        <nav aria-label="Cleanote pages">
+        <nav aria-label="Karigari pages">
           <a href="/handwriting-to-text/">Handwriting to text</a>
           <a href="/app">Try scanner</a>
         </nav>
@@ -83,7 +83,7 @@ export default function HomeworkScannerPage() {
           <p className="seo-kicker">Homework scanner</p>
           <h1>Scan homework pages without losing the student&apos;s work.</h1>
           <p>
-            Cleanote helps students and families turn paper homework, class notes, and worksheets
+            Karigari helps students and families turn paper homework, class notes, and worksheets
             into searchable digital records. It is built for capture, review, and organization, not
             shortcuts around learning.
           </p>
@@ -137,7 +137,7 @@ export default function HomeworkScannerPage() {
           <p className="seo-kicker">For students and families</p>
           <h2>Keep handwriting in the learning loop.</h2>
           <p>
-            Students can keep practicing on paper while Cleanote helps preserve the work as a
+            Students can keep practicing on paper while Karigari helps preserve the work as a
             digital record. Parents and teachers can review what was written without retyping every
             page.
           </p>
@@ -166,12 +166,12 @@ export default function HomeworkScannerPage() {
         <h2>Ready to scan a page?</h2>
         <p>Start with one clear homework or notebook page, then review the converted text before saving.</p>
         <a className="seo-primary" href="/app">
-          Open Cleanote <ArrowRight aria-hidden="true" size={17} />
+          Open Karigari <ArrowRight aria-hidden="true" size={17} />
         </a>
       </section>
 
       <footer className="seo-footer">
-        <span>Cleanote, a product of Karigari Home LLC</span>
+        <span>Karigari Home LLC</span>
         <a href="/privacy/">Privacy</a>
         <a href="/support/">Support</a>
       </footer>

@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: GuidePageProps): Promise<Meta
       canonical: `/guides/${guide.slug}/`
     },
     openGraph: {
-      title: `${guide.title} | Cleanote`,
+      title: `${guide.title} | Karigari Home LLC`,
       description: guide.description,
       type: "article",
       url: `/guides/${guide.slug}/`
@@ -50,11 +50,11 @@ export default async function GuideArticlePage({ params }: GuidePageProps) {
     description: guide.description,
     author: {
       "@type": "Organization",
-      name: "Cleanote"
+      name: "Karigari Home LLC"
     },
     publisher: {
       "@type": "Organization",
-      name: "Cleanote",
+      name: "Karigari Home LLC",
       logo: {
         "@type": "ImageObject",
         url: "https://www.cleanote.in/cleanote-icon.png"
@@ -72,7 +72,7 @@ export default async function GuideArticlePage({ params }: GuidePageProps) {
       <header className="guide-nav">
         <a className="guide-brand" href="/">
           <img alt="" src="/cleanote-icon.png" />
-          <span>Cleanote</span>
+          <span>Karigari Home LLC</span>
         </a>
         <a className="guide-back-link" href="/guides/">
           <ArrowLeft aria-hidden="true" size={17} />
@@ -90,7 +90,7 @@ export default async function GuideArticlePage({ params }: GuidePageProps) {
         <div className="guide-callout">
           <BookOpen aria-hidden="true" size={22} />
           <p>
-            Quick idea: use Cleanote output as an editable draft. For homework, math, and research
+            Quick idea: use Karigari output as an editable draft. For homework, math, and research
             notes, always compare important text with the original page before relying on it.
           </p>
         </div>
@@ -105,7 +105,7 @@ export default async function GuideArticlePage({ params }: GuidePageProps) {
         ))}
       </article>
 
-      <section className="guide-related" aria-label="Related Cleanote guides">
+      <section className="guide-related" aria-label="Related Karigari guides">
         <h2>Related guides</h2>
         <div className="guide-related-grid">
           {related.map((item) => (

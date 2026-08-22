@@ -1020,9 +1020,9 @@ export default function Home() {
           <a className="app-back-home" href="/">Back to Home</a>
           <img className="app-header-logo" alt="" src="/cleanote-icon.png" />
           <div className="app-title-copy">
-            <p className="eyebrow">Cleanote</p>
+            <p className="eyebrow">Karigari Home LLC</p>
             <h1>Scan notes into editable text</h1>
-            <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
+            <p className="company-line">Karigari Home LLC</p>
           </div>
         </div>
         <div className="status-strip">
@@ -1044,9 +1044,9 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="premium-banner" aria-label="Cleanote Premium">
+      <section className="premium-banner" aria-label="Karigari Premium">
         <div>
-          <strong>Cleanote for iPhone is available now</strong>
+          <strong>Karigari for iPhone is available now</strong>
           <span>
             Download the free iOS app, scan a child&apos;s tablet page in Parent Mode, or open Kids Mode
             for drawing and tracing practice.
@@ -1141,7 +1141,7 @@ export default function Home() {
               </div>
             ) : (
               <p className="camera-capture-copy">
-                Align the paper or 8.5-inch tablet inside the frame. Cleanote watches lighting,
+                Align the paper or 8.5-inch tablet inside the frame. Karigari watches lighting,
                 sharpness, and movement, then captures when the page is steady.
               </p>
             )}
@@ -1189,7 +1189,7 @@ export default function Home() {
                   <FileText aria-hidden="true" size={38} />
                   <strong>{file.name}</strong>
                   <span>PDF · {formatFileSize(file.size)}</span>
-                  <p>PDF preview is not available in this browser. Cleanote will scan the document pages.</p>
+                  <p>PDF preview is not available in this browser. Karigari will scan the document pages.</p>
                 </div>
               </object>
             ) : file && isDocxFile(file) ? (
@@ -1213,7 +1213,7 @@ export default function Home() {
                     <span>DOCX · {formatFileSize(file.size)}</span>
                     <p>
                       {docxPreviewError ??
-                        "DOCX preview is not available, but Cleanote can still extract the document text when you scan."}
+                        "DOCX preview is not available, but Karigari can still extract the document text when you scan."}
                     </p>
                   </div>
                 )}
@@ -1223,7 +1223,7 @@ export default function Home() {
                 <FileText aria-hidden="true" size={38} />
                 <strong>{file.name}</strong>
                 <span>{fileKind(file)} · {formatFileSize(file.size)}</span>
-                <p>Cleanote will scan this file for OCR.</p>
+                <p>Karigari will scan this file for OCR.</p>
               </div>
             ) : (
               <div className="empty-state">
@@ -1253,7 +1253,7 @@ export default function Home() {
           {file?.type.startsWith("image/") ? (
             <div className="scan-controls" aria-label="Scan cleanup controls">
               <p className="scan-tip">
-                Crop is optional. Cleanote now tests several cleanup versions automatically, but a bright,
+                Crop is optional. Karigari now tests several cleanup versions automatically, but a bright,
                 flat photo with dark handwriting still gives the best result.
               </p>
               {scanRecommendation ? (
@@ -1490,7 +1490,7 @@ export default function Home() {
           {showDiscoveryForm ? (
             <section className="discovery-panel" aria-label="Post-scan feedback">
               <div>
-                <p className="eyebrow">Help improve Cleanote</p>
+                <p className="eyebrow">Help improve Karigari</p>
                 <h3>How did this scan do?</h3>
               </div>
               <label>
@@ -1572,7 +1572,7 @@ export default function Home() {
         </div>
       </section>
       <footer className="app-footer">
-        <span>© {new Date().getFullYear()} KARIGARI HOME LLC DBA CLEANOTE. All Rights Reserved.</span>
+        <span>© {new Date().getFullYear()} KARIGARI HOME LLC. All Rights Reserved.</span>
         <nav aria-label="Scanner footer links">
           <a href="/privacy">Privacy Policy</a>
           <a href="/delete-account">Delete account or data</a>
@@ -1832,7 +1832,7 @@ function createSlateVisualDescription(childName: string, activity: string) {
     `Activity: ${activity}`,
     `Date: ${date}`,
     "",
-    "Cleanote saved this as a visual slate memory because the OCR text did not look reliable.",
+    "Karigari saved this as a visual slate memory because the OCR text did not look reliable.",
     "Review the scrapbook image for the child's original work."
   ].join("\n");
 }
@@ -1883,10 +1883,10 @@ function scanSuccessMessage({
   textLooksUnusable: boolean;
 }) {
   if (textLooksUnusable && hasSlateVisual && isSignedIn) {
-    return "OCR looked unreliable, so Cleanote saved this as a visual Slate Scrapbook memory.";
+    return "OCR looked unreliable, so Karigari saved this as a visual Slate Scrapbook memory.";
   }
   if (textLooksUnusable && hasSlateVisual) {
-    return "OCR looked unreliable, so Cleanote kept this as a visual slate memory. Sign in to save visuals in cloud.";
+    return "OCR looked unreliable, so Karigari kept this as a visual slate memory. Sign in to save visuals in cloud.";
   }
   if (isSlateCapture && hasSlateVisual && isSignedIn) {
     return "Slate Scrapbook saved. Uploading the compressed visual to your secure cloud archive...";
@@ -2128,14 +2128,14 @@ async function analyzeImageQuality(file: File): Promise<ImageQualityRecommendati
   if (average < 105 || darkRatio > 0.38) {
     return {
       recommendedContrast: 166,
-      message: "Auto check: this image looks dark, so Cleanote raised contrast before scanning."
+      message: "Auto check: this image looks dark, so Karigari raised contrast before scanning."
     };
   }
 
   if (deviation < 38 && brightRatio < 0.55) {
     return {
       recommendedContrast: 148,
-      message: "Auto check: this image has low contrast, so Cleanote boosted text separation."
+      message: "Auto check: this image has low contrast, so Karigari boosted text separation."
     };
   }
 
@@ -2148,7 +2148,7 @@ async function analyzeImageQuality(file: File): Promise<ImageQualityRecommendati
 
   return {
     recommendedContrast: 132,
-    message: "Auto check: image quality looks usable. Cleanote set a moderate contrast boost."
+    message: "Auto check: image quality looks usable. Karigari set a moderate contrast boost."
   };
 }
 

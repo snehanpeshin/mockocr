@@ -6,12 +6,12 @@ import "./styles.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.cleanote.in"),
   title: {
-    default: "Handwriting to Text for Students | Cleanote",
-    template: "%s | Cleanote"
+    default: "Handwriting to Text for Students | Karigari Home LLC",
+    template: "%s | Karigari Home LLC"
   },
   description:
-    "Convert handwritten notes, worksheets, equations, and study pages into editable, searchable text with Cleanote's handwriting-first scanner.",
-  applicationName: "Cleanote",
+    "Convert handwritten notes, worksheets, equations, and study pages into editable, searchable text with Karigari's handwriting-first scanner.",
+  applicationName: "Karigari",
   category: "productivity",
   keywords: [
     "handwriting to text",
@@ -29,19 +29,19 @@ export const metadata: Metadata = {
   },
   openGraph: {
     description:
-      "Convert handwritten notes, worksheets, equations, and study pages into editable, searchable text with Cleanote's handwriting-first scanner.",
+      "Convert handwritten notes, worksheets, equations, and study pages into editable, searchable text with Karigari's handwriting-first scanner.",
     images: ["/cleanote-icon.png"],
-    siteName: "Cleanote",
-    title: "Handwriting to Text for Students | Cleanote",
+    siteName: "Karigari Home LLC",
+    title: "Handwriting to Text for Students | Karigari Home LLC",
     type: "website",
     url: "/"
   },
   twitter: {
     card: "summary",
     description:
-      "Convert handwritten notes, worksheets, equations, and study pages into editable, searchable text with Cleanote's handwriting-first scanner.",
+      "Convert handwritten notes, worksheets, equations, and study pages into editable, searchable text with Karigari's handwriting-first scanner.",
     images: ["/cleanote-icon.png"],
-    title: "Handwriting to Text for Students | Cleanote"
+    title: "Handwriting to Text for Students | Karigari Home LLC"
   },
   icons: {
     apple: "/cleanote-icon.png",
@@ -65,7 +65,7 @@ const structuredData = {
     {
       "@type": "Organization",
       "@id": "https://www.cleanote.in/#organization",
-      name: "Cleanote",
+      name: "Karigari Home LLC",
       legalName: "Karigari Home LLC",
       url: "https://www.cleanote.in/",
       logo: "https://www.cleanote.in/cleanote-icon.png",
@@ -79,7 +79,7 @@ const structuredData = {
     {
       "@type": "WebSite",
       "@id": "https://www.cleanote.in/#website",
-      name: "Cleanote",
+      name: "Karigari Home LLC",
       url: "https://www.cleanote.in/",
       publisher: {
         "@id": "https://www.cleanote.in/#organization"
@@ -93,13 +93,13 @@ const structuredData = {
     {
       "@type": "SoftwareApplication",
       "@id": "https://www.cleanote.in/#software",
-      name: "Cleanote",
+      name: "Karigari",
       applicationCategory: "EducationApplication",
       softwareVersion: "1.0",
       operatingSystem: "iOS, Android, Web",
       url: "https://www.cleanote.in/",
       description:
-        "Cleanote converts handwritten notes, worksheets, equations, and study pages into editable, searchable text.",
+        "Karigari converts handwritten notes, worksheets, equations, and study pages into editable, searchable text.",
       publisher: {
         "@id": "https://www.cleanote.in/#organization"
       },

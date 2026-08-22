@@ -5,7 +5,7 @@ import { guides } from "./guideContent";
 export const metadata: Metadata = {
   title: "Handwriting OCR Guides for Students and Parents",
   description:
-    "Original Cleanote guides about handwriting OCR, homework scanning, math notes, study organization, and converting handwritten pages into editable text.",
+    "Original Karigari guides about handwriting OCR, homework scanning, math notes, study organization, and converting handwritten pages into editable text.",
   alternates: {
     canonical: "/guides/"
   }
@@ -17,7 +17,7 @@ export default function GuidesPage() {
       <header className="guide-nav">
         <a className="guide-brand" href="/">
           <img alt="" src="/cleanote-icon.png" />
-          <span>Cleanote</span>
+          <span>Karigari Home LLC</span>
         </a>
         <a className="guide-back-link" href="/app">
           Open scanner <ArrowRight aria-hidden="true" size={17} />
@@ -25,7 +25,7 @@ export default function GuidesPage() {
       </header>
 
       <section className="guide-hero">
-        <p className="one-page-kicker">Cleanote learning library</p>
+        <p className="one-page-kicker">Karigari learning library</p>
         <h1>Practical guides for scanning handwritten notes, homework, and study pages.</h1>
         <p>
           These articles explain how handwriting OCR works, where it fails, and how students,
@@ -33,7 +33,7 @@ export default function GuidesPage() {
         </p>
       </section>
 
-      <section className="guide-grid" aria-label="Cleanote guides">
+      <section className="guide-grid" aria-label="Karigari guides">
         {guides.map((guide) => (
           <article className="guide-card" key={guide.slug}>
             <BookOpen aria-hidden="true" size={22} />
@@ -54,7 +54,7 @@ export default function GuidesPage() {
         <div>
           <h2>Built around reviewable transcription</h2>
           <p>
-            Cleanote articles are written for real note-taking situations: uneven lighting, pencil
+            Karigari articles are written for real note-taking situations: uneven lighting, pencil
             marks, equations, diagrams, screenshots, and handwritten corrections on printed pages.
           </p>
         </div>

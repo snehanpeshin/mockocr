@@ -325,9 +325,9 @@ export default function AdminPage() {
     <main className="admin-shell">
       <section className="admin-header">
         <div>
-          <p className="eyebrow">Cleanote admin</p>
+          <p className="eyebrow">Karigari Home LLC admin</p>
           <h1>Revenue dashboard</h1>
-          <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
+          <p className="company-line">Karigari Home LLC</p>
         </div>
         <form className="admin-token-form" onSubmit={loadDashboard}>
           <input

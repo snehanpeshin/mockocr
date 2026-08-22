@@ -7,7 +7,7 @@ import { getApiBase } from "../apiBase";
 const API_BASE = getApiBase();
 
 export default function VerifyPage() {
-  const [message, setMessage] = useState("Verifying your Cleanote link...");
+  const [message, setMessage] = useState("Verifying your Karigari link...");
   const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function VerifyPage() {
         setIsVerified(Boolean(data.beta_access));
         setMessage(
           data.beta_access
-            ? "You are verified. Welcome to Cleanote."
+            ? "You are verified. Welcome to Karigari."
             : "Your email is verified. You are on the waitlist."
         );
       } catch (error) {
@@ -43,13 +43,13 @@ export default function VerifyPage() {
   return (
     <main className="verify-shell">
       <section>
-        <p className="eyebrow">Cleanote access</p>
+        <p className="eyebrow">Karigari access</p>
         <h1>{isVerified ? "You are in." : "Checking your link"}</h1>
         <p>{message}</p>
         {isVerified ? (
-          <a href="/app">Open Cleanote</a>
+          <a href="/app">Open Karigari</a>
         ) : message.includes("waitlist") ? (
-          <a href="/">Back to Cleanote</a>
+          <a href="/">Back to Karigari</a>
         ) : (
           <Loader2 className="spin" aria-hidden="true" size={24} />
         )}

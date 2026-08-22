@@ -4,8 +4,8 @@ export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Cleanote",
-    short_name: "Cleanote",
+    name: "Karigari Home LLC",
+    short_name: "Karigari",
     description: "Capture handwritten pages as editable text you can review, save, and export.",
     start_url: "/",
     display: "standalone",

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Cleanote Beta Access",
-  description: "Private Cleanote beta access page.",
+  title: "Karigari Beta Access",
+  description: "Private Karigari beta access page.",
   alternates: { canonical: "/beta/" },
   robots: { index: false, follow: false }
 };

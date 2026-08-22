@@ -31,7 +31,7 @@ const STORY = [
   {
     icon: Camera,
     title: "Capture clearly",
-    copy: "Cleanote guides the scan so pages are brighter, straighter, and easier for AI to read."
+    copy: "Karigari guides the scan so pages are brighter, straighter, and easier for AI to read."
   },
   {
     icon: Sparkles,
@@ -70,7 +70,7 @@ export default function LandingPage() {
         window.localStorage.setItem("cleanote.betaAccess", JSON.stringify(payload));
       }
 
-      setMessage("Thanks. Your details were saved. We will follow up as Cleanote improves.");
+      setMessage("Thanks. Your details were saved. We will follow up as Karigari improves.");
       setName("");
       setEmail("");
       setRole("Parent / Family");
@@ -87,9 +87,9 @@ export default function LandingPage() {
       <header className="one-page-nav">
         <a className="one-page-brand" href="/">
           <img alt="" src="/cleanote-icon.png" />
-          <span>Cleanote</span>
+          <span>Karigari Home LLC</span>
         </a>
-        <nav aria-label="Cleanote links">
+        <nav aria-label="Karigari links">
           <a href="/handwriting-to-text/">Handwriting</a>
           <a href="/homework-scanner/">Homework</a>
           <a href="/guides/">Guides</a>
@@ -104,7 +104,7 @@ export default function LandingPage() {
           <p className="one-page-kicker">Handwriting-first AI for learning</p>
           <h1>Turn handwritten school pages into searchable learning records.</h1>
           <p>
-            Cleanote helps kids and students keep writing by hand, then gives families and teachers
+            Karigari helps kids and students keep writing by hand, then gives families and teachers
             a safer way to capture, review, and organize what was written.
           </p>
 
@@ -125,7 +125,7 @@ export default function LandingPage() {
           </a>
           </div>
 
-          <div className="one-page-steps" aria-label="How Cleanote works">
+          <div className="one-page-steps" aria-label="How Karigari works">
             {STEPS.map((step, index) => (
               <span key={step}>
                 <strong>{index + 1}</strong>
@@ -135,7 +135,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <aside className="one-page-card" aria-label="Join Cleanote updates">
+        <aside className="one-page-card" aria-label="Join Karigari updates">
           <img
             alt="Crayon-style worksheet being scanned into digital notes"
             className="crayon-hero-image"
@@ -153,7 +153,7 @@ export default function LandingPage() {
           </div>
 
           <form className="simple-interest-form" onSubmit={submitInterest}>
-            <h2>Join Cleanote updates</h2>
+            <h2>Join Karigari updates</h2>
             <p>For beta access, family use, classroom ideas, research, and tablet updates.</p>
             <label htmlFor="interest-name">Name</label>
             <input
@@ -191,13 +191,13 @@ export default function LandingPage() {
         </aside>
       </section>
 
-      <section className="one-page-strip" aria-label="Cleanote highlights">
+      <section className="one-page-strip" aria-label="Karigari highlights">
         <span><Upload aria-hidden="true" size={17} /> Homework pages</span>
         <span><Check aria-hidden="true" size={17} /> Study notes</span>
         <span><ArrowRight aria-hidden="true" size={17} /> Kid-friendly capture</span>
       </section>
 
-      <section className="learning-story" aria-label="Cleanote learning workflow">
+      <section className="learning-story" aria-label="Karigari learning workflow">
         {STORY.map(({ icon: Icon, title, copy }) => (
           <article key={title}>
             <Icon aria-hidden="true" size={22} />
@@ -207,16 +207,16 @@ export default function LandingPage() {
         ))}
       </section>
 
-      <section className="trust-note" aria-label="Cleanote AI trust modes">
+      <section className="trust-note" aria-label="Karigari AI trust modes">
         <div>
           <p className="one-page-kicker">Built for trust</p>
           <h2>More than handwriting OCR: a reviewable learning layer.</h2>
           <p>
-            Cleanote separates transcription from interpretation, so a student&apos;s original work
+            Karigari separates transcription from interpretation, so a student&apos;s original work
             stays traceable before AI turns it into searchable notes, summaries, or quizzes.
           </p>
         </div>
-        <div className="mode-list" aria-label="Cleanote modes">
+        <div className="mode-list" aria-label="Karigari modes">
           {MODES.map((mode) => (
             <span key={mode}>
               <ShieldCheck aria-hidden="true" size={17} />
@@ -226,7 +226,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="guide-preview" aria-label="Cleanote guides">
+      <section className="guide-preview" aria-label="Karigari guides">
         <div>
           <p className="one-page-kicker">Learning guides</p>
           <h2>Helpful reading before you scan a page.</h2>
@@ -236,7 +236,7 @@ export default function LandingPage() {
           </p>
         </div>
         <a className="text-button guide-preview-link" href="/guides/">
-          Read Cleanote guides <ArrowRight aria-hidden="true" size={17} />
+          Read Karigari guides <ArrowRight aria-hidden="true" size={17} />
         </a>
       </section>
 
@@ -253,14 +253,14 @@ export default function LandingPage() {
           <p className="one-page-kicker">Coming soon</p>
           <h2>Cleanote+ tablet bundle for screen-light practice</h2>
           <p>
-            A reusable writing tablet plus Cleanote capture creates a simple loop: write by hand,
+            A reusable Cleanote writing tablet plus Karigari capture creates a simple loop: write by hand,
             scan once, and build a searchable learning record over time.
           </p>
         </div>
       </section>
 
       <footer className="one-page-footer">
-        <span>© {new Date().getFullYear()} KARIGARI HOME LLC DBA CLEANOTE</span>
+        <span>© {new Date().getFullYear()} KARIGARI HOME LLC</span>
         <nav aria-label="Legal links">
           <a href="/handwriting-to-text/">Handwriting to text</a>
           <a href="/homework-scanner/">Homework scanner</a>

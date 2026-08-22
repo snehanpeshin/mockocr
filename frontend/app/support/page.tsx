@@ -32,7 +32,7 @@ export default function SupportPage() {
     if (!canSubmit) {
       return;
     }
-    const subject = encodeURIComponent(`Cleanote support request from ${name.trim()}`);
+    const subject = encodeURIComponent(`Karigari support request from ${name.trim()}`);
     const body = encodeURIComponent(
       `Name: ${name.trim()}\nEmail: ${email.trim()}\n\n${message.trim()}`
     );
@@ -43,15 +43,15 @@ export default function SupportPage() {
   return (
     <main className="policy-shell">
       <article className="policy-content">
-        <p className="eyebrow">Cleanote</p>
+        <p className="eyebrow">Karigari Home LLC</p>
         <h1>Support</h1>
-        <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
+        <p className="company-line">Karigari Home LLC</p>
         <p className="policy-date">Last updated: July 6, 2026</p>
 
         <section>
           <h2>How To Get Help</h2>
           <p>
-            For Cleanote support, account help, deletion requests, app questions, or OCR issues,
+            For Karigari support, account help, deletion requests, app questions, or OCR issues,
             contact Karigari Home LLC at info@cleanote.in or use the form below.
           </p>
         </section>
@@ -103,7 +103,7 @@ export default function SupportPage() {
         </form>
 
         <p className="support-form-note">
-          This form opens your email app. Cleanote does not claim the message was received until
+          This form opens your email app. Karigari does not claim the message was received until
           you send it. You can also email <a href="mailto:info@cleanote.in">info@cleanote.in</a> directly.
         </p>
 
@@ -116,9 +116,9 @@ export default function SupportPage() {
         </section>
 
         <section>
-          <h2>Follow Cleanote</h2>
+          <h2>Follow Karigari</h2>
           <p>
-            For product updates, follow Cleanote on{" "}
+            For product updates, follow Karigari on{" "}
             <a href="https://www.facebook.com/profile.php?id=61591217794113" target="_blank" rel="noreferrer">
               Facebook
             </a>{" "}
@@ -130,7 +130,7 @@ export default function SupportPage() {
           </p>
         </section>
 
-        <a href="/">Back to Cleanote</a>
+        <a href="/">Back to Karigari</a>
       </article>
     </main>
   );

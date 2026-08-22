@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Cleanote Admin Dashboard",
-  description: "Private Cleanote admin dashboard.",
+  title: "Karigari Home LLC Admin Dashboard",
+  description: "Private Karigari admin dashboard.",
   alternates: { canonical: "/admin/" },
   robots: { index: false, follow: false }
 };

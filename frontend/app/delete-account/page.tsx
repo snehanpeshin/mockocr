@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Account and Data Deletion",
-  description: "How to request deletion of a Cleanote account and associated saved data.",
+  description: "How to request deletion of a Karigari account and associated saved data.",
   alternates: { canonical: "/delete-account/" }
 };
 
@@ -10,16 +10,16 @@ export default function DeleteAccountPage() {
   return (
     <main className="policy-shell">
       <article className="policy-content">
-        <p className="eyebrow">Cleanote</p>
+        <p className="eyebrow">Karigari Home LLC</p>
         <h1>Account and Data Deletion</h1>
-        <p className="company-line">Cleanote, a product of Karigari Home LLC</p>
+        <p className="company-line">Karigari Home LLC</p>
         <p className="policy-date">Last updated: July 10, 2026</p>
 
         <section>
           <h2>Request deletion</h2>
           <p>
-            Email <a href="mailto:info@cleanote.in?subject=Cleanote%20account%20deletion%20request">info@cleanote.in</a>{" "}
-            from the address connected to your Cleanote account. Use the subject “Cleanote account
+            Email <a href="mailto:info@cleanote.in?subject=Karigari%20account%20deletion%20request">info@cleanote.in</a>{" "}
+            from the address connected to your Karigari account. Use the subject “Karigari account
             deletion request.”
           </p>
         </section>
@@ -36,7 +36,7 @@ export default function DeleteAccountPage() {
           <h2>Data stored on your device</h2>
           <p>
             Notes saved only in your browser or mobile device are controlled from that device. Clear
-            saved notes in Cleanote before uninstalling, or clear the site&apos;s browser storage.
+            saved notes in Karigari before uninstalling, or clear the site&apos;s browser storage.
           </p>
         </section>
 
@@ -49,7 +49,7 @@ export default function DeleteAccountPage() {
         </section>
 
         <p>This page provides product instructions and should be reviewed with qualified legal counsel.</p>
-        <a href="/">Back to Cleanote</a>
+        <a href="/">Back to Karigari</a>
       </article>
     </main>
   );

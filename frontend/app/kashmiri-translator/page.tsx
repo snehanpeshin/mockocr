@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     canonical: "/kashmiri-translator/"
   },
   openGraph: {
-    description: "Translate English into Kashmiri with a focused iPhone app from Cleanote.",
+    description: "Translate English into Kashmiri with a focused iPhone app from Karigari.",
     images: ["/kashmiri-translator-bg.jpg"],
     title: "Kashmiri Translator",
     url: "/kashmiri-translator/"
@@ -30,10 +30,10 @@ export default function KashmiriTranslatorPage() {
       <header className="doc-nav">
         <a className="doc-brand" href="/">
           <img alt="" src="/cleanote-icon.png" />
-          <span>Cleanote</span>
+          <span>Karigari Home LLC</span>
         </a>
         <nav aria-label="Kashmiri Translator navigation">
-          <a href="/">Cleanote</a>
+          <a href="/">Karigari</a>
           <a href="#features">Features</a>
           <a href="/privacy">Privacy</a>
           <a href="/support">Support</a>
@@ -47,7 +47,7 @@ export default function KashmiriTranslatorPage() {
         <div className="translator-hero-copy">
           <a className="translator-back-link" href="/">
             <ArrowLeft aria-hidden="true" size={16} />
-            Back to Cleanote
+            Back to Karigari
           </a>
           <p className="doc-kicker">Additional product</p>
           <h1>Kashmiri Translator</h1>
@@ -57,7 +57,7 @@ export default function KashmiriTranslatorPage() {
           <aside className="translator-news-card" aria-label="Kashmiri Translator news">
             <span>App Store milestone</span>
             <strong>Kashmiri Translator recently reached #34 in Apple paid apps.</strong>
-            <p>Thank you to early users supporting language tools from Cleanote.</p>
+            <p>Thank you to early users supporting language tools from Karigari.</p>
           </aside>
           <div className="doc-actions">
             <a className="doc-primary app-store-primary" href={KASHMIRI_TRANSLATOR_URL} rel="noreferrer" target="_blank">
@@ -105,7 +105,7 @@ export default function KashmiriTranslatorPage() {
       <footer className="doc-footer">
         <a className="doc-footer-brand" href="/">
           <img alt="" src="/cleanote-icon.png" />
-          <span>Cleanote</span>
+          <span>Karigari Home LLC</span>
         </a>
         <nav aria-label="Footer links">
           <a href="/privacy">Privacy Policy</a>

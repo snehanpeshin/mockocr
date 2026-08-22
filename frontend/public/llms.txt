@@ -1,6 +1,6 @@
-# Cleanote
+# Karigari
 
-Cleanote converts handwritten notes, worksheets, equations, and study pages into editable, searchable text.
+Karigari converts handwritten notes, worksheets, equations, and study pages into editable, searchable text.
 
 ## Important pages
 
@@ -13,4 +13,4 @@ Cleanote converts handwritten notes, worksheets, equations, and study pages into
 
 ## Product notes
 
-Cleanote is a product of Karigari Home LLC. It is designed for students, parents, researchers, and professionals who need to capture handwritten or annotated paper material and review converted text before using it.
+Karigari is operated by Karigari Home LLC. It is designed for students, parents, researchers, and professionals who need to capture handwritten or annotated paper material and review converted text before using it. Cleanote refers only to the company's physical writing tablet and Slate products.

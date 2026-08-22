@@ -116,7 +116,7 @@ export function authErrorMessage(error: unknown): string {
     case "auth/invalid-credential":
       return "The email or password is not correct.";
     case "auth/user-not-found":
-      return "No Cleanote account was found for that email.";
+      return "No Karigari account was found for that email.";
     case "auth/email-already-in-use":
       return "An account already exists with that email. Try signing in instead.";
     case "auth/popup-closed-by-user":
@@ -126,7 +126,7 @@ export function authErrorMessage(error: unknown): string {
       return "Network error. Check your connection and try again.";
     default:
       if (error instanceof Error && error.message.includes("not configured")) {
-        return "Cleanote sign-in is not configured yet. Add Firebase environment variables first.";
+        return "Karigari sign-in is not configured yet. Add Firebase environment variables first.";
       }
       return "Something went wrong. Please try again.";
   }

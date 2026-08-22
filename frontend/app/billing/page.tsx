@@ -14,7 +14,7 @@ const PRODUCTS = [
     key: "cleanote_one_time_premium",
     name: "One-Time Premium",
     price: "$0.99",
-    description: "Support Cleanote during launch with a simple one-time premium payment.",
+    description: "Support Karigari during launch with a simple one-time premium payment.",
     cta: "Get premium"
   }
 ];
@@ -82,18 +82,18 @@ export default function BillingPage() {
     <main className="landing-shell">
       <section className="landing-hero billing-hero">
         <div className="landing-copy">
-          <p className="eyebrow">Cleanote checkout</p>
-          <h1>Get Cleanote Premium.</h1>
+          <p className="eyebrow">Karigari checkout</p>
+          <h1>Get Karigari Premium.</h1>
           <p>
             Premium is an optional one-time $0.99 web support payment during launch. Secure
-            Checkout is powered by Stripe, owned by Karigari Home LLC, and branded as Cleanote.
+            Checkout is powered by Stripe, owned by Karigari Home LLC, and branded as Karigari.
           </p>
           <p>
-            The Cleanote iPhone app is currently free on the App Store. This direct web payment
+            The Karigari iPhone app is currently free on the App Store. This direct web payment
             is separate from mobile app downloads and does not purchase or install the mobile app.
           </p>
           <p className="company-line">
-            Cleanote, a product of Karigari Home LLC · <a href="/privacy">Privacy Policy</a> ·{" "}
+            Karigari by Karigari Home LLC · <a href="/privacy">Privacy Policy</a> ·{" "}
             <a href="/refund">Refund Policy</a>
           </p>
           {checkoutStatus === "success" ? (

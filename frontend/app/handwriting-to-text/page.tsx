@@ -9,14 +9,14 @@ const GOOGLE_PLAY_URL =
 export const metadata: Metadata = {
   title: "Convert Handwritten Notes to Text",
   description:
-    "Use Cleanote to convert handwritten notes, worksheets, equations, and study pages into editable, searchable text on web, iPhone, and Android.",
+    "Use Karigari to convert handwritten notes, worksheets, equations, and study pages into editable, searchable text on web, iPhone, and Android.",
   alternates: {
     canonical: "/handwriting-to-text/"
   },
   openGraph: {
-    title: "Convert Handwritten Notes to Text | Cleanote",
+    title: "Convert Handwritten Notes to Text | Karigari Home LLC",
     description:
-      "Cleanote turns paper notes and handwritten pages into editable, searchable text while keeping review and uncertainty visible.",
+      "Karigari turns paper notes and handwritten pages into editable, searchable text while keeping review and uncertainty visible.",
     url: "https://www.cleanote.in/handwriting-to-text/",
     type: "website"
   }
@@ -24,29 +24,29 @@ export const metadata: Metadata = {
 
 const faqs = [
   {
-    question: "Can Cleanote convert handwritten notes to text?",
+    question: "Can Karigari convert handwritten notes to text?",
     answer:
-      "Yes. Cleanote lets users upload or capture handwritten pages and returns editable text that can be reviewed, copied, searched, and exported."
+      "Yes. Karigari lets users upload or capture handwritten pages and returns editable text that can be reviewed, copied, searched, and exported."
   },
   {
-    question: "Can Cleanote read messy handwriting?",
+    question: "Can Karigari read messy handwriting?",
     answer:
-      "Cleanote is designed for real handwritten notes, but accuracy depends on lighting, page angle, contrast, and handwriting clarity. The app keeps review in the workflow so users can correct uncertain text."
+      "Karigari is designed for real handwritten notes, but accuracy depends on lighting, page angle, contrast, and handwriting clarity. The app keeps review in the workflow so users can correct uncertain text."
   },
   {
-    question: "Does Cleanote solve homework?",
+    question: "Does Karigari solve homework?",
     answer:
-      "No. Cleanote is built to digitize and organize homework pages. It helps preserve the student's written work instead of replacing learning with automatic answers."
+      "No. Karigari is built to digitize and organize homework pages. It helps preserve the student's written work instead of replacing learning with automatic answers."
   },
   {
     question: "What happens when OCR is uncertain?",
     answer:
-      "Cleanote uses a review-first workflow. The goal is to preserve the visible writing, flag uncertainty, and avoid inventing content that was not on the page."
+      "Karigari uses a review-first workflow. The goal is to preserve the visible writing, flag uncertainty, and avoid inventing content that was not on the page."
   },
   {
-    question: "Can I use Cleanote on iPhone, Android, and the web?",
+    question: "Can I use Karigari on iPhone, Android, and the web?",
     answer:
-      "Yes. Cleanote is available as a web scanner and has app links for iPhone and Android."
+      "Yes. Karigari is available as a web scanner and has app links for iPhone and Android."
   }
 ];
 
@@ -75,9 +75,9 @@ export default function HandwritingToTextPage() {
       <header className="seo-nav">
         <a className="seo-brand" href="/">
           <img alt="" src="/cleanote-icon.png" />
-          <span>Cleanote</span>
+          <span>Karigari Home LLC</span>
         </a>
-        <nav aria-label="Cleanote pages">
+        <nav aria-label="Karigari pages">
           <a href="/homework-scanner/">Homework scanner</a>
           <a href="/app">Try scanner</a>
         </nav>
@@ -88,7 +88,7 @@ export default function HandwritingToTextPage() {
           <p className="seo-kicker">Handwriting to text</p>
           <h1>Convert handwritten notes into searchable documents.</h1>
           <p>
-            Cleanote is a handwriting-first scanner for students, parents, researchers, and
+            Karigari is a handwriting-first scanner for students, parents, researchers, and
             professionals. Upload a notebook page, worksheet, or annotated document and turn it into
             editable text that can be searched, copied, reviewed, and exported.
           </p>
@@ -104,7 +104,7 @@ export default function HandwritingToTextPage() {
             </a>
           </div>
         </div>
-        <aside className="seo-preview" aria-label="Cleanote handwriting conversion preview">
+        <aside className="seo-preview" aria-label="Karigari handwriting conversion preview">
           <div className="seo-paper">
             <span>Notebook page</span>
             <p>(a+b)^2 = a^2 + b^2 + 2ab</p>
@@ -119,7 +119,7 @@ export default function HandwritingToTextPage() {
         </aside>
       </section>
 
-      <section className="seo-grid" aria-label="How Cleanote works">
+      <section className="seo-grid" aria-label="How Karigari works">
         <article>
           <CheckCircle aria-hidden="true" size={22} />
           <h2>Capture the whole page</h2>
@@ -128,7 +128,7 @@ export default function HandwritingToTextPage() {
         <article>
           <Search aria-hidden="true" size={22} />
           <h2>Make notes searchable</h2>
-          <p>Cleanote turns scanned writing into text so students can find concepts, terms, formulas, and study points later.</p>
+          <p>Karigari turns scanned writing into text so students can find concepts, terms, formulas, and study points later.</p>
         </article>
         <article>
           <ShieldCheck aria-hidden="true" size={22} />
@@ -142,7 +142,7 @@ export default function HandwritingToTextPage() {
           <p className="seo-kicker">Best for</p>
           <h2>Notes that should not disappear after class.</h2>
           <p>
-            Cleanote is useful for lecture notes, handwritten homework, lab pages, meeting notes,
+            Karigari is useful for lecture notes, handwritten homework, lab pages, meeting notes,
             research records, and printed documents with handwritten comments.
           </p>
         </div>
@@ -166,7 +166,7 @@ export default function HandwritingToTextPage() {
       </section>
 
       <footer className="seo-footer">
-        <span>Cleanote, a product of Karigari Home LLC</span>
+        <span>Karigari Home LLC</span>
         <a href="/privacy/">Privacy</a>
         <a href="/support/">Support</a>
       </footer>

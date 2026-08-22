@@ -37,7 +37,7 @@ export const guides: Guide[] = [
         heading: "Review the OCR draft like a first pass",
         body: [
           "Handwriting OCR should be treated as a draft, not a final answer. Letters such as b and 6, O and 0, or l and 1 can look similar in a rushed notebook. Always compare important text with the original image.",
-          "Cleanote is designed around this review step: capture the page, receive editable text, then correct anything uncertain before saving or exporting."
+          "Karigari is designed around this review step: capture the page, receive editable text, then correct anything uncertain before saving or exporting."
         ]
       },
       {
@@ -158,7 +158,7 @@ export const guides: Guide[] = [
         heading: "The goal is better review, not magic",
         body: [
           "The most honest handwriting OCR workflow shows a draft and gives users a place to edit it. This is especially important for homework, research notes, and professional records.",
-          "Cleanote focuses on making the draft useful, editable, and searchable while reminding users to verify important material."
+          "Karigari focuses on making the draft useful, editable, and searchable while reminding users to verify important material."
         ]
       }
     ]

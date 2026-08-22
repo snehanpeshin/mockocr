@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Support",
-  description: "Get help with Cleanote scanning, accounts, purchases, privacy, and data deletion.",
+  description: "Get help with Karigari scanning, accounts, purchases, privacy, and data deletion.",
   alternates: { canonical: "/support/" }
 };
 

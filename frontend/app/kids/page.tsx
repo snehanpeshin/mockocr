@@ -210,11 +210,14 @@ export default function KidsModePage() {
       title: activityTitle,
       type: activity === "draw" ? "free-drawing" : `${activity}-tracing`
     };
-    const nextCreations = [nextCreation, ...creations].slice(0, 40);
+    const nextCreations = persistKidsCreations([nextCreation, ...creations]);
     setCreations(nextCreations);
-    window.localStorage.setItem(KIDS_CREATIONS_KEY, JSON.stringify(nextCreations));
     saveParentMemoryNote(nextCreation);
-    setCelebration(`${ENCOURAGEMENT[Math.floor(Math.random() * ENCOURAGEMENT.length)]} Saved for parent review.`);
+    setCelebration(
+      nextCreations.some((creation) => creation.createdAt === nextCreation.createdAt)
+        ? `${ENCOURAGEMENT[Math.floor(Math.random() * ENCOURAGEMENT.length)]} Saved for parent review.`
+        : "Your drawing is complete. Browser storage is full, so ask a parent to clear older art before saving."
+    );
   }
 
   function startParentHold() {
@@ -248,7 +251,7 @@ export default function KidsModePage() {
       <header className="kids-topbar">
         <a className="kids-brand" href="/">
           <img alt="" src="/cleanote-icon.png" />
-          <span>Cleanote Kids</span>
+          <span>Karigari Kids</span>
         </a>
         <nav aria-label="Kids Mode">
           <button onClick={() => setActivity("draw")} type="button">
@@ -356,7 +359,7 @@ export default function KidsModePage() {
           <p className="kids-kicker">Try this on your Cleanote Board</p>
           <h2>Screen-light practice, saved later by a parent.</h2>
           <p>
-            The simple writing slate works offline. Parents capture it with Cleanote, then organize it
+            The simple writing slate works offline. Parents capture it with Karigari, then organize it
             by child, date, and activity.
           </p>
         </div>
@@ -483,7 +486,7 @@ function AccountStatus({
     return (
       <div className="kids-account-box">
         <UserRound aria-hidden="true" size={20} />
-        <span>Sign in from Parent Mode to connect this browser to a Cleanote account.</span>
+        <span>Sign in from Parent Mode to connect this browser to a Karigari account.</span>
         <a href="/login">Sign in</a>
       </div>
     );
@@ -540,11 +543,15 @@ function DrawingCanvas({
   }
 
   function beginStroke(event: PointerEvent<HTMLCanvasElement>) {
+    event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     const nextStroke = { color, points: [getPoint(event)], size, tool };
     activeStrokeRef.current = nextStroke;
-    setStrokes((current) => [...current, nextStroke]);
     setRedoStack([]);
+    const context = canvasRef.current?.getContext("2d");
+    if (context) {
+      drawStroke(context, nextStroke);
+    }
   }
 
   function continueStroke(event: PointerEvent<HTMLCanvasElement>) {
@@ -552,16 +559,26 @@ function DrawingCanvas({
       return;
     }
     const point = getPoint(event);
+    const previousPoint = activeStrokeRef.current.points[activeStrokeRef.current.points.length - 1];
     activeStrokeRef.current.points.push(point);
-    setStrokes((current) => {
-      const next = current.slice();
-      next[next.length - 1] = { ...activeStrokeRef.current!, points: [...activeStrokeRef.current!.points] };
-      return next;
-    });
+    drawStrokeSegment(
+      canvasRef.current?.getContext("2d") ?? null,
+      activeStrokeRef.current,
+      previousPoint,
+      point
+    );
   }
 
   function endStroke() {
+    const completedStroke = activeStrokeRef.current;
+    if (!completedStroke) {
+      return;
+    }
     activeStrokeRef.current = null;
+    setStrokes((current) => [
+      ...current,
+      { ...completedStroke, points: [...completedStroke.points] }
+    ]);
   }
 
   function clearCanvas() {
@@ -596,7 +613,12 @@ function DrawingCanvas({
     if (!canvas) {
       return;
     }
-    onSave(canvas.toDataURL("image/png"));
+    const compactImage = canvas.toDataURL("image/webp", 0.78);
+    onSave(
+      compactImage.startsWith("data:image/webp")
+        ? compactImage
+        : canvas.toDataURL("image/jpeg", 0.82)
+    );
   }
 
   return (
@@ -746,7 +768,7 @@ function saveParentMemoryNote(creation: KidsCreation) {
     const existing = window.localStorage.getItem(SAVED_NOTES_KEY);
     const notes = existing ? JSON.parse(existing) : [];
     notes.unshift({
-      contextText: "Digital creation saved from Cleanote Kids Mode.",
+      contextText: "Digital creation saved from Karigari Kids Mode.",
       createdAt: creation.createdAt,
       filename: `${creation.childName} - ${creation.title}`,
       id: `kids-${creation.createdAt}`,
@@ -759,6 +781,21 @@ function saveParentMemoryNote(creation: KidsCreation) {
   } catch {
     // If storage is unavailable, the child can keep drawing without interruption.
   }
+}
+
+function persistKidsCreations(creations: KidsCreation[]) {
+  let retained = creations.slice(0, 20);
+
+  while (retained.length) {
+    try {
+      window.localStorage.setItem(KIDS_CREATIONS_KEY, JSON.stringify(retained));
+      return retained;
+    } catch {
+      retained = retained.slice(0, -1);
+    }
+  }
+
+  return [];
 }
 
 function getAvatarLetter(name: string, fallback: string) {
@@ -885,6 +922,28 @@ function drawStroke(context: CanvasRenderingContext2D, stroke: Stroke) {
     return;
   }
   stroke.points.slice(1).forEach((point) => context.lineTo(point.x, point.y));
+  context.stroke();
+  context.restore();
+}
+
+function drawStrokeSegment(
+  context: CanvasRenderingContext2D | null,
+  stroke: Stroke,
+  from: StrokePoint,
+  to: StrokePoint
+) {
+  if (!context) {
+    return;
+  }
+  context.save();
+  context.globalCompositeOperation = stroke.tool === "eraser" ? "destination-out" : "source-over";
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.lineWidth = stroke.size;
+  context.strokeStyle = stroke.color;
+  context.beginPath();
+  context.moveTo(from.x, from.y);
+  context.lineTo(to.x, to.y);
   context.stroke();
   context.restore();
 }

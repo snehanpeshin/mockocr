@@ -49,7 +49,7 @@ export default function LoginPage() {
       } else {
         await signInWithEmail(email.trim(), password);
       }
-      setMessage("Signed in. Opening Cleanote...");
+      setMessage("Signed in. Opening Karigari...");
       router.push("/app");
     } catch (nextError) {
       setError(authErrorMessage(nextError));
@@ -65,7 +65,7 @@ export default function LoginPage() {
 
     try {
       await signInWithGoogle();
-      setMessage("Signed in. Opening Cleanote...");
+      setMessage("Signed in. Opening Karigari...");
       router.push("/app");
     } catch (nextError) {
       setError(authErrorMessage(nextError));
@@ -76,23 +76,23 @@ export default function LoginPage() {
 
   const heading =
     mode === "signup"
-      ? "Create your Cleanote account"
+      ? "Create your Karigari account"
       : mode === "reset"
         ? "Reset your password"
-        : "Sign in to Cleanote";
+        : "Sign in to Karigari";
 
   return (
     <main className="auth-shell">
       <section className="auth-panel">
         <a className="auth-back" href="/">
           <ArrowLeft aria-hidden="true" size={17} />
-          Back to Cleanote
+          Back to Karigari
         </a>
 
         <div className="auth-brand">
           <img alt="" src="/cleanote-icon.png" />
           <div>
-            <p className="doc-kicker">Cleanote account</p>
+            <p className="doc-kicker">Karigari account</p>
             <h1>{heading}</h1>
           </div>
         </div>
