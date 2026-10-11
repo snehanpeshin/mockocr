@@ -9,6 +9,7 @@ import {
   FileText,
   ImagePlus,
   Loader2,
+  Mail,
   RotateCcw,
   RotateCw,
   Save,
@@ -24,6 +25,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, MutableRefObject } from "react";
 import { getApiBase } from "../apiBase";
 import { useAuth } from "../lib/auth";
+import { collectLocalScrapbook } from "../lib/scrapbook";
 
 const API_BASE = getApiBase();
 const APP_STORE_URL = "https://apps.apple.com/app/cleanote/id6784403759";
@@ -114,10 +116,8 @@ const SUBJECTS = [
   { label: "Research", value: "research" }
 ];
 
-const DEFAULT_CHILDREN: ChildProfile[] = [
-  { age: "4", avatar: "A", id: "aarav", name: "Aarav" },
-  { age: "6", avatar: "M", id: "maya", name: "Maya" }
-];
+const DEFAULT_CHILDREN: ChildProfile[] = [];
+const EMPTY_CHILD: ChildProfile = { id: "", name: "", avatar: "?" };
 
 const SLATE_ACTIVITIES = [
   "Writing practice",
@@ -172,7 +172,7 @@ export default function Home() {
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const [children, setChildren] = useState<ChildProfile[]>(DEFAULT_CHILDREN);
-  const [selectedChildId, setSelectedChildId] = useState(DEFAULT_CHILDREN[0].id);
+  const [selectedChildId, setSelectedChildId] = useState("");
   const [slateActivity, setSlateActivity] = useState(SLATE_ACTIVITIES[0]);
   const [isSlateCapture, setIsSlateCapture] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -199,11 +199,14 @@ export default function Home() {
   const [discoveryPayValue, setDiscoveryPayValue] = useState("");
   const [isSubmittingDiscovery, setIsSubmittingDiscovery] = useState(false);
   const [discoveryMessage, setDiscoveryMessage] = useState<string | null>(null);
+  const [childNameDraft, setChildNameDraft] = useState("");
+  const [isPreparingScrapbook, setIsPreparingScrapbook] = useState(false);
+  const [scrapbookMessage, setScrapbookMessage] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const file = files[activeFileIndex] ?? null;
   const previewUrl = previewUrls[activeFileIndex] ?? null;
-  const selectedChild = children.find((child) => child.id === selectedChildId) ?? children[0] ?? DEFAULT_CHILDREN[0];
+  const selectedChild = children.find((child) => child.id === selectedChildId) ?? children[0] ?? EMPTY_CHILD;
   const discoveryEmailError = discoveryEmail.trim()
     ? validateEmail(discoveryEmail)
     : "Email is required.";
@@ -534,6 +537,10 @@ export default function Home() {
   }
 
   async function startCamera() {
+    if (isSlateCapture && !selectedChild.name.trim()) {
+      setMessage("Enter the child\'s first name or nickname in Slate mode before continuing.");
+      return;
+    }
     setCameraError(null);
     setCameraQuality({
       detail: "Opening camera...",
@@ -590,6 +597,10 @@ export default function Home() {
   }
 
   async function captureCameraFrame(mode: "auto" | "manual" = "manual") {
+    if (isSlateCapture && !selectedChild.name.trim()) {
+      setMessage("Enter the child\'s first name or nickname in Slate mode before continuing.");
+      return;
+    }
     const video = videoRef.current;
     if (!video || video.videoWidth < 1 || video.videoHeight < 1) {
       setCameraError("Camera preview is not ready yet.");
@@ -643,6 +654,10 @@ export default function Home() {
   }
 
   async function scanFile() {
+    if (isSlateCapture && !selectedChild.name.trim()) {
+      setMessage("Enter the child\'s first name or nickname in Slate mode before continuing.");
+      return;
+    }
     if (!files.length) {
       setMessage("Choose one or more images, PDFs, or DOCX files first.");
       return;
@@ -707,7 +722,7 @@ export default function Home() {
           : results[0].filename;
       const slateImageData =
         isSlateCapture && files.length === 1 && files[0].type.startsWith("image/")
-          ? await buildSlateScrapbookImageData(files[0], selectedChild.name, slateActivity)
+          ? await buildSlateScrapbookImageData(files[0], selectedChild.name, slateActivity, savedText)
           : null;
       setText(savedText);
       setProvider(results[0].provider);
@@ -877,7 +892,52 @@ export default function Home() {
     }
   }
 
+  function addNamedChild() {
+    const name = childNameDraft.trim();
+    if (!name || children.length >= 4) return;
+    const child: ChildProfile = { id: crypto.randomUUID(), name, avatar: name[0].toUpperCase() };
+    const profiles = [...children, child];
+    setChildren(profiles);
+    setSelectedChildId(child.id);
+    setChildNameDraft("");
+    window.localStorage.setItem(KIDS_PROFILES_KEY, JSON.stringify(profiles));
+  }
+
+  async function prepareScrapbook(emailOrder: boolean) {
+    setIsPreparingScrapbook(true);
+    setScrapbookMessage(null);
+    try {
+      const storedNotes = JSON.parse(window.localStorage.getItem(SAVED_NOTES_KEY) ?? "[]") as SavedNote[];
+      const storedDrawings = JSON.parse(window.localStorage.getItem("cleanote.kidsCreations") ?? "[]");
+      const localPages = collectLocalScrapbook([...storedNotes, ...archiveNotes], storedDrawings);
+      const token = user ? await user.getIdToken() : null;
+      const response = await fetch(`${API_BASE}/api/scrapbook/export`, {
+        method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ email: userEmail, pages: localPages })
+      });
+      if (!response.ok) throw new Error(await readErrorMessage(response, "The scrapbook could not be prepared."));
+      const count = Number(response.headers.get("X-Scrapbook-Pages") || 0);
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url; link.download = "cleanote-scrapbook.pdf"; link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      setScrapbookMessage(`${count} scrapbook pages downloaded. Attach cleanote-scrapbook.pdf to your email before sending.`);
+      if (emailOrder) {
+        const body = ["Hello Cleanote,", "", `I would like to order prints of my entire scrapbook (${count} pages).`,
+          "I will attach cleanote-scrapbook.pdf to this email.", "", "Number of copies: ", "Preferred print size and paper: ",
+          "Delivery address: ", "Contact details: ", "", "Please confirm the total price and delivery options before printing."].join("\n");
+        window.location.href = `mailto:info@cleanote.in?subject=${encodeURIComponent("Entire scrapbook print order")}&body=${encodeURIComponent(body)}`;
+      }
+    } catch (error) {
+      setScrapbookMessage(error instanceof Error ? error.message : "The scrapbook could not be prepared.");
+    } finally { setIsPreparingScrapbook(false); }
+  }
+
   async function saveCurrentNote() {
+    if (isSlateCapture && !selectedChild.name.trim()) {
+      setMessage("Enter the child\'s first name or nickname in Slate mode before continuing.");
+      return;
+    }
     if (!text.trim()) {
       setMessage("There is no text to save yet.");
       return;
@@ -892,7 +952,7 @@ export default function Home() {
     const slateImageData =
       currentNoteImageData ??
       (isSlateCapture && file?.type.startsWith("image/")
-        ? await buildSlateScrapbookImageData(file, selectedChild.name, slateActivity)
+        ? await buildSlateScrapbookImageData(file, selectedChild.name, slateActivity, text)
         : null);
     setCurrentNoteId(noteId);
     setCurrentNoteImageData(slateImageData);
@@ -1084,6 +1144,7 @@ export default function Home() {
               <label>
                 <span>Child</span>
                 <select onChange={(event) => setSelectedChildId(event.target.value)} value={selectedChildId}>
+                  <option value="">Enter a child&apos;s name</option>
                   {children.map((child) => (
                     <option key={child.id} value={child.id}>{child.name}</option>
                   ))}
@@ -1098,6 +1159,15 @@ export default function Home() {
                 </select>
               </label>
             </div>
+            {isSlateCapture && !selectedChild.name ? (
+              <form className="child-name-form" onSubmit={(event) => { event.preventDefault(); addNamedChild(); }}>
+                <label htmlFor="slate-child-name">What is the child&apos;s first name or nickname?</label>
+                <input id="slate-child-name" autoComplete="off" maxLength={18} value={childNameDraft}
+                  onChange={(event) => setChildNameDraft(event.target.value)} required placeholder="Enter a name" />
+                <button className="primary" disabled={!childNameDraft.trim() || children.length >= 4} type="submit">Use this name</button>
+                {children.length >= 4 ? <p>Select an existing child or manage profiles in Kids Mode.</p> : null}
+              </form>
+            ) : null}
             <div className="erase-reminder">
               Save the slate scan first, then erase the board.
             </div>
@@ -1188,7 +1258,7 @@ export default function Home() {
                 <div className="file-preview-card">
                   <FileText aria-hidden="true" size={38} />
                   <strong>{file.name}</strong>
-                  <span>PDF · {formatFileSize(file.size)}</span>
+                  <span>PDF Ã‚Â· {formatFileSize(file.size)}</span>
                   <p>PDF preview is not available in this browser. Karigari will scan the document pages.</p>
                 </div>
               </object>
@@ -1210,7 +1280,7 @@ export default function Home() {
                   <div className="file-preview-card">
                     <FileText aria-hidden="true" size={38} />
                     <strong>{file.name}</strong>
-                    <span>DOCX · {formatFileSize(file.size)}</span>
+                    <span>DOCX Ã‚Â· {formatFileSize(file.size)}</span>
                     <p>
                       {docxPreviewError ??
                         "DOCX preview is not available, but Karigari can still extract the document text when you scan."}
@@ -1222,7 +1292,7 @@ export default function Home() {
               <div className="file-preview-card">
                 <FileText aria-hidden="true" size={38} />
                 <strong>{file.name}</strong>
-                <span>{fileKind(file)} · {formatFileSize(file.size)}</span>
+                <span>{fileKind(file)} Ã‚Â· {formatFileSize(file.size)}</span>
                 <p>Karigari will scan this file for OCR.</p>
               </div>
             ) : (
@@ -1366,6 +1436,16 @@ export default function Home() {
               </div>
               <span>{archiveNotes.length}</span>
             </div>
+            <section className="scrapbook-print-panel" id="scrapbook-print-orders" aria-label="Scrapbook print orders">
+              <h3>Your entire scrapbook, in print</h3>
+              <p>Beautiful image pages with a short summary beneath each memory. Includes all saved cloud images and drawings on this device, regardless of archive search.</p>
+              <div className="scrapbook-print-actions">
+                <button disabled={isPreparingScrapbook} onClick={() => prepareScrapbook(false)} type="button"><Download aria-hidden="true" size={16} />{isPreparingScrapbook ? "Preparing..." : "Download entire scrapbook"}</button>
+                <button className="primary" disabled={isPreparingScrapbook} onClick={() => prepareScrapbook(true)} type="button"><Mail aria-hidden="true" size={16} />Order prints by email</button>
+              </div>
+              <small>Download the PDF, then attach it to your email to info@cleanote.in. Add copies, print preferences and delivery details. {userEmail ? "Your full cloud scrapbook is included." : "Sign in to include your full cloud scrapbook."}</small>
+              {scrapbookMessage ? <p role="status">{scrapbookMessage}</p> : null}
+            </section>
             <label className="search-box">
               <Search aria-hidden="true" size={18} />
               <input
@@ -1406,7 +1486,7 @@ export default function Home() {
                         ) : null}
                         <strong>{note.filename}</strong>
                         <span>
-                          {note.provider === "kids-mode" ? "Kids drawing" : note.subject} ·{" "}
+                          {note.provider === "kids-mode" ? "Kids drawing" : note.subject} Ã‚Â·{" "}
                           {new Date(note.createdAt).toLocaleDateString()}
                         </span>
                       </button>
@@ -1484,7 +1564,8 @@ export default function Home() {
           {currentNoteImageData ? (
             <figure className="current-note-image">
               <img alt="Slate scrapbook visual" src={currentNoteImageData} />
-              <figcaption>Slate Scrapbook visual saved with this note.</figcaption>
+              <figcaption>{scrapbookCaption(text, filename ?? "A little memory")}</figcaption>
+              <button disabled={isPreparingScrapbook} onClick={() => prepareScrapbook(true)} type="button"><Mail aria-hidden="true" size={16} />Order prints of the entire scrapbook</button>
             </figure>
           ) : null}
           {showDiscoveryForm ? (
@@ -1572,7 +1653,7 @@ export default function Home() {
         </div>
       </section>
       <footer className="app-footer">
-        <span>© {new Date().getFullYear()} KARIGARI HOME LLC. All Rights Reserved.</span>
+        <span>Ã‚Â© {new Date().getFullYear()} KARIGARI HOME LLC. All Rights Reserved.</span>
         <nav aria-label="Scanner footer links">
           <a href="/privacy">Privacy Policy</a>
           <a href="/delete-account">Delete account or data</a>
@@ -1594,7 +1675,8 @@ async function buildProcessedImageFile(file: File, adjustments: ImageAdjustments
 async function buildSlateScrapbookImageData(
   file: File,
   childName: string,
-  activity: string
+  activity: string,
+  summary: string = ""
 ): Promise<string | null> {
   if (!file.type.startsWith("image/")) {
     return null;
@@ -1606,7 +1688,7 @@ async function buildSlateScrapbookImageData(
     const height = 1180;
     const padding = 58;
     const headerHeight = 150;
-    const footerHeight = 92;
+    const footerHeight = 155;
     const imageMaxWidth = width - padding * 2;
     const imageMaxHeight = height - headerHeight - footerHeight - padding;
     const imageScale = Math.min(imageMaxWidth / bitmap.width, imageMaxHeight / bitmap.height);
@@ -1637,7 +1719,7 @@ async function buildSlateScrapbookImageData(
     context.fillText(`${childName}'s Slate`, padding, 86);
     context.fillStyle = "#6b7280";
     context.font = "700 23px Arial, sans-serif";
-    context.fillText(`${activity} · ${createdDate}`, padding, 124);
+    context.fillText(`${activity} Ã‚Â· ${createdDate}`, padding, 124);
 
     context.save();
     context.shadowColor = "rgba(38, 50, 74, 0.22)";
@@ -1652,9 +1734,19 @@ async function buildSlateScrapbookImageData(
     context.drawImage(bitmap, imageX, imageY, imageWidth, imageHeight);
     context.restore();
 
-    context.fillStyle = "#14a88b";
-    context.font = "800 24px Arial Rounded MT Bold, Arial, sans-serif";
-    context.fillText("Saved before erasing", padding, height - 58);
+    context.fillStyle = "#26324a";
+    context.font = "500 20px Arial, sans-serif";
+    const caption = scrapbookCaption(summary, `${childName}'s ${activity.toLowerCase()}`);
+    const words = caption.split(/\s+/);
+    const lines: string[] = [];
+    let line = "";
+    words.forEach((word) => {
+      const candidate = line ? `${line} ${word}` : word;
+      if (context.measureText(candidate).width > width - padding * 2 && line) { lines.push(line); line = word; }
+      else { line = candidate; }
+    });
+    if (line) lines.push(line);
+    lines.slice(0, 3).forEach((value, index) => context.fillText(value, padding, height - 120 + index * 25));
     context.fillStyle = "#8a4a0a";
     context.font = "700 18px Arial, sans-serif";
     context.fillText("Cleanote Slate Scrapbook", padding, height - 30);
@@ -1684,8 +1776,8 @@ function drawScrapbookBackground(context: CanvasRenderingContext2D, width: numbe
 }
 
 function drawCrayonStickers(context: CanvasRenderingContext2D, width: number, height: number) {
-  drawSticker(context, width - 154, 66, "#2f80ed", "★");
-  drawSticker(context, width - 88, height - 128, "#f05f5f", "♡");
+  drawSticker(context, width - 154, 66, "#2f80ed", "Ã¢Ëœâ€¦");
+  drawSticker(context, width - 88, height - 128, "#f05f5f", "Ã¢â„¢Â¡");
   drawSticker(context, 96, height - 156, "#8f3ff2", "ABC");
 }
 
@@ -1850,7 +1942,7 @@ function isLikelyGibberishText(value: string) {
 
   const letters = (compact.match(/[A-Za-z]/g) ?? []).length;
   const digits = (compact.match(/[0-9]/g) ?? []).length;
-  const mathSymbols = (compact.match(/[+\-=×÷*/^()]/g) ?? []).length;
+  const mathSymbols = (compact.match(/[+\-=Ãƒâ€”ÃƒÂ·*/^()]/g) ?? []).length;
   const symbols = (compact.match(/[^A-Za-z0-9]/g) ?? []).length;
   const readableWords = textValue.match(/[A-Za-z]{2,}/g) ?? [];
   const repeatedNoise = /([^\w\s])\1{2,}|([A-Za-z0-9])\2{5,}/.test(compact);
@@ -2284,4 +2376,10 @@ async function loadImage(file: File): Promise<HTMLImageElement> {
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+function scrapbookCaption(text: string, title: string) {
+  const source = text.split(/Possible transcription ambiguities|Corrections made|Verification unavailable/)[0].replace(/\s+/g, " ").trim();
+  const caption = !source || source.startsWith("Slate Scrapbook Memory") ? title : source;
+  return caption.length > 180 ? `${caption.slice(0, 177).trim()}...` : caption;
 }

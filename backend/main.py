@@ -11,9 +11,9 @@ import cv2
 from docx import Document
 from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from firebase_auth import require_matching_email
 from beta_service import (
@@ -45,6 +45,8 @@ from cost_control import (
     usage_event,
 )
 from note_service import delete_note, save_note, search_notes
+from scrapbook_service import export_scrapbook
+from kids_review import review_drawing, validate_target
 from ocr_service import clean_ocr_text, extract_text, resolve_provider
 from starlette.concurrency import run_in_threadpool
 from payment_service import (
@@ -85,11 +87,25 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Scrapbook-Pages"],
 )
 
 
 class ExportRequest(BaseModel):
     text: str
+
+
+class ScrapbookPageRequest(BaseModel):
+    id: str = Field(max_length=128)
+    title: str = Field(max_length=200)
+    createdAt: str = Field(max_length=64)
+    text: str = Field(default="", max_length=2000)
+    imageData: str = Field(max_length=1_300_000)
+
+
+class ScrapbookRequest(BaseModel):
+    email: str | None = None
+    pages: list[ScrapbookPageRequest] = Field(default_factory=list, max_length=100)
 
 
 class BetaRequest(BaseModel):
@@ -223,6 +239,23 @@ def save_user_note(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/scrapbook/export")
+def export_user_scrapbook(payload: ScrapbookRequest, authorization: str | None = Header(default=None)) -> Response:
+    try:
+        if payload.email:
+            require_matching_email(authorization, payload.email)
+        document, count = export_scrapbook(payload.email, [page.model_dump() for page in payload.pages])
+        return Response(document, media_type="application/pdf", headers={
+            "Content-Disposition": 'attachment; filename="cleanote-scrapbook.pdf"',
+            "X-Scrapbook-Pages": str(count), "Cache-Control": "no-store"})
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="The scrapbook could not be prepared. Your saved images are unchanged; please retry.") from exc
 
 
 @app.get("/api/notes/search")
@@ -386,6 +419,55 @@ def _safe_tablet_preorder_summary() -> dict[str, object]:
             "total_quantity": 0,
             "recent_preorders": [],
         }
+
+
+@app.post("/api/kids/review")
+async def kids_review(
+    file: UploadFile = File(...), activity: str = Form(...), target: str = Form(""),
+    authorization: str | None = Header(default=None),
+    x_cleanote_installation_id: str | None = Header(default=None),
+) -> dict:
+    try:
+        target = validate_target(activity, target)
+        data = await file.read(max_upload_bytes() + 1)
+        if len(data) > max_upload_bytes():
+            raise HTTPException(status_code=413, detail="Use a smaller drawing image.")
+        suffix = Path(file.filename or "drawing.png").suffix.lower()
+        if suffix not in {".png", ".jpg", ".jpeg", ".webp"}:
+            raise ValueError("Upload a PNG, JPEG or WebP drawing.")
+        identity = identify_scan_request(authorization, x_cleanote_installation_id)
+        access = effective_access(identity, "rules")
+        enforce_kill_switch(identity, access)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / ("drawing" + suffix)
+            path.write_bytes(data)
+            # Reject malformed images before reserving quota or calling OpenAI.
+            image = cv2.imread(str(path))
+            if image is None:
+                raise ValueError("Could not read the drawing image.")
+            reserve_limits(identity, access, 1)
+            result = await run_in_threadpool(review_drawing, path, activity, target)
+        record_scan_event(usage_event(
+            identity=identity, access=access, filename="kids-drawing" + suffix,
+            file_type=suffix.lstrip("."), upload_bytes=len(data), page_count=1,
+            provider=result["provider"], status="success", cache_hit=False,
+            idempotency_key=None, subject="kids-review", openai_usage=result["usage"],
+        ))
+        return result
+    except LimitExceeded as exc:
+        raise HTTPException(status_code=429, detail=exc.detail) from exc
+    except MonetizationRequired as exc:
+        raise HTTPException(status_code=402, detail=exc.detail) from exc
+    except ServiceDisabled as exc:
+        raise HTTPException(status_code=503, detail=exc.detail) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail="Please sign in again.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="The drawing check is unavailable. Your artwork can still be saved.") from exc
 
 
 @app.post("/api/ocr")

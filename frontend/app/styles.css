@@ -6705,3 +6705,20 @@ textarea:focus {
     text-align: center;
   }
 }
+
+/* Scrapbook printing and child naming */
+.scrapbook-print-panel { background: #fff9ec; border: 1px solid #eddfbc; border-radius: 14px; padding: 16px; display: grid; gap: 10px; }
+.scrapbook-print-panel h3, .scrapbook-print-panel p { margin: 0; }
+.scrapbook-print-panel small { color: #5b6474; line-height: 1.5; }
+.scrapbook-print-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.scrapbook-print-actions button, .current-note-image button { display: inline-flex; gap: 8px; align-items: center; justify-content: center; padding: 12px; min-height: 44px; }
+.child-name-form { display: grid; gap: 10px; text-align: left; }
+.child-name-form input { padding: 12px; border: 1px solid #cbc7bd; border-radius: 8px; font-size: 16px; width: 100%; }
+.child-name-setup { margin: 48px auto; max-width: 480px; padding: 28px; display: grid; gap: 18px; }
+
+.kids-feedback { padding: 22px; border-radius: 22px; background: #fff4da; color: #334155; margin: 16px 0; }
+.kids-feedback.pass { background: #ddf6eb; }
+.kids-feedback h2, .kids-feedback h3 { margin: 0 0 8px; }
+.kids-feedback p { margin: 0 0 14px; }
+.kids-check-note { font-size: 13px; color: #64748b; padding: 0 8px; }
+.save-creation:disabled { opacity: .6; cursor: wait; }
