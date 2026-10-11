@@ -27,9 +27,9 @@ class CostControlTests(unittest.TestCase):
         identity = cost_control.identify_scan_request(None, "installation-1234567890")
         with patch.dict(os.environ, {"AI_CLEANUP_POLICY": "payment_required"}, clear=False):
             with self.assertRaises(cost_control.MonetizationRequired):
-                cost_control.effective_access(identity, "bedrock")
+                cost_control.effective_access(identity, "openai")
 
-    def test_paid_user_can_request_bedrock_cleanup(self) -> None:
+    def test_paid_user_can_request_openai_cleanup(self) -> None:
         identity = cost_control.ScanIdentity(
             identity_type="authenticated",
             identity_value="firebase:user",
@@ -38,10 +38,10 @@ class CostControlTests(unittest.TestCase):
             uid="user",
         )
         with patch.object(cost_control, "has_paid_entitlement", return_value=True):
-            access = cost_control.effective_access(identity, "bedrock")
+            access = cost_control.effective_access(identity, "openai")
 
         self.assertTrue(access.is_paid)
-        self.assertEqual(access.cleanup_mode, "bedrock")
+        self.assertEqual(access.cleanup_mode, "openai")
 
     def test_kill_switch_blocks_ocr(self) -> None:
         identity = cost_control.identify_scan_request(None, "installation-1234567890")
@@ -51,7 +51,7 @@ class CostControlTests(unittest.TestCase):
             basic_policy="free",
             ai_policy="payment_required",
             cleanup_mode="rules",
-            bedrock_allowed=False,
+            ai_allowed=False,
         )
         with patch.dict(os.environ, {"APP_KILL_SWITCH": "OCR_DISABLED"}, clear=False):
             with self.assertRaises(cost_control.ServiceDisabled):

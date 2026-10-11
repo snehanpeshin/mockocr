@@ -47,8 +47,8 @@ export default function PrivacyPage() {
           <h2>Cloud Processing And Storage</h2>
           <p>
             Karigari uses Amazon Web Services to run the backend. Uploaded note images may be
-            sent to AWS services such as Amazon Textract for OCR. If AI cleanup is enabled,
-            extracted text may be processed with Amazon Bedrock. If you save notes to cloud
+            sent to OpenAI for image transcription. If AI cleanup is enabled,
+            the page image and draft transcription may receive an additional OpenAI review. If you save notes to cloud
             search, note text and related metadata may be stored in Amazon DynamoDB.
           </p>
         </section>

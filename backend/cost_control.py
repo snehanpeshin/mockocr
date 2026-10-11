@@ -26,6 +26,7 @@ SUPPORTED_POLICY_MODES = {"free", "rewarded_ad_required", "payment_required", "s
 SUPPORTED_KILL_MODES = {
     "OCR_DISABLED",
     "BEDROCK_DISABLED",
+    "OPENAI_DISABLED",
     "ANONYMOUS_DISABLED",
     "FREE_TIER_DISABLED",
 }
@@ -74,7 +75,7 @@ class EffectiveAccess:
     basic_policy: str
     ai_policy: str
     cleanup_mode: str
-    bedrock_allowed: bool
+    ai_allowed: bool
 
 
 @dataclass(frozen=True)
@@ -119,13 +120,13 @@ def identify_scan_request(
 
 def enforce_kill_switch(identity: ScanIdentity, access: EffectiveAccess) -> None:
     modes = _kill_switch_modes()
-    if "OCR_DISABLED" in modes:
+    if "OCR_DISABLED" in modes or "OPENAI_DISABLED" in modes:
         raise ServiceDisabled("ocr_disabled", "Cleanote scanning is temporarily disabled.")
     if "ANONYMOUS_DISABLED" in modes and identity.identity_type == "anonymous":
         raise ServiceDisabled("anonymous_disabled", "Anonymous scanning is temporarily disabled.")
     if "FREE_TIER_DISABLED" in modes and not access.is_paid:
         raise ServiceDisabled("free_tier_disabled", "Free scanning is temporarily disabled.")
-    if "BEDROCK_DISABLED" in modes and access.cleanup_mode == "bedrock":
+    if "BEDROCK_DISABLED" in modes and access.cleanup_mode == "openai":
         raise ServiceDisabled("bedrock_disabled", "AI cleanup is temporarily disabled.")
 
 
@@ -135,15 +136,15 @@ def effective_access(identity: ScanIdentity, requested_cleanup_mode: str) -> Eff
     tier = "paid" if is_paid else ("authenticated_free" if identity.identity_type == "authenticated" else "anonymous")
     basic_policy = _policy_value(policy, "basic_ocr_policy", "free")
     ai_policy = _policy_value(policy, "ai_cleanup_policy", "payment_required")
-    requested_ai = requested_cleanup_mode.lower() in {"bedrock", "ai", "aws", "enhanced"}
+    requested_ai = requested_cleanup_mode.lower() in {"openai", "bedrock", "ai", "aws", "enhanced"}
 
     _enforce_policy("basic_ocr", basic_policy, is_paid)
-    bedrock_allowed = False
+    ai_allowed = False
     cleanup_mode = "rules"
     if requested_ai:
         _enforce_policy("ai_cleanup", ai_policy, is_paid)
-        bedrock_allowed = is_paid or _admin_allows_free_bedrock()
-        cleanup_mode = "bedrock" if bedrock_allowed else "rules"
+        ai_allowed = is_paid or _admin_allows_free_ai()
+        cleanup_mode = "openai" if ai_allowed else "rules"
 
     return EffectiveAccess(
         is_paid=is_paid,
@@ -151,7 +152,7 @@ def effective_access(identity: ScanIdentity, requested_cleanup_mode: str) -> Eff
         basic_policy=basic_policy,
         ai_policy=ai_policy,
         cleanup_mode=cleanup_mode,
-        bedrock_allowed=bedrock_allowed,
+        ai_allowed=ai_allowed,
     )
 
 
@@ -251,7 +252,9 @@ def cache_key_for(
     options: dict[str, Any],
 ) -> CacheReservation:
     upload_hash = hashlib.sha256(_normalized_upload_bytes(upload_bytes)).hexdigest()
-    model = os.getenv("BEDROCK_MODEL_ID", "none") if cleanup_mode == "bedrock" else "rules"
+    from openai_ocr import model_name, PIPELINE_VERSION
+    model = model_name()
+
     version = os.getenv("OCR_CACHE_VERSION", "v1")
     cache_identity = {
         "upload_hash": upload_hash,
@@ -260,6 +263,8 @@ def cache_key_for(
         "subject": subject,
         "model": model,
         "version": version,
+        "pipeline_version": PIPELINE_VERSION,
+        "max_output_tokens": os.getenv("OPENAI_OCR_MAX_OUTPUT_TOKENS", "12000"),
         "options": options,
     }
     cache_key = hashlib.sha256(json.dumps(cache_identity, sort_keys=True).encode("utf-8")).hexdigest()
@@ -283,7 +288,7 @@ def reserve_or_get_cache(reservation: CacheReservation, idempotency_key: str | N
         return reservation
 
     now = _epoch_seconds()
-    lease_expires_at = now + _int_env("OCR_CACHE_LEASE_SECONDS", 90)
+    lease_expires_at = now + _int_env("OCR_CACHE_LEASE_SECONDS", 1200)
     ttl = now + _int_env("OCR_CACHE_TTL_SECONDS", 7 * 24 * 3600)
     table = _table(table_name)
     item_key = {"owner_hash": reservation.owner_hash, "cache_key": reservation.cache_key}
@@ -405,8 +410,16 @@ def usage_event(
     subject: str = "",
     error_message: str = "",
     text_length: int = 0,
+    openai_usage: dict[str, int] | None = None,
 ) -> dict[str, Any]:
-    textract_calls = 0 if cache_hit or status == "rejected" else max(0, page_count)
+    textract_calls = 0
+    ai_usage = openai_usage or {}
+    input_tokens = 0 if cache_hit else max(0, int(ai_usage.get("input_tokens", 0)))
+    output_tokens = 0 if cache_hit else max(0, int(ai_usage.get("output_tokens", 0)))
+    input_rate = _int_env("OPENAI_INPUT_MICRO_USD_PER_MILLION_TOKENS", 0)
+    output_rate = _int_env("OPENAI_OUTPUT_MICRO_USD_PER_MILLION_TOKENS", 0)
+    openai_cost = (input_tokens * input_rate + output_tokens * output_rate) // 1000000
+
     bedrock_used = "+bedrock" in provider or provider.endswith("bedrock")
     bedrock_calls = 1 if bedrock_used and status == "success" else 0
     estimate = estimate_cost_micro_usd(
@@ -414,7 +427,13 @@ def usage_event(
         bedrock_calls=bedrock_calls,
         upload_bytes=upload_bytes,
     )
+    estimate["total"] += openai_cost
     return {
+        "openai_calls": 0 if cache_hit else int(ai_usage.get("calls", 0)),
+        "openai_input_tokens": input_tokens,
+        "openai_output_tokens": output_tokens,
+        "estimated_openai_micro_usd": openai_cost,
+        "openai_pricing_configured": input_rate > 0 and output_rate > 0,
         "event_id": str(uuid4()),
         "identity_hash": identity.identity_hash,
         "identity_type": identity.identity_type,
@@ -476,6 +495,8 @@ def admin_usage_summary(days: int = 1) -> dict[str, Any]:
         "successful_scans": len(successful),
         "cache_hit_rate": _ratio(sum(1 for item in recent if item.get("cache_hit")), len(recent)),
         "aws_calls_avoided": aws_calls_avoided,
+        "openai_calls": sum(int(item.get("openai_calls") or 0) for item in recent),
+        "openai_pricing_configured": all(item.get("openai_pricing_configured", False) for item in recent if str(item.get("provider", "")).startswith("openai:")),
         "estimated_total_micro_usd": total_cost,
         "estimated_cost_usd": _micro_usd_to_string(total_cost),
         "estimated_cost_per_successful_scan_usd": _micro_usd_to_string(total_cost // max(1, len(successful))),
@@ -483,7 +504,7 @@ def admin_usage_summary(days: int = 1) -> dict[str, Any]:
         "paid_usage_count": len(paid_events),
         "by_status": _counts(recent, "status"),
         "by_tier": _counts(recent, "subscription_tier"),
-        "note": "Costs are estimates from configured pricing assumptions, not AWS billing records.",
+        "note": "Costs are estimates from configured pricing assumptions, not provider billing records. OpenAI prices must be configured for complete estimates.",
     }
 
 
@@ -584,8 +605,8 @@ def _kill_switch_modes() -> set[str]:
     return {mode for mode in modes if mode in SUPPORTED_KILL_MODES}
 
 
-def _admin_allows_free_bedrock() -> bool:
-    return os.getenv("ALLOW_FREE_BEDROCK_FOR_TESTING", "false").lower() in {"1", "true", "yes", "on"}
+def _admin_allows_free_ai() -> bool:
+    return os.getenv("ALLOW_FREE_AI_FOR_TESTING", os.getenv("ALLOW_FREE_BEDROCK_FOR_TESTING", "false")).lower() in {"1", "true", "yes", "on"}
 
 
 def _period_start(period: str) -> str:

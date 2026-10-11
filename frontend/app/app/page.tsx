@@ -664,7 +664,7 @@ export default function Home() {
           : "";
         const combinedContext = [slateContext, contextText.trim()].filter(Boolean).join("\n");
         formData.append("file", fileForOcr);
-        formData.append("provider", "textract");
+        formData.append("provider", "openai");
         formData.append("subject", isSlateCapture ? "kids" : subject);
         formData.append("context_text", combinedContext);
         formData.append("cleanup_mode", "rules");
@@ -1307,7 +1307,7 @@ export default function Home() {
           <div className="toolbar" aria-label="Scan tools">
             <div className="provider-badge" aria-label="OCR provider">
               <span>OCR</span>
-              <strong>Amazon Textract</strong>
+              <strong>OpenAI</strong>
             </div>
             <button className="primary" disabled={isScanning} onClick={scanFile}>
               {isScanning ? (
