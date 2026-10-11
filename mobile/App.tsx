@@ -121,7 +121,7 @@ export default function App() {
   const [cameraQualityProgress, setCameraQualityProgress] = useState(0);
   const [cameraQualityStatus, setCameraQualityStatus] = useState<CameraQualityStatus>("waiting");
   const [cameraQualityMessage, setCameraQualityMessage] = useState("Opening camera...");
-  const [cleanupMode, setCleanupMode] = useState<"rules" | "bedrock">("rules");
+  const [cleanupMode, setCleanupMode] = useState<"rules" | "openai">("rules");
   const [showingPaywall, setShowingPaywall] = useState(false);
   const [isInterstitialLoaded, setIsInterstitialLoaded] = useState(false);
   const [isRewardedLoaded, setIsRewardedLoaded] = useState(false);
@@ -394,7 +394,7 @@ export default function App() {
       setMessage("Choose or take one or more note photos first.");
       return;
     }
-    if (cleanupMode === "bedrock" && !purchases.isPro && rewardedAiCleanupCredits <= 0) {
+    if (cleanupMode === "openai" && !purchases.isPro && rewardedAiCleanupCredits <= 0) {
       setShowingPaywall(true);
       setMessage("AI cleanup is included with Cleanote Plus, or you can watch a rewarded ad for one AI cleanup scan.");
       return;
@@ -405,7 +405,7 @@ export default function App() {
     let usedRewardedCleanupCredit = false;
 
     try {
-      if (cleanupMode === "bedrock" && !purchases.isPro && rewardedAiCleanupCredits > 0) {
+      if (cleanupMode === "openai" && !purchases.isPro && rewardedAiCleanupCredits > 0) {
         usedRewardedCleanupCredit = true;
         setRewardedAiCleanupCredits((currentCredits) => Math.max(0, currentCredits - 1));
       }
@@ -418,7 +418,7 @@ export default function App() {
           type: image.mimeType,
           uri: image.uri
         } as unknown as Blob);
-        formData.append("provider", "textract");
+        formData.append("provider", "openai");
         formData.append("subject", subject);
         formData.append("context_text", contextText);
         formData.append("cleanup_mode", cleanupMode);
@@ -453,7 +453,7 @@ export default function App() {
         results.length > 1 ? `${results.length} page scan` : results[0].filename ?? pickedImages[0].fileName;
       setText(combinedText);
       setFilename(nextFilename);
-      setProvider(results[0].provider ?? "textract");
+      setProvider(results[0].provider ?? "openai");
       setMessage(
         results.length > 1
           ? `Scan complete for ${results.length} pages.`
@@ -928,17 +928,17 @@ export default function App() {
                     }
                     return;
                   }
-                  setCleanupMode("bedrock");
+                  setCleanupMode("openai");
                 }}
                 style={[
                   styles.cleanupOption,
-                  cleanupMode === "bedrock" ? styles.cleanupOptionActive : null
+                  cleanupMode === "openai" ? styles.cleanupOptionActive : null
                 ]}
               >
                 <Text
                   style={[
                     styles.cleanupOptionTitle,
-                    cleanupMode === "bedrock" ? styles.cleanupOptionTitleActive : null
+                    cleanupMode === "openai" ? styles.cleanupOptionTitleActive : null
                   ]}
                 >
                   AI cleanup {purchases.isPro ? "" : "· Plus"}

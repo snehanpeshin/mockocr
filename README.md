@@ -26,93 +26,36 @@ python -m uvicorn main:app --reload --reload-dir . --port 8000
 
 If your venv is using Python 3.14 and a package tries to compile from source, use Python 3.11-3.13 for this MVP backend. Those versions have the broadest prebuilt wheel support for OpenCV and OCR-related packages.
 
-By default, OCR runs in `mock` mode for local development unless `OCR_PROVIDER` is set. The production UI is configured for Amazon Textract.
+## OpenAI OCR and verification
 
-To use Amazon Textract:
+Cleanote transcribes original images and every PDF page through OpenAI, replacing
+Textract and Bedrock. The backend returns ordered text/math/table/diagram blocks,
+explicit uncertain readings, and an optional image-grounded verification pass.
+See [migration and validation](docs/openai-migration.md) for deployment, cost controls,
+known limits, and the evaluation requirements.
 
-```bash
-python -m pip install -r requirements-aws.txt
-export OCR_PROVIDER=textract
-export AWS_REGION=us-east-1
-export AWS_ACCESS_KEY_ID=your_access_key_id
-export AWS_SECRET_ACCESS_KEY=your_secret_access_key
-python -m uvicorn main:app --reload --reload-dir . --port 8000
-```
-
-Textract is the best option here if you expect forms, tables, or structured handwritten records later. The backend uses Textract `DetectDocumentText` for the MVP text extraction path.
-
-To add AWS Bedrock AI cleanup after Textract:
+Install dependencies:
 
 ```bash
-export AI_CLEANUP_PROVIDER=bedrock
-export BEDROCK_REGION=us-east-1
-export BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
-python -m uvicorn main:app --reload --reload-dir . --port 8000
+python -m pip install -r requirements.txt -r requirements-aws.txt
 ```
 
-If Bedrock is not enabled or the model is unavailable, the app falls back to rule-based cleanup unless `AI_CLEANUP_STRICT=true`.
-
-## AWS-Only Deployment
-
-Recommended live setup for `mockocr.com`:
-
-- Frontend: AWS Amplify Hosting
-- Backend: Amazon ECS Express Mode using `backend/Dockerfile`
-- OCR: Amazon Textract
-- AI cleanup: optional Amazon Bedrock
-- Domain: point the Wix-managed domain DNS records to Amplify
-
-Backend environment variables:
+Set the server-side environment:
 
 ```bash
-OCR_PROVIDER=textract
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your_access_key_id
-AWS_SECRET_ACCESS_KEY=your_secret_access_key
-AI_CLEANUP_PROVIDER=rules
-AI_CLEANUP_MAX_TOKENS=3200
-AI_VISION_REVIEW=true
-AI_VISUAL_NOTES=true
-AI_VISION_MAX_IMAGE_BYTES=3500000
-BEDROCK_REGION=us-east-1
-BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
-FRONTEND_ORIGINS=https://mockocr.com,https://www.mockocr.com
-BETA_TABLE_NAME=cleanote-beta
-BETA_LIMIT=50
-BETA_TOKEN_TTL_HOURS=24
-SES_FROM_EMAIL=hello@cleanote.com
-APP_BASE_URL=https://cleanote.com
-NOTE_TABLE_NAME=cleanote-notes
-FIREBASE_PROJECT_ID=cleanote-443ef
-SCAN_EVENTS_TABLE_NAME=cleanote-scan-events
-STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
-STRIPE_CLEANOTE_ONE_TIME_PREMIUM_PRODUCT_ID=prod_UpH9Wwph6Epw45
-STRIPE_CLEANOTE_ONE_TIME_PREMIUM_PRICE_ID=price_1TpcbeFpqcjE8MaKolB8O4rS
-STRIPE_PAYMENT_TABLE_NAME=cleanote-payments
-STRIPE_SUBSCRIPTION_TABLE_NAME=cleanote-subscriptions
-ADMIN_DASHBOARD_TOKEN=replace_with_long_random_admin_token
+OCR_PROVIDER=openai
+OPENAI_API_KEY=your_server_side_secret
+OPENAI_OCR_MODEL=gpt-6-sol
+OPENAI_OCR_MAX_OUTPUT_TOKENS=12000
+OPENAI_OCR_TIMEOUT_SECONDS=90
+OCR_CACHE_VERSION=openai-v1
+OCR_CACHE_LEASE_SECONDS=1200
 ```
 
-Frontend environment variable:
-
-```bash
-NEXT_PUBLIC_API_BASE_URL=https://your-aws-backend-url
-NEXT_PUBLIC_BETA_GATE=false
-```
-
-For production, create an IAM user or role with the least permission needed for the MVP:
-
-```text
-textract:DetectDocumentText
-bedrock:InvokeModel if AI_CLEANUP_PROVIDER=bedrock
-dynamodb:PutItem
-dynamodb:GetItem
-dynamodb:UpdateItem
-dynamodb:Scan
-dynamodb:Query
-ses:SendEmail
-```
+The frontend uses the same backend API. Existing installed clients sending
+`provider=textract` and `cleanup_mode=bedrock` are routed to OpenAI.
+AWS hosting, DynamoDB account data, and SES email remain supported.
+Do not put the OpenAI key in frontend or mobile configuration.
 
 ### Stripe Billing
 
@@ -122,49 +65,6 @@ dashboard are documented in:
 ```text
 docs/stripe-setup.md
 ```
-
-The frontend always submits uploads to the backend as `provider=textract`.
-
-### OCR Cleanup Modes
-
-Cleanote uses Textract for the first OCR pass. For complex notes with formulas, diagrams,
-tables, arrows, and dense visual structure, enable the Bedrock review pass:
-
-```bash
-AI_CLEANUP_PROVIDER=bedrock
-AI_CLEANUP_MAX_TOKENS=3200
-AI_VISION_REVIEW=true
-AI_VISUAL_NOTES=true
-BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
-```
-
-This sends the processed page image plus the Textract draft to Bedrock. If the selected model
-does not accept image input, the backend falls back to text-only Bedrock cleanup unless
-`AI_CLEANUP_STRICT=true`.
-
-For mixed pages, such as printed handouts with handwritten margin notes, the backend uses
-Textract line metadata to separate likely printed/typed text from likely handwritten annotations.
-Printed text is preserved with minimal correction, while handwritten annotations receive the
-stronger visual/context review pass and are placed near the printed content they refer to when
-the page layout makes that clear.
-
-When `AI_VISUAL_NOTES=true`, Cleanote also asks the vision model to convert non-text drawings
-into searchable notes. Geometry sketches, triangles, graphs, flowcharts, tables, arrows, circuits,
-and chemical structures are described as structured sections with visible labels, relationships,
-known values, and unclear areas marked instead of guessed.
-
-The Bedrock cleanup prompt is designed for faithful transcription rather than summarization.
-Set `AI_CLEANUP_MAX_TOKENS` high enough for longer pages so readable handwritten lines and
-diagram descriptions are not compressed or cut short.
-
-For math and science notes, Bedrock uses a balanced transcription-first verification pass.
-Cleanote should repair obvious OCR damage without turning the page into a generated explanation.
-Likely glyph errors such as `a`/`6`, `b`/`6`, `0`/`O`, `1`/`l`, `rn`/`m`, and `x`/`×`,
-plus missing parentheses or superscripts, are corrected only when the image, local syntax, and
-page-level symbol repetition strongly support the change. Cleanote should not replace visible
-equations with different known formulas, theorem names, solutions, or explanations. Non-trivial
-OCR-level corrections are reported in a concise `Corrections made` section; unresolved cases
-remain in `Possible OCR Ambiguities`.
 
 ### Cleanote Beta Access
 
@@ -246,7 +146,7 @@ npm run ios
 ```
 
 Set `EXPO_PUBLIC_API_BASE_URL` to the deployed ECS backend URL. The first mobile version supports
-native camera/photo import, Textract OCR, text editing, local saves, and optional cloud note
+native camera/photo import, OpenAI OCR, text editing, local saves, and optional cloud note
 save/search using a verified beta email.
 
 ## API

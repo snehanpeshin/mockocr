@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import os
 from pathlib import Path
+from typing import Any
 
 import cv2
 from docx import Document
@@ -14,7 +15,6 @@ from fastapi.responses import FileResponse
 import numpy as np
 from pydantic import BaseModel
 
-from image_preprocess import preprocess_image_variants
 from firebase_auth import require_matching_email
 from beta_service import (
     beta_summary,
@@ -45,7 +45,8 @@ from cost_control import (
     usage_event,
 )
 from note_service import delete_note, save_note, search_notes
-from ocr_service import clean_ocr_text, extract_text
+from ocr_service import clean_ocr_text, extract_text, resolve_provider
+from starlette.concurrency import run_in_threadpool
 from payment_service import (
     construct_webhook_event,
     create_checkout_session,
@@ -435,6 +436,7 @@ async def run_ocr(
     cache_reservation = None
     try:
         identity = identify_scan_request(authorization, x_cleanote_installation_id)
+        provider = resolve_provider(provider)
         access = effective_access(identity, cleanup_mode)
         enforce_kill_switch(identity, access)
 
@@ -507,7 +509,7 @@ async def run_ocr(
                 subject=subject,
                 options={
                     "context_text_hash": context_text,
-                    "fast_multi_page": page_count > 1,
+                    "multi_page": page_count > 1,
                     "file_type": suffix.lstrip("."),
                 },
             )
@@ -532,30 +534,26 @@ async def run_ocr(
                 return cached_response
 
             reservation = reserve_limits(identity, access, page_count)
-            page_results: list[dict[str, str]] = []
-            fast_multi_page = page_count > 1
-            for page_index, page_path in enumerate(page_paths):
-                processed_paths = preprocess_image_variants(
-                    page_path,
-                    temp_path / f"ocr_candidates_page_{page_index + 1}",
-                )
-                if not processed_paths:
-                    raise ValueError("Could not prepare this image for OCR.")
+            page_results: list[dict[str, Any]] = []
+            for page_path in page_paths:
+                # Use original colour pixels, not destructive OCR threshold variants.
                 page_results.append(
-                    extract_text(
-                        processed_paths,
-                        provider,
-                        subject,
-                        context_text,
-                        fast_mode=fast_multi_page,
+                    await run_in_threadpool(
+                        extract_text, page_path, provider, subject, context_text,
                         cleanup_mode=access.cleanup_mode,
                     )
                 )
+            openai_usage = {
+                key: sum(int(page.get("usage", {}).get(key, 0)) for page in page_results)
+                for key in ("calls", "input_tokens", "output_tokens")
+            }
 
             result_text = _combine_page_results(page_results)
             result_provider = _combine_providers(page_results)
             response_payload: dict[str, object] = {
                 "text": result_text,
+                "pages": page_results,
+                "needs_review": any(page.get("needs_review", False) for page in page_results),
                 "provider": result_provider,
                 "filename": filename,
                 "subject": subject,
@@ -564,7 +562,10 @@ async def run_ocr(
                 "effective_cleanup_mode": access.cleanup_mode,
                 "cache_hit": False,
             }
-            complete_cache(cache_reservation, response_payload, idempotency_key)
+            if any(page.get("warnings") for page in page_results):
+                abandon_cache(cache_reservation)
+            else:
+                complete_cache(cache_reservation, response_payload, idempotency_key)
             record_scan_event(usage_event(
                 identity=identity,
                 access=access,
@@ -578,6 +579,7 @@ async def run_ocr(
                 idempotency_key=idempotency_key,
                 subject=subject,
                 text_length=len(result_text),
+                openai_usage=openai_usage,
             ))
             _ = reservation
             return response_payload
@@ -684,7 +686,7 @@ def _render_pdf_pages(pdf_path: Path, output_dir: Path) -> list[Path]:
     return rendered_paths
 
 
-def _combine_page_results(page_results: list[dict[str, str]]) -> str:
+def _combine_page_results(page_results: list[dict[str, Any]]) -> str:
     if len(page_results) == 1:
         return page_results[0]["text"]
 
@@ -693,7 +695,7 @@ def _combine_page_results(page_results: list[dict[str, str]]) -> str:
     )
 
 
-def _combine_providers(page_results: list[dict[str, str]]) -> str:
+def _combine_providers(page_results: list[dict[str, Any]]) -> str:
     providers = [result["provider"] for result in page_results if result.get("provider")]
     if not providers:
         return "unknown"
