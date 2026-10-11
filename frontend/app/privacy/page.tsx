@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         <p className="eyebrow">Karigari Home LLC</p>
         <h1>Privacy Policy</h1>
         <p className="company-line">Karigari Home LLC</p>
-        <p className="policy-date">Last updated: July 10, 2026</p>
+        <p className="policy-date">Last updated: October 11, 2026</p>
 
         <section>
           <h2>What Karigari Does</h2>
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
           <h2>Cloud Processing And Storage</h2>
           <p>
             Karigari uses Amazon Web Services to run the backend. Uploaded note images may be
-            sent to OpenAI for image transcription. If AI cleanup is enabled,
+            sent to OpenAI for image transcription. In Kids Mode, tapping Finished sends the child's drawing and selected practice target to OpenAI for encouraging feedback, an optional short imaginary story, and a next activity. Child profile names stay on the device, except when the name is the selected name-writing practice target. If AI cleanup is enabled,
             the page image and draft transcription may receive an additional OpenAI review. If you save notes to cloud
             search, note text and related metadata may be stored in Amazon DynamoDB.
           </p>

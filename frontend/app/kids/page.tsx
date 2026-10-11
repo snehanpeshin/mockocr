@@ -24,6 +24,9 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import { useAuth } from "../lib/auth";
+import { getApiBase } from "../apiBase";
+
+type DrawingFeedback = { verdict: "pass" | "try_again"; message: string; story: string; next_activity: string };
 
 type KidsActivity = "draw" | "letters" | "numbers" | "shapes" | "name" | "gallery";
 type Tool = "pen" | "eraser";
@@ -60,10 +63,8 @@ const NUMBERS = "0123456789".split("");
 const SHAPES = ["Circle", "Square", "Triangle", "Rectangle", "Star", "Heart"];
 const ENCOURAGEMENT = ["Great job!", "Beautiful!", "Nice work!", "You did it!"];
 
-const DEFAULT_CHILDREN: ChildProfile[] = [
-  { age: "4", avatar: "A", id: "aarav", name: "Aarav" },
-  { age: "6", avatar: "M", id: "maya", name: "Maya" }
-];
+const DEFAULT_CHILDREN: ChildProfile[] = [];
+const EMPTY_CHILD: ChildProfile = { id: "", name: "", avatar: "?", age: "" };
 
 const PROMPTS = [
   "Draw a house",
@@ -116,7 +117,8 @@ const ACTIVITIES = [
 export default function KidsModePage() {
   const { user, isAuthLoading, logout } = useAuth();
   const [children, setChildren] = useState<ChildProfile[]>(DEFAULT_CHILDREN);
-  const [selectedChildId, setSelectedChildId] = useState(DEFAULT_CHILDREN[0].id);
+  const [selectedChildId, setSelectedChildId] = useState("");
+  const [childNameDraft, setChildNameDraft] = useState("");
   const [activity, setActivity] = useState<KidsActivity>("draw");
   const [letterIndex, setLetterIndex] = useState(0);
   const [numberIndex, setNumberIndex] = useState(0);
@@ -128,7 +130,7 @@ export default function KidsModePage() {
   const [gateProgress, setGateProgress] = useState(0);
   const gateTimerRef = useRef<number | null>(null);
 
-  const selectedChild = children.find((child) => child.id === selectedChildId) ?? children[0] ?? DEFAULT_CHILDREN[0];
+  const selectedChild = children.find((child) => child.id === selectedChildId) ?? children[0] ?? EMPTY_CHILD;
   const activityTitle = getActivityTitle(activity, letterIndex, numberIndex, shapeIndex, selectedChild.name);
 
   useEffect(() => {
@@ -183,12 +185,11 @@ export default function KidsModePage() {
       if (currentChildren.length >= 4) {
         return currentChildren;
       }
-      const nextNumber = currentChildren.length + 1;
       const nextProfile: ChildProfile = {
         age: "",
         avatar: "K",
         id: `kid-${Date.now()}`,
-        name: `Kid ${nextNumber}`
+        name: ""
       };
       const nextChildren = [...currentChildren, nextProfile];
       window.localStorage.setItem(KIDS_PROFILES_KEY, JSON.stringify(nextChildren));
@@ -197,7 +198,8 @@ export default function KidsModePage() {
     });
   }
 
-  function saveCreation(image: string) {
+  async function saveCreation(image: string, reviewImage: string): Promise<DrawingFeedback> {
+    if (!selectedChild.name.trim()) throw new Error("Please enter a child name first.");
     const now = new Date().toISOString();
     const nextCreation: KidsCreation = {
       activityType: activity,
@@ -218,6 +220,30 @@ export default function KidsModePage() {
         ? `${ENCOURAGEMENT[Math.floor(Math.random() * ENCOURAGEMENT.length)]} Saved for parent review.`
         : "Your drawing is complete. Browser storage is full, so ask a parent to clear older art before saving."
     );
+    const form = new FormData();
+    form.append("file", await (await fetch(reviewImage)).blob(), "drawing.png");
+    form.append("activity", activity);
+    form.append("target", activity === "letters" ? LETTERS[letterIndex] : activity === "numbers" ? NUMBERS[numberIndex] : activity === "shapes" ? SHAPES[shapeIndex] : activity === "name" ? selectedChild.name : "");
+    let installationId = window.localStorage.getItem("cleanote.installationId");
+    if (!installationId) {
+      installationId = crypto.randomUUID();
+      window.localStorage.setItem("cleanote.installationId", installationId);
+    }
+    const token = user ? await user.getIdToken() : null;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 110000);
+    try {
+      const response = await fetch(`${getApiBase()}/api/kids/review`, {
+        method: "POST", body: form, signal: controller.signal,
+        headers: { "X-Cleanote-Installation-Id": installationId, ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+      });
+      if (!response.ok) {
+        throw new Error(response.status === 429 ? "Practice checks are used up for now. Ask a parent to check your drawing." : "The drawing check is unavailable. Ask a parent to check your drawing.");
+      }
+      return await response.json() as DrawingFeedback;
+    } finally {
+      window.clearTimeout(timer);
+    }
   }
 
   function startParentHold() {
@@ -244,6 +270,34 @@ export default function KidsModePage() {
       gateTimerRef.current = null;
     }
     setGateProgress(0);
+  }
+
+  if (!selectedChild.name.trim()) {
+    return (
+      <main className="kids-page">
+        <section className="parent-gate-card child-name-setup" aria-label="Name your child">
+          <Baby aria-hidden="true" size={36} />
+          <h1>Who is creating today?</h1>
+          <p>Enter your child&apos;s first name or nickname to start Kids Mode.</p>
+          <form className="child-name-form" onSubmit={(event) => {
+            event.preventDefault();
+            const name = childNameDraft.trim();
+            if (!name) return;
+            const profile: ChildProfile = { id: selectedChild.id || crypto.randomUUID(), name, avatar: name[0].toUpperCase(), age: selectedChild.age || "" };
+            const next = [...children.filter((child) => child.id !== profile.id && child.name.trim()), profile].slice(0, 4);
+            setChildren(next); setSelectedChildId(profile.id); setChildNameDraft("");
+            window.localStorage.setItem(KIDS_PROFILES_KEY, JSON.stringify(next));
+            setShowProfileSettings(false);
+          }}>
+            <label htmlFor="kids-first-name">First name or nickname</label>
+            <input id="kids-first-name" autoComplete="off" maxLength={18} required value={childNameDraft}
+              placeholder="Enter a name" onChange={(event) => setChildNameDraft(event.target.value)} />
+            <button className="primary" type="submit" disabled={!childNameDraft.trim()}>Start Kids Mode</button>
+          </form>
+          <a href="/app">Back to Parent Mode</a>
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -281,8 +335,8 @@ export default function KidsModePage() {
           <div className="kids-sticker-row" aria-hidden="true">
             <span>ABC</span>
             <span>123</span>
-            <span>★</span>
-            <span>♡</span>
+            <span>â˜…</span>
+            <span>â™¡</span>
           </div>
         </div>
         <ChildSelector
@@ -325,6 +379,7 @@ export default function KidsModePage() {
                 </div>
               </div>
               <DrawingCanvas
+                key={selectedChild.id}
                 activity={activity}
                 guideLabel={activityTitle}
                 onNext={() => {
@@ -512,7 +567,7 @@ function DrawingCanvas({
   activity: KidsActivity;
   guideLabel: string;
   onNext: () => void;
-  onSave: (image: string) => void;
+  onSave: (image: string, reviewImage: string) => Promise<DrawingFeedback>;
   shape: string;
   template: string;
 }) {
@@ -523,6 +578,23 @@ function DrawingCanvas({
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [redoStack, setRedoStack] = useState<Stroke[]>([]);
   const activeStrokeRef = useRef<Stroke | null>(null);
+  const requestRef = useRef(0);
+  const [checking, setChecking] = useState(false);
+  const [feedback, setFeedback] = useState<DrawingFeedback | null>(null);
+  const [checkError, setCheckError] = useState("");
+
+  useEffect(() => {
+    requestRef.current += 1;
+    setChecking(false);
+    setFeedback(null);
+    setCheckError("");
+    setStrokes([]);
+    setRedoStack([]);
+    activeStrokeRef.current = null;
+    return () => { requestRef.current += 1; };
+  }, [activity, template, shape]);
+
+  useEffect(() => { setFeedback(null); setCheckError(""); }, [strokes]);
 
   const showTemplate = activity !== "draw";
 
@@ -543,6 +615,7 @@ function DrawingCanvas({
   }
 
   function beginStroke(event: PointerEvent<HTMLCanvasElement>) {
+    if (checking) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     const nextStroke = { color, points: [getPoint(event)], size, tool };
@@ -582,11 +655,13 @@ function DrawingCanvas({
   }
 
   function clearCanvas() {
+    if (checking) return;
     setStrokes([]);
     setRedoStack([]);
   }
 
   function undo() {
+    if (checking) return;
     setStrokes((current) => {
       if (!current.length) {
         return current;
@@ -598,6 +673,7 @@ function DrawingCanvas({
   }
 
   function redo() {
+    if (checking) return;
     setRedoStack((current) => {
       if (!current.length) {
         return current;
@@ -608,17 +684,27 @@ function DrawingCanvas({
     });
   }
 
-  function save() {
+  async function save() {
     const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
+    if (!canvas || checking) return;
+    const requestId = ++requestRef.current;
+    setChecking(true);
+    setFeedback(null);
+    setCheckError("");
+    // Review child strokes only: a visible tracing guide must never earn a pass.
+    const reviewCanvas = document.createElement("canvas");
+    reviewCanvas.width = canvas.width;
+    reviewCanvas.height = canvas.height;
+    drawCanvas(reviewCanvas, strokes, "draw", "", "");
     const compactImage = canvas.toDataURL("image/webp", 0.78);
-    onSave(
-      compactImage.startsWith("data:image/webp")
-        ? compactImage
-        : canvas.toDataURL("image/jpeg", 0.82)
-    );
+    try {
+      const result = await onSave(compactImage.startsWith("data:image/webp") ? compactImage : canvas.toDataURL("image/jpeg", 0.82), reviewCanvas.toDataURL("image/png"));
+      if (requestId === requestRef.current) setFeedback(result);
+    } catch (error) {
+      if (requestId === requestRef.current) setCheckError(error instanceof Error && error.name !== "AbortError" ? error.message : "The check took too long. Ask a parent to check your saved drawing.");
+    } finally {
+      if (requestId === requestRef.current) setChecking(false);
+    }
   }
 
   return (
@@ -636,6 +722,14 @@ function DrawingCanvas({
         />
       </div>
 
+      <p className="kids-check-note">Finished saves your art and sends your drawing to OpenAI for a gentle practice check, a story, and a next activity. AI can make mistakes; a parent can help.</p>
+      {feedback && <section className={`kids-feedback ${feedback.verdict}`} aria-live="polite">
+        <h2>{feedback.verdict === "pass" ? "Pass!" : "Try again"}</h2>
+        <p>{feedback.message}</p>
+        {feedback.story && <><h3>A little imaginary story</h3><p>{feedback.story}</p></>}
+        <h3>Try this next</h3><p>{feedback.next_activity}</p>
+      </section>}
+      {checkError && <p className="kids-feedback" role="status">{checkError} Your drawing stays in your gallery if browser storage has space.</p>}
       <div className="kids-toolbars">
         <div className="kids-toolbar">
           <button className={tool === "pen" ? "active" : ""} onClick={() => setTool("pen")} type="button">
@@ -662,9 +756,9 @@ function DrawingCanvas({
             <RotateCcw aria-hidden="true" size={22} />
             Clear
           </button>
-          <button className="save-creation" onClick={save} type="button">
+          <button className="save-creation" disabled={checking} onClick={save} type="button">
             <Save aria-hidden="true" size={22} />
-            Save
+            {checking ? "Checking..." : "Finished"}
           </button>
         </div>
         <div className="kids-toolbar secondary">
