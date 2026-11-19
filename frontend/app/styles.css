@@ -6722,3 +6722,29 @@ textarea:focus {
 .kids-feedback p { margin: 0 0 14px; }
 .kids-check-note { font-size: 13px; color: #64748b; padding: 0 8px; }
 .save-creation:disabled { opacity: .6; cursor: wait; }
+
+.traffic-panel {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid currentColor;
+  border-color: color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 0.75rem;
+}
+.traffic-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem 1.25rem;
+  margin: 1rem 0;
+}
+.traffic-totals dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+.traffic-table-scroll { max-height: 30rem; overflow: auto; }
+.traffic-panel table { width: 100%; border-collapse: collapse; }
+.traffic-panel caption { text-align: left; font-weight: 700; padding-bottom: 0.4rem; }
+.traffic-panel th, .traffic-panel td { padding: 0.5rem; border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent); }
+.traffic-panel th:first-child { overflow-wrap: anywhere; text-align: left; }
+.traffic-panel th:last-child, .traffic-panel td:last-child { text-align: right; }

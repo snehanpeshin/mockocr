@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { getApiBase } from "../apiBase";
+import AdminTraffic from "./AdminTraffic";
 
 const API_BASE = getApiBase();
 
@@ -129,6 +130,7 @@ type RevenueSummary = {
 export default function AdminPage() {
   const [token, setToken] = useState("");
   const [summary, setSummary] = useState<RevenueSummary | null>(null);
+  const [trafficSession, setTrafficSession] = useState({ token: "", refresh: 0 });
   const [paymentLinkProduct, setPaymentLinkProduct] = useState(PRODUCTS[0].key);
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -137,6 +139,7 @@ export default function AdminPage() {
 
   async function loadDashboard(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setTrafficSession((current) => ({ token: "", refresh: current.refresh }));
     setIsLoading(true);
     setMessage(null);
 
@@ -149,6 +152,7 @@ export default function AdminPage() {
         throw new Error(payload.detail ?? "Could not load admin dashboard.");
       }
       setSummary(payload);
+      setTrafficSession((current) => ({ token, refresh: current.refresh + 1 }));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not load admin dashboard.");
     } finally {
@@ -346,6 +350,7 @@ export default function AdminPage() {
 
       {summary ? (
         <section className="admin-grid">
+          {trafficSession.token ? <AdminTraffic token={trafficSession.token} refresh={trafficSession.refresh} /> : null}
           <div className="admin-card metric-card">
             <p className="eyebrow">Total revenue</p>
             <strong>${summary.total_revenue}</strong>
